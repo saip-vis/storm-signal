@@ -1,10 +1,56 @@
 import { readFile } from 'node:fs/promises'; import path from 'node:path'; import { fileURLToPath } from 'node:url';
 import { NetworkService } from '../service.js';
 import { predictBuildingDamageBatch, hybridAssessments } from '../ml.js';
+import { loadSnapshot, buildingPathsFor } from '../buildings.js';
+import { DEFAULT_REGION_ID } from '../regions.js';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..'); const data=path.join(root,'data/simulations');
 const onSegment=(p,a,b)=>Math.abs((b[0]-a[0])*(p[1]-a[1])-(b[1]-a[1])*(p[0]-a[0]))<1e-10&&p[0]>=Math.min(a[0],b[0])&&p[0]<=Math.max(a[0],b[0])&&p[1]>=Math.min(a[1],b[1])&&p[1]<=Math.max(a[1],b[1]);
 const inside=(p,ring)=>{let inPoly=false; for(let i=0,j=ring.length-1;i<ring.length;j=i++){const [xi,yi]=ring[i],[xj,yj]=ring[j];if(onSegment(p,ring[j],ring[i]))return true;if(((yi>p[1])!== (yj>p[1]))&&p[0] <= (xj-xi)*(p[1]-yi)/(yj-yi)+xi)inPoly=!inPoly;} return inPoly;};
 const clone=x=>JSON.parse(JSON.stringify(x)); const round=x=>Math.round(x*100)/100;
+
+// ── Polygon-flood exposure helpers ────────────────────────────────────────────
+
+// Compute axis-aligned bbox [minLon, minLat, maxLon, maxLat] of a ring.
+const ringBbox = ring => [
+  Math.min(...ring.map(c => c[0])),
+  Math.min(...ring.map(c => c[1])),
+  Math.max(...ring.map(c => c[0])),
+  Math.max(...ring.map(c => c[1]))
+];
+
+// Fast bbox overlap test.
+const bboxOverlap = ([ax1,ay1,ax2,ay2],[bx1,by1,bx2,by2]) =>
+  ax1 < bx2 && ax2 > bx1 && ay1 < by2 && ay2 > by1;
+
+// Check whether a building polygon (Polygon or MultiPolygon) intersects the
+// flood polygon ring. Uses bbox fast-reject then vertex-in-polygon spot check.
+// (No full Sutherland-Hodgman clipping needed for MVP.)
+function polygonFloodExposure(buildingGeometry, floodRing) {
+  const floodBbox = ringBbox(floodRing);
+  const outerRings = buildingGeometry.type === 'Polygon'
+    ? [buildingGeometry.coordinates[0]]
+    : buildingGeometry.coordinates.map(poly => poly[0]);
+  for (const ring of outerRings) {
+    if (!bboxOverlap(ringBbox(ring), floodBbox)) continue;
+    // Any building vertex inside the flood polygon?
+    if (ring.some(v => inside(v, floodRing))) return 'polygon_intersection';
+    // Any flood vertex inside the building polygon?
+    if (floodRing.some(v => inside(v, ring))) return 'polygon_intersection';
+    // Bboxes overlap but no vertex penetration detected → bbox_overlap only
+    return 'bbox_overlap';
+  }
+  return null; // no intersection
+}
+
+// Try to load real Overture building footprints; returns [] if cache is absent.
+export async function loadBuildingFootprints() {
+  try {
+    const snapshot = await loadSnapshot(buildingPathsFor(DEFAULT_REGION_ID).cache);
+    return snapshot.features;
+  } catch {
+    return [];
+  }
+}
 export async function loadSimulationInputs(){const [scenario,attributes]=await Promise.all(['richardson-flood.json','richardson-attributes.json'].map(async f=>JSON.parse(await readFile(path.join(data,f),'utf8')))); return {scenario,attributes};}
 export async function loadGraph(){const s=new NetworkService();await s.build();return {graph:s.network(),origin:'component1_offline_fixture'};}
 export function validateScenario(s){if(!s||s.disasterType!=='flood')throw new Error('Only flood scenarios are supported by this MVP');if(!Number.isFinite(s.severity)||s.severity<1||s.severity>5)throw new Error('Flood severity must be 1–5');if(s.footprint?.type!=='Polygon')throw new Error('Scenario requires a Polygon footprint');}
@@ -16,6 +62,13 @@ export function calculateDirectCommunityImpact(scenario,attributes){const neighb
 export function calculateShelterNeeds(community,attributes,overrides={}){const shelters=attributes.shelters.map(s=>({...s,capacity:overrides.shelterCapacity?.[s.id]??s.capacity}));const available=shelters.filter(s=>s.status==='confirmed_available_in_simulation').reduce((n,s)=>n+s.capacity,0);return {shelterDemand:community.estimatedShelterSeekers,availableCapacity:available,unmetShelterDemand:Math.max(0,community.estimatedShelterSeekers-available),shelters,assumptions:['Capacity is confirmed only within the synthetic scenario; unknown candidate capacity is excluded.']};}
 export function calculateServiceGaps(graph,cascading,attributes){const impacted=new Map(cascading.impacts.map(x=>[x.nodeId,x]));const gaps=[];for(const e of graph.edges.filter(e=>e.relationship==='SERVES_AREA'&&impacted.has(e.sourceId)&&impacted.has(e.targetId))){const service=graph.nodes.find(n=>n.id===e.sourceId),a=attributes.communities[e.targetId], capacity=attributes.businesses[`business:${service.id.split(':')[1]}`]?.serviceCapacity??0,demand=a.serviceDemand[service.name]??0,alt=attributes.alternatives[e.targetId]?.[service.name]??0;gaps.push({serviceId:service.id,serviceName:service.name,neighborhoodId:e.targetId,modeledDemand:demand,remainingAccessibleCapacity:alt,estimatedCapacityLost:capacity,unmetServiceDemand:Math.max(0,demand-alt),evidence:e.evidenceLevel,synthetic:true});}return {gaps};}
 export function timeline(result){return [{stage:'baseline',timeHours:0,affectedNodeIds:[],estimatedBusinessRevenueAtRiskUSD:0,estimatedUnmetShelterDemand:0},{stage:'impact',timeHours:0,affectedNodeIds:result.cascadingImpacts.impacts.map(x=>x.nodeId),estimatedBusinessRevenueAtRiskUSD:result.businessImpact.totalEstimatedRevenueAtRiskUSD,estimatedUnmetShelterDemand:result.shelterNeeds.unmetShelterDemand},{stage:'plus_6_hours',timeHours:6,affectedNodeIds:result.cascadingImpacts.impacts.filter(x=>x.estimatedDowntimeHours>=6).map(x=>x.nodeId),estimatedBusinessRevenueAtRiskUSD:round(result.businessImpact.totalEstimatedRevenueAtRiskUSD*Math.min(6/result.scenario.durationHours,1)),estimatedUnmetShelterDemand:result.shelterNeeds.unmetShelterDemand},{stage:'plus_24_hours',timeHours:24,affectedNodeIds:result.cascadingImpacts.impacts.filter(x=>x.estimatedDowntimeHours>=24).map(x=>x.nodeId),estimatedBusinessRevenueAtRiskUSD:result.businessImpact.totalEstimatedRevenueAtRiskUSD,estimatedUnmetShelterDemand:result.shelterNeeds.unmetShelterDemand}];}
-export async function runSimulation({scenario,attributes,graph,overrides={},predictionMode='rules'}={}){if(!scenario||!attributes){const i=await loadSimulationInputs();scenario??=i.scenario;attributes??=i.attributes;}if(!graph)graph=(await loadGraph()).graph;validateScenario(scenario);const exposure=calculateExposure(graph,scenario),failures=predictOperationalFailures(graph,exposure,scenario,attributes,overrides);let hybridRiskAssessments=[];if(predictionMode==='hybrid'){const requests=graph.nodes.filter(n=>n.type==='building').map(n=>({nodeId:n.id,disasterType:'flood',floodDepthMeters:attributes.facilities[n.id]?.waterDepth,buildingAttributes:attributes.facilities[n.id]??{}}));hybridRiskAssessments=hybridAssessments(failures,await predictBuildingDamageBatch(requests));}const cascadingImpacts=propagateImpacts(graph,failures),businessImpact=calculateBusinessImpact(graph,cascadingImpacts,attributes),directCommunityImpact=calculateDirectCommunityImpact(scenario,attributes,exposure),shelterNeeds=calculateShelterNeeds(directCommunityImpact,attributes,overrides),serviceGaps=calculateServiceGaps(graph,cascadingImpacts,attributes);const result={id:`result:${scenario.id}`,scenarioId:scenario.id,locationId:scenario.locationId,scenario,predictionModeUsed:predictionMode==='hybrid'&&hybridRiskAssessments.some(x=>x.mlAssessment.available)?'hybrid':'rules',simulated:true,generatedAt:new Date().toISOString(),exposure,exposedAssetIds:exposure.filter(x=>x.exposureStatus==='exposed').map(x=>x.nodeId),failures,hybridRiskAssessments,cascadingImpacts,businessImpact,directCommunityImpact,shelterNeeds,serviceGaps,assumptions:scenario.assumptions,limitations:['All population, revenue, capacity, vulnerability, and shelter inputs are synthetic. No output is an official forecast or verified operational assessment.']};result.timeline=timeline(result);return result;}
+export async function runSimulation({scenario,attributes,graph,overrides={},predictionMode='rules'}={}){if(!scenario||!attributes){const i=await loadSimulationInputs();scenario??=i.scenario;attributes??=i.attributes;}if(!graph)graph=(await loadGraph()).graph;validateScenario(scenario);
+// Load real building footprints for polygon-flood exposure (non-fatal if cache missing)
+const buildingFootprints=await loadBuildingFootprints();
+const exposure=calculateExposure(graph,scenario),failures=predictOperationalFailures(graph,exposure,scenario,attributes,overrides);let hybridRiskAssessments=[];if(predictionMode==='hybrid'){const requests=graph.nodes.filter(n=>n.type==='building').map(n=>({nodeId:n.id,disasterType:'flood',floodDepthMeters:attributes.facilities[n.id]?.waterDepth,buildingAttributes:attributes.facilities[n.id]??{}}));hybridRiskAssessments=hybridAssessments(failures,await predictBuildingDamageBatch(requests));}const cascadingImpacts=propagateImpacts(graph,failures),businessImpact=calculateBusinessImpact(graph,cascadingImpacts,attributes),directCommunityImpact=calculateDirectCommunityImpact(scenario,attributes,exposure),shelterNeeds=calculateShelterNeeds(directCommunityImpact,attributes,overrides),serviceGaps=calculateServiceGaps(graph,cascadingImpacts,attributes);const result={id:`result:${scenario.id}`,scenarioId:scenario.id,locationId:scenario.locationId,scenario,predictionModeUsed:predictionMode==='hybrid'&&hybridRiskAssessments.some(x=>x.mlAssessment.available)?'hybrid':'rules',simulated:true,generatedAt:new Date().toISOString(),exposure,exposedAssetIds:exposure.filter(x=>x.exposureStatus==='exposed').map(x=>x.nodeId),failures,hybridRiskAssessments,cascadingImpacts,businessImpact,directCommunityImpact,shelterNeeds,serviceGaps,assumptions:scenario.assumptions,limitations:['All population, revenue, capacity, vulnerability, and shelter inputs are synthetic. No output is an official forecast or verified operational assessment.']};result.timeline=timeline(result);
+// Polygon-level flood exposure for real Overture building footprints (additive — does not change synthetic-node results)
+const floodRing=scenario.footprint.coordinates[0];
+result.exposedBuildingFootprints=buildingFootprints.reduce((acc,b)=>{const method=polygonFloodExposure(b.geometry,floodRing);if(method)acc.push({buildingId:b.id,providerId:b.providerId,exposureMethod:method,floodScenarioId:scenario.id});return acc;},[]);
+return result;}
 export async function compareScenarios(modification){const inputs=await loadSimulationInputs(),base=await runSimulation(inputs),modifiedScenario=clone(inputs.scenario),overrides=clone(modification??{});if(overrides.severity)modifiedScenario.severity=overrides.severity;if(overrides.footprint)modifiedScenario.footprint=overrides.footprint;const modified=await runSimulation({...inputs,scenario:modifiedScenario,overrides});return {baseline:base,modified,differences:{revenueAtRiskUSD:round(modified.businessImpact.totalEstimatedRevenueAtRiskUSD-base.businessImpact.totalEstimatedRevenueAtRiskUSD),unmetShelterDemand:modified.shelterNeeds.unmetShelterDemand-base.shelterNeeds.unmetShelterDemand,changedNodeStatuses:modified.failures.filter((x,i)=>x.predictedStatus!==base.failures[i]?.predictedStatus).map(x=>x.nodeId)},hypothetical:true,modifiedAssumptions:Object.keys(overrides)};}
 export function explainNodeRisk(graph,result,nodeId){const node=graph.nodes.find(n=>n.id===nodeId);if(!node)throw new Error('Unknown node ID');const exposure=result.exposure.find(x=>x.nodeId===nodeId),failure=result.failures.find(x=>x.nodeId===nodeId),impact=result.cascadingImpacts.impacts.find(x=>x.nodeId===nodeId);return {node,baselineStatus:'operational',predictedStatus:failure?.predictedStatus??impact?.predictedStatus??'operational',directExposure:exposure,upstreamImpact:impact?.path??[],hazard:{type:result.scenario.disasterType,severity:result.scenario.severity},sourceRecords:node.sources,assumptions:[...result.assumptions,...(failure?.assumptions??impact?.assumptions??[])],limitations:result.limitations};}

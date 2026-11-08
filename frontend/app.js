@@ -58,7 +58,7 @@ function setupMap() {
   map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
 
   map.on('load', () => {
-    for (const name of ['nodes', 'footprints', 'flood', 'selected-footprint', 'real-pois']) {
+    for (const name of ['nodes', 'footprints', 'flood', 'selected-footprint', 'real-pois', 'exposed-footprints']) {
       map.addSource(name, { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
     }
 
@@ -74,6 +74,21 @@ function setupMap() {
       paint: { 'fill-color': '#278fdb', 'fill-opacity': .22 } });
     map.addLayer({ id: 'flood-line', type: 'line', source: 'flood',
       paint: { 'line-color': '#47c4ff', 'line-width': 2, 'line-dasharray': [2, 2] } });
+
+    // Flood-exposed Overture building footprints (highlighted red/orange after simulation)
+    // These are placed BEFORE node circles so circles render on top
+    map.addLayer({
+      id: 'exposed-footprint-fill',
+      type: 'fill',
+      source: 'exposed-footprints',
+      paint: { 'fill-color': '#ff625f', 'fill-opacity': 0.45 }
+    });
+    map.addLayer({
+      id: 'exposed-footprint-line',
+      type: 'line',
+      source: 'exposed-footprints',
+      paint: { 'line-color': '#ff9b55', 'line-width': 2.5 }
+    });
 
     // Real OSM POI layer — rendered BEFORE synthetic nodes so nodes appear on top
     map.addLayer({
@@ -139,6 +154,7 @@ function refreshMap() {
   map.getSource('footprints').setData({ type: 'FeatureCollection', features: footprints });
   map.getSource('flood').setData(scenarioToFeatureCollection(scenario));
   map.getSource('real-pois').setData({ type: 'FeatureCollection', features: realPois });
+  // exposed-footprints source is updated by simulate() — no recalculation needed here
 
   const chosen = footprints.filter(feature => feature.properties.id === selectedFootprintId);
   map.getSource('selected-footprint').setData({ type: 'FeatureCollection', features: chosen });
@@ -163,6 +179,11 @@ function refreshMap() {
     'real-pois-layer', 'visibility',
     $('#real-pois-toggle').checked ? 'visible' : 'none'
   );
+
+  // Flood-exposed building polygon toggle
+  for (const layer of ['exposed-footprint-fill', 'exposed-footprint-line']) {
+    map.setLayoutProperty(layer, 'visibility', $('#exposed-toggle').checked ? 'visible' : 'none');
+  }
 }
 
 // ── Bounds helpers ───────────────────────────────────────────────────────────
@@ -268,6 +289,14 @@ async function simulate() {
       body: JSON.stringify({ scenarioId: 'richardson-flood-demo', predictionMode: $('#mode').value })
     });
     renderMetrics();
+
+    // Highlight flood-exposed Overture building polygons
+    if (result.exposedBuildingFootprints?.length > 0) {
+      const exposedIds = new Set(result.exposedBuildingFootprints.map(e => e.providerId));
+      const exposedFeatures = footprints.filter(f => exposedIds.has(f.properties.providerId));
+      map.getSource('exposed-footprints')?.setData({ type: 'FeatureCollection', features: exposedFeatures });
+    }
+
     refreshMap();
     if (selectedId) selectNode(selectedId);
   } catch (error) {
@@ -573,6 +602,7 @@ document.querySelectorAll('[data-layer]').forEach(input => input.onchange = refr
 $('#real-buildings').onchange = refreshMap;
 $('#flood').onchange = refreshMap;
 $('#real-pois-toggle').onchange = refreshMap;
+$('#exposed-toggle').onchange = refreshMap;
 
 // FIX 5e: disable button during agent call and restore on completion
 $('#ask').onclick = async () => {

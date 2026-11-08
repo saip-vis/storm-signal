@@ -32,6 +32,7 @@ const server = http.createServer(async (req,res) => { const url = new URL(req.ur
   if (req.method === 'GET' && url.pathname === '/api/locations') return send(res,200,service.locations());
   if (req.method === 'POST' && url.pathname === '/api/network/build') { let body=''; for await(const x of req) body+=x; const input=body?JSON.parse(body):{}; return send(res,200,await service.build(input.locationId, input.options)); }
   if (req.method === 'GET' && url.pathname === '/api/network') return send(res,200,service.network());
+  if (req.method === 'GET' && url.pathname === '/api/network/poi-matches') return send(res,200,service.poiMatches??[]);
   if (req.method === 'GET' && url.pathname === '/api/network/summary') return send(res,200,service.summary());
   if (req.method === 'GET' && url.pathname === '/api/network/matches') return send(res,200,{matches:service.matches,unresolved:service.matches.filter(x=>!x.accepted)});
   const match = url.pathname.match(/^\/api\/network\/nodes\/([^/]+)(\/dependencies)?$/); if (req.method === 'GET' && match) return send(res,200,match[2] ? service.trace(decodeURIComponent(match[1]), {maxDepth:query(url).maxDepth,relationshipTypes:query(url).relationshipTypes?.split(',')}) : service.node(decodeURIComponent(match[1])));
