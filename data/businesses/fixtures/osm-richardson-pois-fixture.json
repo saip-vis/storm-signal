@@ -1,0 +1,122 @@
+{
+  "version": 0.6,
+  "generator": "Overpass API (fixture for tests only — not used by production fetch script)",
+  "elements": [
+    {
+      "type": "node",
+      "id": 1001001,
+      "lat": 32.955,
+      "lon": -96.740,
+      "tags": {
+        "amenity": "pharmacy",
+        "name": "Richardson Pharmacy CVS",
+        "addr:street": "W Arapaho Rd",
+        "addr:city": "Richardson",
+        "addr:state": "TX",
+        "addr:postcode": "75080"
+      }
+    },
+    {
+      "type": "node",
+      "id": 1001002,
+      "lat": 32.948,
+      "lon": -96.732,
+      "tags": {
+        "amenity": "pharmacy",
+        "name": "Walgreens Richardson",
+        "addr:street": "Campbell Rd",
+        "addr:city": "Richardson",
+        "addr:state": "TX",
+        "addr:postcode": "75080"
+      }
+    },
+    {
+      "type": "way",
+      "id": 2001003,
+      "center": {
+        "lat": 32.960,
+        "lon": -96.728
+      },
+      "tags": {
+        "amenity": "hospital",
+        "name": "Methodist Richardson Medical Center",
+        "addr:street": "Bush Turnpike",
+        "addr:city": "Richardson",
+        "addr:state": "TX",
+        "addr:postcode": "75080"
+      }
+    },
+    {
+      "type": "node",
+      "id": 1001004,
+      "lat": 32.942,
+      "lon": -96.750,
+      "tags": {
+        "amenity": "clinic",
+        "name": "CareNow Urgent Care Richardson",
+        "addr:street": "Greenville Ave",
+        "addr:city": "Richardson",
+        "addr:state": "TX",
+        "addr:postcode": "75081"
+      }
+    },
+    {
+      "type": "node",
+      "id": 1001005,
+      "lat": 32.953,
+      "lon": -96.722,
+      "tags": {
+        "shop": "grocery",
+        "name": "Tom Thumb Richardson",
+        "addr:street": "Campbell Rd",
+        "addr:city": "Richardson",
+        "addr:state": "TX",
+        "addr:postcode": "75081"
+      }
+    },
+    {
+      "type": "way",
+      "id": 2001006,
+      "center": {
+        "lat": 32.945,
+        "lon": -96.738
+      },
+      "tags": {
+        "amenity": "supermarket",
+        "name": "Kroger Richardson",
+        "addr:street": "W Spring Valley Rd",
+        "addr:city": "Richardson",
+        "addr:state": "TX",
+        "addr:postcode": "75080"
+      }
+    },
+    {
+      "type": "node",
+      "id": 1001007,
+      "lat": 32.937,
+      "lon": -96.715,
+      "tags": {
+        "amenity": "school",
+        "name": "Richardson High School",
+        "addr:street": "Berkshire Dr",
+        "addr:city": "Richardson",
+        "addr:state": "TX",
+        "addr:postcode": "75080"
+      }
+    },
+    {
+      "type": "node",
+      "id": 1001008,
+      "lat": 32.962,
+      "lon": -96.744,
+      "tags": {
+        "amenity": "community_centre",
+        "name": "Civic Center Community Campus",
+        "addr:street": "Civic Center Dr",
+        "addr:city": "Richardson",
+        "addr:state": "TX",
+        "addr:postcode": "75080"
+      }
+    }
+  ]
+}

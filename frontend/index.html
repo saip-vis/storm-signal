@@ -36,6 +36,7 @@
           <aside id="layers">
             <b>Layers</b>
             <label><input id="real-buildings" type="checkbox" checked> Real building footprints</label>
+            <label><input id="real-pois-toggle" type="checkbox" checked> Real OSM facilities</label>
             <label><input type="checkbox" data-layer="building" checked> Synthetic buildings</label>
             <label><input type="checkbox" data-layer="business" checked> Businesses</label>
             <label><input type="checkbox" data-layer="equipment" checked> Equipment</label>
@@ -43,7 +44,8 @@
             <label><input type="checkbox" data-layer="other" checked> Other nodes</label>
             <label><input id="flood" type="checkbox" checked> Hypothetical flood scenario</label>
             <hr>
-            <small>Outlined polygons = provider-backed Overture footprints. Dots = synthetic graph fixtures.</small>
+            <small>Outlined polygons = provider-backed Overture footprints. Dots = synthetic graph fixtures. Purple = real OSM facilities.</small>
+            <small id="poisMode"></small>
             <small id="layerStats"></small>
           </aside>
         </div>

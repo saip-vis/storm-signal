@@ -6,7 +6,7 @@ const $ = selector => document.querySelector(selector);
 const esc = value =>
   String(value ?? '—').replace(/[&<>]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[char]));
 
-let graph, result, map, cy, scenario, selectedId, selectedFootprintId, footprints = [];
+let graph, result, map, cy, scenario, selectedId, selectedFootprintId, footprints = [], realPois = [];
 
 // ── HTTP helper ─────────────────────────────────────────────────────────────
 
@@ -58,7 +58,7 @@ function setupMap() {
   map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
 
   map.on('load', () => {
-    for (const name of ['nodes', 'footprints', 'flood', 'selected-footprint']) {
+    for (const name of ['nodes', 'footprints', 'flood', 'selected-footprint', 'real-pois']) {
       map.addSource(name, { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
     }
 
@@ -74,6 +74,20 @@ function setupMap() {
       paint: { 'fill-color': '#278fdb', 'fill-opacity': .22 } });
     map.addLayer({ id: 'flood-line', type: 'line', source: 'flood',
       paint: { 'line-color': '#47c4ff', 'line-width': 2, 'line-dasharray': [2, 2] } });
+
+    // Real OSM POI layer — rendered BEFORE synthetic nodes so nodes appear on top
+    map.addLayer({
+      id: 'real-pois-layer',
+      type: 'circle',
+      source: 'real-pois',
+      paint: {
+        'circle-radius': 8,
+        'circle-color': '#a855f7',
+        'circle-stroke-color': '#fff',
+        'circle-stroke-width': 1.5,
+        'circle-opacity': 0.9
+      }
+    });
 
     for (const category of ['building', 'business', 'equipment', 'road', 'other']) {
       map.addLayer({
@@ -100,6 +114,11 @@ function setupMap() {
       if (feature?.properties?.id) selectFootprint(feature.properties.id);
     });
 
+    map.on('click', 'real-pois-layer', event => {
+      const feature = event.features?.[0];
+      if (feature) selectRealPoi(feature);
+    });
+
     map.on('click', event => {
       const feature = map.queryRenderedFeatures(event.point, {
         layers: ['node-building', 'node-business', 'node-equipment', 'node-road', 'node-other']
@@ -119,6 +138,7 @@ function refreshMap() {
   map.getSource('nodes').setData({ type: 'FeatureCollection', features: nodeFeatures() });
   map.getSource('footprints').setData({ type: 'FeatureCollection', features: footprints });
   map.getSource('flood').setData(scenarioToFeatureCollection(scenario));
+  map.getSource('real-pois').setData({ type: 'FeatureCollection', features: realPois });
 
   const chosen = footprints.filter(feature => feature.properties.id === selectedFootprintId);
   map.getSource('selected-footprint').setData({ type: 'FeatureCollection', features: chosen });
@@ -137,6 +157,12 @@ function refreshMap() {
   for (const layer of ['flood-fill', 'flood-line']) {
     map.setLayoutProperty(layer, 'visibility', $('#flood').checked ? 'visible' : 'none');
   }
+
+  // Real OSM POI layer toggle
+  map.setLayoutProperty(
+    'real-pois-layer', 'visibility',
+    $('#real-pois-toggle').checked ? 'visible' : 'none'
+  );
 }
 
 // ── Bounds helpers ───────────────────────────────────────────────────────────
@@ -178,6 +204,24 @@ async function loadFootprints() {
   }
 }
 
+// Load real OSM POIs from the cache — non-fatal: failure does not block map load.
+async function loadRealPois() {
+  try {
+    const geojson = await request('/api/data/businesses?format=geojson&limit=200');
+    realPois = geojson.features;
+    if (map?.isStyleLoaded()) {
+      map.getSource('real-pois').setData({ type: 'FeatureCollection', features: realPois });
+    }
+    const src = geojson.metadata.source;
+    const dateStr = src.acquiredAt ? src.acquiredAt.slice(0, 10) : 'unknown date';
+    $('#poisMode').textContent = `OSM FACILITIES · ${geojson.metadata.totalCount} REAL · ${dateStr}`;
+  } catch (error) {
+    realPois = [];
+    console.warn('Real OSM POIs unavailable (non-fatal):', error.message);
+    $('#poisMode').textContent = `OSM FACILITIES: unavailable (${error.message})`;
+  }
+}
+
 async function load() {
   // FIX 5a: show loading state before data arrives; loadFootprints() clears it on success
   $('#mapError').textContent = 'Loading Richardson infrastructure…';
@@ -195,13 +239,15 @@ async function load() {
     ]);
 
     await loadFootprints();
+    await loadRealPois();
 
     $('#status').textContent = `NETWORK READY · ${graph.locationId}`;
 
     // FIX 2: removed "synthetic" and "real" — context already distinguishes the two layers
     $('#layerStats').textContent =
       `${graph.nodes.length} graph nodes · ${graph.edges.length} edges · ` +
-      `${nodeFeatures().length} mappable points · ${footprints.length} footprint polygons`;
+      `${nodeFeatures().length} mappable points · ${footprints.length} footprint polygons · ` +
+      `${realPois.length} real OSM facilities`;
 
     search();
     await simulate();
@@ -313,6 +359,61 @@ function selectFootprint(id) {
 
   const bounds = coordinateBounds([feature]);
   if (bounds) map.fitBounds(bounds, { padding: 90, maxZoom: 18 });
+}
+
+// ── Feature selection: real OSM POI ─────────────────────────────────────────
+
+function selectRealPoi(feature) {
+  const p = feature.properties;
+  const address = typeof p.address === 'string' ? JSON.parse(p.address) : (p.address ?? {});
+  const dq = typeof p.dataQuality === 'string' ? JSON.parse(p.dataQuality) : (p.dataQuality ?? {});
+  const src = typeof p.source === 'string' ? JSON.parse(p.source) : (p.source ?? {});
+
+  // Do not modify synthetic graph state — this is an independent real OSM record
+  selectedId = undefined;
+  selectedFootprintId = undefined;
+  $('.graphpanel').classList.remove('graph-active');
+  cy?.destroy();
+  cy = undefined;
+
+  $('#title').textContent = p.name || 'Real OSM Facility';
+
+  $('#inspector').innerHTML =
+    section('Identity', rows({
+      id: p.id,
+      category: p.category,
+      osmId: p.osmId,
+      osmType: p.osmType
+    })) +
+    section('Location', rows({
+      coordinates: feature.geometry.coordinates.join(', ')
+    })) +
+    section('Address', rows({
+      street: address.street,
+      city: address.city,
+      state: address.state,
+      postcode: address.postcode
+    })) +
+    section('Provenance', rows({
+      provider: src.provider ?? 'OpenStreetMap',
+      acquiredAt: src.acquiredAt
+    })) +
+    section('Data quality', rows({
+      hasName: dq.hasName,
+      coordinatesSource: dq.coordinatesSource,
+      missingFields: dq.missingFields
+    })) +
+    section('Note',
+      '<p>This is a real OpenStreetMap record. It is not yet linked to the dependency graph. ' +
+      'Entity matching will associate it with a building in a future update.</p>'
+    );
+
+  $('#raw').textContent = JSON.stringify(feature, null, 2);
+  $('#graphTitle').textContent = `Real OSM: ${p.name ?? p.id} · ${p.category}`;
+
+  if (feature.geometry?.coordinates) {
+    map.flyTo({ center: feature.geometry.coordinates, zoom: 17 });
+  }
 }
 
 // ── Feature selection: graph node ────────────────────────────────────────────
@@ -471,6 +572,7 @@ $('#search').oninput = search;
 document.querySelectorAll('[data-layer]').forEach(input => input.onchange = refreshMap);
 $('#real-buildings').onchange = refreshMap;
 $('#flood').onchange = refreshMap;
+$('#real-pois-toggle').onchange = refreshMap;
 
 // FIX 5e: disable button during agent call and restore on completion
 $('#ask').onclick = async () => {

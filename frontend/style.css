@@ -155,6 +155,12 @@ main {
   display: none;
 }
 
+/* OSM facility status line — purple tint to match the map layer color */
+#poisMode {
+  color: #c084fc;
+  margin-top: 4px;
+}
+
 /* ── Inspector panel ───────────────────────────────────── */
 .inspector {
   overflow: auto;
