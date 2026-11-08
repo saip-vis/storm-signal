@@ -1,4 +1,8 @@
 export const layerCategory=node=>node.type==='building'?'building':node.type==='road'?'road':node.type==='business'?'business':node.type==='equipment'?'equipment':'other';
 export function inheritedPoint(graph,node){if(node.coordinates)return {coordinates:node.coordinates,locationMethod:'observed_coordinate'};const host=graph.edges.find(e=>e.targetId===node.id&&['HOSTS','HAS_EQUIPMENT'].includes(e.relationship));const source=host&&graph.nodes.find(n=>n.id===host.sourceId);return source?.coordinates?{coordinates:source.coordinates,locationMethod:`derived_from:${source.id}`}:null;}
-export function networkToPoints(graph,riskFor=()=> 'unknown'){return graph.nodes.map(node=>{const loc=inheritedPoint(graph,node);return loc&&{type:'Feature',id:node.id,geometry:{type:'Point',coordinates:loc.coordinates},properties:{id:node.id,name:node.name,type:node.type,category:layerCategory(node),locationMethod:loc.locationMethod,risk:riskFor(node.id)}}}).filter(Boolean);}
+export function networkToPoints(graph,riskFor=()=>'unknown'){
+  // Skip real-data nodes: Overture buildings appear as polygon footprints;
+  // real OSM POI nodes appear via the dedicated real-pois-layer.
+  // Both are identified by properties.real === true.
+  return graph.nodes.filter(node=>!node.properties?.real).map(node=>{const loc=inheritedPoint(graph,node);return loc&&{type:'Feature',id:node.id,geometry:{type:'Point',coordinates:loc.coordinates},properties:{id:node.id,name:node.name,type:node.type,category:layerCategory(node),locationMethod:loc.locationMethod,risk:riskFor(node.id)}};}).filter(Boolean);}
 export function scenarioToFeatureCollection(scenario){return scenario?.footprint?{type:'FeatureCollection',features:[{type:'Feature',geometry:scenario.footprint,properties:{source:scenario.sourceType??'unknown'}}]}:{type:'FeatureCollection',features:[]};}

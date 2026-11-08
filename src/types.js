@@ -1,6 +1,7 @@
 /** Stable Component 1 contracts. Coordinates are always [longitude, latitude]. */
 export const NODE_TYPES = new Set(['building', 'business', 'infrastructure', 'equipment', 'road', 'shelter', 'neighborhood', 'service']);
-export const EVIDENCE_LEVELS = new Set(['verified', 'inferred', 'hypothetical']);
+// 'observed' = relationship determined by direct spatial observation (e.g. point-in-polygon match)
+export const EVIDENCE_LEVELS = new Set(['verified', 'inferred', 'hypothetical', 'observed']);
 export const RELATIONSHIPS = new Set(['LOCATED_IN', 'HOSTS', 'HAS_EQUIPMENT', 'PROVIDES_SERVICE', 'SERVES_AREA', 'ACCESSIBLE_VIA', 'DEPENDS_ON']);
 export const richardson = {
   id: 'richardson-tx', displayName: 'Richardson, Texas',

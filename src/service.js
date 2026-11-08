@@ -6,7 +6,7 @@ import { DEFAULT_REGION_ID } from './regions.js';
 import { matchPoisToBuildings, matchSummary } from './matcher.js';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export class NetworkService {
-  constructor({ dataDir = path.join(root, 'data/richardson'), fetchImpl } = {}) { this.dataDir = dataDir; this.fetchImpl = fetchImpl; this.graph = null; this.matches = []; this.geography = null; this.poiMatches = null; }
+  constructor({ dataDir = path.join(root, 'data/richardson'), fetchImpl } = {}) { this.dataDir = dataDir; this.fetchImpl = fetchImpl; this.graph = null; this.matches = []; this.geography = null; this.poiMatches = null; this.realBuildingCount = 0; }
   locations() { return [richardson]; }
   async build(locationId = 'richardson-tx', { liveGeography = false } = {}) {
     if (locationId !== richardson.id) throw new Error('Unsupported location');
@@ -21,6 +21,33 @@ export class NetworkService {
     for (const match of this.matches.filter(x => x.accepted && x.recordType === 'maintenance')) { const r = match.original, id = `equipment:${r.asset_code}`; g.addNode({ id, type: 'equipment', name: `${r.equipment_type} ${r.asset_code}`, properties: { ...r, synthetic: true }, sources: [csv] }); g.addEdge({ id: `edge:${match.propertyId}:${id}`, sourceId: `building:${match.propertyId}`, targetId: id, relationship: 'HAS_EQUIPMENT', evidenceLevel: 'verified', evidenceSources: [csv], explanation: 'Maintenance site reference is mapped to the property through a reviewable legacy ID mapping.' }); }
     for (const match of this.matches.filter(x => x.accepted && x.recordType === 'business')) { const r = match.original, id = `business:${r.business_id}`, serviceId = `service:${r.business_id}`; g.addNode({ id, type: 'business', name: r.business_name, properties: { ...r, synthetic: true }, sources: [csv] }); g.addNode({ id: serviceId, type: 'service', name: r.service_type, properties: { category: r.business_category }, sources: [csv] }); g.addEdge({ id: `edge:hosts:${r.business_id}`, sourceId: `building:${match.propertyId}`, targetId: id, relationship: 'HOSTS', evidenceLevel: 'verified', evidenceSources: [csv], explanation: 'Business facility reference matched to property via explicit legacy mapping.' }); g.addEdge({ id: `edge:service:${r.business_id}`, sourceId: id, targetId: serviceId, relationship: 'PROVIDES_SERVICE', evidenceLevel: 'verified', evidenceSources: [csv] }); const resource = resources.find(x => normalize(x.location_reference) === normalize(r.business_name)); if (resource) { const n = `neighborhood:${resource.service_area.replace(/\s+/g,'-').toLowerCase()}`; if (!g.getNode(n)) g.addNode({ id:n,type:'neighborhood',name:resource.service_area,properties:{ reportedCapacity: resource.reported_capacity, explicitlySynthetic: true },sources:[csv] }); g.addEdge({ id:`edge:area:${r.business_id}`,sourceId:serviceId,targetId:n,relationship:'SERVES_AREA',evidenceLevel:'hypothetical',evidenceSources:[csv],explanation:'Synthetic fixture models service area only; it is not verified emergency-service coverage.' }); } }
     const road = this.geography.features.find(x => x.type === 'road'); if (road) g.addEdge({ id:'edge:road-access',sourceId:road.id,targetId:'building:RCH-BLDG-021',relationship:'ACCESSIBLE_VIA',evidenceLevel:'inferred',evidenceSources:[fixture],explanation:'The fixture road represents nearby access, not a verified transportation dependency.' });
+
+    // ── Overture real building nodes (non-fatal if cache missing) ─────────────
+    // These must be added BEFORE the POI matching block so HOSTS edges can reference them.
+    try {
+      const buildingsSnapshot = await loadSnapshot(buildingPathsFor(DEFAULT_REGION_ID).cache);
+      const overtureSource = source('overture_maps', 'Overture Maps building footprints cache');
+      for (const building of buildingsSnapshot.features) {
+        g.addNode({
+          id: `overture:${building.providerId}`,
+          type: 'building',
+          name: building.properties?.name ?? `Overture building ${building.providerId.slice(0, 8)}`,
+          coordinates: building.representativePoint,
+          properties: {
+            buildingClass: building.properties?.buildingClass,
+            heightMeters: building.properties?.heightMeters,
+            floors: building.properties?.floors,
+            real: true,
+            providerBacked: true,
+            dataQuality: building.dataQuality
+          },
+          sources: [overtureSource]
+        });
+      }
+      this.realBuildingCount = buildingsSnapshot.features.length;
+    } catch (error) {
+      console.warn(`[service] Overture building nodes skipped: ${error.message}`);
+    }
 
     // ── Real POI injection (non-fatal if cache is missing) ────────────────────
     try {
@@ -69,7 +96,7 @@ export class NetworkService {
 
     return { summary: this.summary(), geographicSource: this.geography.source, fallbackReason: this.geography.fallbackReason };
   }
-  network() { if (!this.graph) throw new Error('Build a network first'); const snap=this.graph.snapshot(); if(this.poiMatches)snap.poiMatchSummary=matchSummary(this.poiMatches); return snap; }
+  network() { if (!this.graph) throw new Error('Build a network first'); const snap=this.graph.snapshot(); if(this.poiMatches)snap.poiMatchSummary=matchSummary(this.poiMatches); snap.realBuildingCount=this.realBuildingCount??0; return snap; }
   node(id) { if (!this.graph) throw new Error('Build a network first'); return { node: this.graph.getNode(id), incoming: this.graph.incoming(id), outgoing: this.graph.outgoing(id) }; }
   trace(id, options) { if (!this.graph) throw new Error('Build a network first'); return this.graph.trace(id, options); }
   summary() { const graph = this.network(), count = key => Object.fromEntries([...new Set(graph[key].map(x => key === 'nodes' ? x.type : x.relationship))].map(k => [k, graph[key].filter(x => (key === 'nodes' ? x.type : x.relationship) === k).length])); return { nodeCount:graph.nodes.length, edgeCount:graph.edges.length, byNodeType:count('nodes'), byRelationship:count('edges'), byEvidence:Object.fromEntries([...new Set(graph.edges.map(x=>x.evidenceLevel))].map(k=>[k,graph.edges.filter(x=>x.evidenceLevel===k).length])) }; }
