@@ -29,10 +29,22 @@ CACHE = os.path.join(HERE, 'cache')
 PORT = int(os.environ.get('PORT', '8765'))
 UA = 'DragonFlyght/0.3 (student disaster-rescue sim; local)'  # NWS asks for an identifying User-Agent
 M_LAT = 110540.0
-# Each city: ORIGIN (local meters 0,0, must match CITIES in js/core.js), BBOX (south, west, north, east), NWS stations for observations.
+# Each city: origin (local meters 0,0; must match CITIES in js/core.js), bbox = detailed area (every building and street),
+# outer = wider area (only big buildings, main roads, parks, water and coastline; lets the map go on and on), emax = largest map half-size in m,
+# maxb = building cap, stations = NWS weather stations. Houston and Dallas are the original single-tier downtown maps.
 CITIES = {
     'houston': {'name': 'Houston', 'origin': (29.7604, -95.3698), 'bbox': (29.7465, -95.3800, 29.7705, -95.3545), 'stations': ('KHOU', 'KIAH')},  # downtown + Buffalo Bayou
     'dallas': {'name': 'Dallas', 'origin': (32.7770, -96.8065), 'bbox': (32.7650, -96.8250, 32.7890, -96.7880), 'stations': ('KDAL', 'KDFW')},  # downtown + Trinity River edge
+    'richardson': {'name': 'Richardson', 'origin': (32.9857, -96.7502), 'bbox': (32.9731, -96.7651, 32.9983, -96.7353),
+                   'outer': (32.9614, -96.7787, 33.0100, -96.7217), 'emax': 3000, 'maxb': 9000, 'stations': ('KDAL', 'KDFW'), 'v': 2},  # whole UTD campus + Richardson around it
+    'sf': {'name': 'San Francisco', 'origin': (37.7655, -122.4375), 'bbox': (37.7760, -122.4180, 37.8010, -122.3830),
+           'outer': (37.7080, -122.5200, 37.8230, -122.3550), 'emax': 8200, 'maxb': 14000, 'stations': ('KSFO', 'KOAK'), 'v': 2},  # downtown detail + the whole city, Golden Gate to Ocean Beach
+    'miami': {'name': 'Miami', 'origin': (25.7800, -80.1925), 'bbox': (25.7560, -80.2060, 25.7900, -80.1800),
+              'outer': (25.7250, -80.2650, 25.8350, -80.1200), 'emax': 8200, 'maxb': 14000, 'stations': ('KMIA', 'KOPF'), 'v': 2},  # downtown + Brickell detail, out to Miami Beach
+    'nyc': {'name': 'New York', 'origin': (40.7525, -73.9850), 'bbox': (40.7400, -74.0000, 40.7680, -73.9700),
+            'outer': (40.7000, -74.0300, 40.8050, -73.9400), 'emax': 6600, 'maxb': 15000, 'stations': ('KNYC', 'KLGA'), 'v': 2},  # Midtown detail, Battery to Central Park and beyond
+    'anchorage': {'name': 'Anchorage', 'origin': (61.2170, -149.8950), 'bbox': (61.2060, -149.9200, 61.2280, -149.8700),
+                  'outer': (61.1770, -149.9850, 61.2570, -149.8050), 'emax': 5400, 'maxb': 9000, 'stations': ('PANC',), 'v': 2},  # downtown + Cook Inlet coast
 }
 
 
@@ -134,13 +146,64 @@ def btype(tags):
     return b if b != 'yes' else 'default'
 
 
-def convert(osm, origin):
+def join_rings(ways):
+    """Join open way geometries into closed rings by matching end points (used for water multipolygons)."""
+    k = lambda p: (p[0], p[1])
+    segs = [list(w) for w in ways if len(w) >= 2]
+    rings = []
+    while segs:
+        cur = segs.pop()
+        while k(cur[0]) != k(cur[-1]):
+            for i, sg in enumerate(segs):
+                if k(sg[0]) == k(cur[-1]):
+                    cur += sg[1:]
+                elif k(sg[-1]) == k(cur[-1]):
+                    cur += sg[::-1][1:]
+                elif k(sg[-1]) == k(cur[0]):
+                    cur = sg + cur[1:]
+                elif k(sg[0]) == k(cur[0]):
+                    cur = sg[::-1] + cur[1:]
+                else:
+                    continue
+                segs.pop(i)
+                break
+            else:
+                break
+        if len(cur) >= 4 and k(cur[0]) == k(cur[-1]):
+            rings.append(cur[:-1])
+    return rings
+
+
+def convert(osm, origin, city=None):
     """Overpass JSON (out geom) -> the game's compact local-meter format."""
+    cfg = CITIES.get(city or '', {})
     out = {'source': 'OpenStreetMap via Overpass (c) OpenStreetMap contributors, ODbL', 'origin': origin,
-           'buildings': [], 'roads': [], 'water': [], 'parks': []}
+           'buildings': [], 'roads': [], 'water': [], 'parks': [], 'coast': [], 'lakes': []}
     ext = 300.0
+    inner = None
+    if 'bbox' in cfg:
+        s_, w_, n_, e_ = cfg['bbox']
+        a, b = to_xz(s_, w_, origin), to_xz(n_, e_, origin)
+        inner = (min(a[0], b[0]), max(a[0], b[0]), min(a[1], b[1]), max(a[1], b[1]))
     for el in osm.get('elements', []):
         tags = el.get('tags', {})
+        # sea (coastline: water is on the right of the way) and lakes / wide rivers (polygons)
+        if tags.get('natural') == 'coastline' and el['type'] == 'way' and 'geometry' in el:
+            pts = [to_xz(p['lat'], p['lon'], origin) for p in el['geometry']]
+            if len(pts) >= 2:
+                out['coast'].append({'pts': pts})
+            continue
+        if tags.get('natural') == 'water' or tags.get('waterway') == 'riverbank':
+            if el['type'] == 'way' and 'geometry' in el:
+                pts = [to_xz(p['lat'], p['lon'], origin) for p in el['geometry']]
+                if len(pts) >= 4 and pts[0] == pts[-1]:
+                    out['lakes'].append({'rings': [pts[:-1]]})
+            elif el['type'] == 'relation' and 'members' in el:
+                ways = [[to_xz(p['lat'], p['lon'], origin) for p in m['geometry']] for m in el['members'] if m.get('role') in ('outer', 'inner') and 'geometry' in m]
+                rings = join_rings(ways)
+                if rings:
+                    out['lakes'].append({'rings': rings})
+            continue
         ring = None
         if el['type'] == 'way' and 'geometry' in el:
             ring = [to_xz(p['lat'], p['lon'], origin) for p in el['geometry']]
@@ -163,7 +226,9 @@ def convert(osm, origin):
                 lv = int(float(lv.split(';')[0])) if lv else 0
             except ValueError:
                 lv = 0
-            out['buildings'].append({'poly': ring, 'h': round(h, 1), 'lv': lv, 't': t, 'n': tags.get('name', '')})
+            cx, cz = ring[0]
+            isin = inner is None or (inner[0] <= cx <= inner[1] and inner[2] <= cz <= inner[3])
+            out['buildings'].append({'poly': ring, 'h': round(h, 1), 'lv': lv, 't': t, 'n': tags.get('name', ''), '_in': isin})
             for x, z in ring:
                 ext = max(ext, abs(x), abs(z))
         elif 'highway' in tags:
@@ -182,20 +247,59 @@ def convert(osm, origin):
             out['water'].append({'pts': ring, 'half': half})
         elif 'leisure' in tags and ring[0] == ring[-1] and len(ring) > 3:
             out['parks'].append({'poly': ring[:-1]})
-    out['extent'] = round(min(ext + 60, 2200), 1)
+    # building cap: keep every building in the detailed area, then the tallest of the rest
+    maxb = cfg.get('maxb')
+    bl = out['buildings']
+    if maxb and len(bl) > maxb:
+        keep = [b for b in bl if b['_in']]
+        rest = sorted([b for b in bl if not b['_in']], key=lambda b: -b['h'])
+        bl = keep + rest[:max(0, maxb - len(keep))]
+    for b in bl:
+        b.pop('_in', None)
+    out['buildings'] = bl
+    if 'outer' in cfg:  # wide map: the extent is the outer box, not the buildings
+        s_, w_, n_, e_ = cfg['outer']
+        pts = [to_xz(s_, w_, origin), to_xz(n_, e_, origin)]
+        out['extent'] = round(min(max(abs(c) for p in pts for c in p) + 60, cfg.get('emax', 2200)), 1)
+    else:
+        out['extent'] = round(min(ext + 60, 2200), 1)
     return out
 
 
-def overpass_query(city):
-    s, w, n, e = CITIES[city]['bbox']
-    bb = f'{s},{w},{n},{e}'
-    return f"""[out:json][timeout:90];
+def overpass_query(city, tier='inner'):
+    c = CITIES[city]
+    HW_ALL = 'motorway|motorway_link|trunk|trunk_link|primary|primary_link|secondary|secondary_link|tertiary|tertiary_link|residential|unclassified|living_street'
+    HW_MAJOR = 'motorway|motorway_link|trunk|trunk_link|primary|primary_link|secondary|secondary_link|tertiary|tertiary_link'
+    if tier == 'inner':
+        s, w, n, e = c['bbox']
+        bb = f'{s},{w},{n},{e}'
+        return f"""[out:json][timeout:120];
 (
   way["building"]({bb});
   relation["building"]["type"="multipolygon"]({bb});
-  way["highway"~"^(motorway|motorway_link|trunk|trunk_link|primary|primary_link|secondary|secondary_link|tertiary|tertiary_link|residential|unclassified|living_street)$"]({bb});
+  way["highway"~"^({HW_ALL})$"]({bb});
   way["waterway"~"^(river|stream|canal)$"]({bb});
   way["leisure"~"^(park|garden|pitch)$"]({bb});
+  way["natural"="coastline"]({bb});
+  way["natural"="water"]({bb});
+  relation["natural"="water"]({bb});
+  way["waterway"="riverbank"]({bb});
+);
+out geom;"""
+    # outer tier: the wide map, kept light (only tall buildings, main roads, water, parks)
+    s, w, n, e = c['outer']
+    bb = f'{s},{w},{n},{e}'
+    return f"""[out:json][timeout:240];
+(
+  way["building"]["building:levels"~"^([6-9]|[1-9][0-9]+)$"]({bb});
+  way["building"]["height"~"^(1[89]|[2-9][0-9]|[0-9]{{3,}})"]({bb});
+  way["highway"~"^({HW_MAJOR})$"]({bb});
+  way["waterway"~"^(river|canal)$"]({bb});
+  way["leisure"="park"]({bb});
+  way["natural"="coastline"]({bb});
+  way["natural"="water"]({bb});
+  relation["natural"="water"]({bb});
+  way["waterway"="riverbank"]({bb});
 );
 out geom;"""
 
@@ -211,30 +315,53 @@ def cached(name, ttl, producer):
         if hit and now - hit[0] < ttl:
             return hit[1]
     val = producer()
+    if isinstance(val, dict) and val.get('partial'):  # incomplete download: do not keep it, so Retry can try again
+        return val
     with _lock:
         _mem[name] = (now, val)
     return val
 
 
-def load_city(city):
-    os.makedirs(CACHE, exist_ok=True)
-    path = os.path.join(CACHE, city + '_osm_v1.json')
-    if os.path.isfile(path):
-        with open(path, encoding='utf-8') as f:
-            return json.load(f)
-    body = urllib.parse.urlencode({'data': overpass_query(city)}).encode()
+def cache_path(city):
+    return os.path.join(CACHE, city + ('_osm_v%d.json' % CITIES[city].get('v', 1)))
+
+
+def overpass(body, timeout):
     last = None
     for url in OVERPASS:
         try:
-            data = convert(fetch(url, data=body, timeout=120), CITIES[city]['origin'])
-            with open(path, 'w', encoding='utf-8') as f:
-                json.dump(data, f, separators=(',', ':'))
-            print(f'[{city}] cached {len(data["buildings"])} buildings, {len(data["roads"])} roads -> {path}')
-            return data
+            return fetch(url, data=body, timeout=timeout)
         except Exception as ex:  # try the next mirror
-            print(f'[{city}] {url} failed: {ex}')
+            print(f'[overpass] {url} failed: {ex}')
             last = ex
     raise RuntimeError(f'Overpass failed: {last}')
+
+
+def load_city(city):
+    os.makedirs(CACHE, exist_ok=True)
+    path = cache_path(city)
+    if os.path.isfile(path):
+        with open(path, encoding='utf-8') as f:
+            return json.load(f)
+    inner = overpass(urllib.parse.urlencode({'data': overpass_query(city, 'inner')}).encode(), 150)
+    els = inner.get('elements', [])
+    partial = False
+    if 'outer' in CITIES[city]:  # the wide area is a second, bigger request; if it fails the detailed map still loads (and is not cached)
+        try:
+            outer = overpass(urllib.parse.urlencode({'data': overpass_query(city, 'outer')}).encode(), 280)
+            seen = {(e['type'], e['id']) for e in els if 'id' in e}
+            els = els + [e for e in outer.get('elements', []) if 'id' not in e or (e['type'], e['id']) not in seen]
+        except Exception as ex:
+            print(f'[{city}] wide area failed, using the detailed area only: {ex}')
+            partial = True
+    data = convert({'elements': els}, CITIES[city]['origin'], city)
+    if partial:
+        data['partial'] = True
+        return data
+    with open(path, 'w', encoding='utf-8') as f:
+        json.dump(data, f, separators=(',', ':'))
+    print(f'[{city}] cached {len(data["buildings"])} buildings, {len(data["roads"])} roads, {len(data["coast"])} coast ways, {len(data["lakes"])} water areas -> {path}')
+    return data
 
 
 def alerts(city):
@@ -475,5 +602,5 @@ if __name__ == '__main__':
     print('Radio voice:', ('macOS say' if shutil.which('say') else 'espeak') if tts_engine() else 'no speech engine found (browser voice fallback)')
     print('NVIDIA dispatcher:', 'key found' if find_key('NVIDIA_API_KEY') else 'no NVIDIA_API_KEY in .env (radio stays off)')
     for k in CITIES:
-        print(CITIES[k]['name'], 'map cache:', 'ready' if os.path.isfile(os.path.join(CACHE, k + '_osm_v1.json')) else 'not downloaded yet (first load of that city, ~30-90 s)')
+        print(CITIES[k]['name'], 'map cache:', 'ready' if os.path.isfile(cache_path(k)) else 'not downloaded yet (first load of that city, ~30-90 s)')
     ThreadingHTTPServer(('127.0.0.1', PORT), H).serve_forever()

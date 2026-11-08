@@ -62,3 +62,16 @@ Data: (c) OpenStreetMap contributors (ODbL). Alerts and observations: NOAA/NWS a
 - **Radio voice:** `serve.py` renders each dispatcher line with the Mac's built-in voice (`say`, voice from `TTS_VOICE` in `.env`, default Alex), then the browser runs it through a handheld-radio filter with static and squelch. Without a speech engine it falls back to the browser voice.
 - **Truck:** smoother throttle and steering, body lean and bumps, calmer camera. Flood: shallow water is avoided but waded if there is no dry way, deep water closes the road, and a truck caught in water drives to dry ground. Earthquake: if rubble cuts off every call it crawls through.
 - **Full screen:** button or G.
+
+
+## Update: more cities
+Pick a city in the City row (needs `serve.py`): Houston, Dallas, UT Dallas (Richardson), San Francisco, Miami, New York, Anchorage.
+- **Two detail levels.** Each of the new cities has a detailed core (every building and street) and a much wider area (tall buildings, main roads, parks, water, coast), so the map keeps going. San Francisco covers the whole peninsula (Golden Gate to Ocean Beach to the Bay), Miami runs out to Miami Beach, New York runs from Midtown out to Central Park, the Battery and both rivers, UT Dallas shows the whole campus and Richardson around it. Calls for help come from around where you are, so you can fly or drive anywhere.
+- **Real water.** The sea comes from OpenStreetMap coastlines (water is on the right side of each coast line), lakes and wide rivers from water areas. Flooding and the modeled terrain use it, so Miami and Manhattan flood from the bay and rivers.
+- **Alaska (Anchorage).** Always night, with northern lights, stars, snow-colored ground and a ring of mountains on the horizon. The mountains are a scenic backdrop (not real terrain).
+- **Real events per city** in Live mode (Irma, Andrew, Sandy, Ida, Loma Prieta, 2018 Anchorage quake, 2019 North Texas tornado, and more), plus a normal day. Alerts, weather station and quakes are for the chosen city, and people counts use that city's local time zone.
+- **First load of each city** downloads from OpenStreetMap (the wide ones in a second request, maybe 1-3 minutes) and is cached in `cache/`. If only the wide part fails, the detailed map still loads and you can press Retry. Cities live in `CITIES` in `serve.py` and `js/core.js`.
+- Limits: elevation is still the modeled terrain (SF hills and Manhattan's slope are not real), building heights come from OSM tags and a default when missing, and the wide area only shows tall buildings.
+
+## Start menu (dragonfly)
+The start menu is a top-down 3D dragonfly (js/menu.js). Each wing is a control: Experience (Live city or Scenario, plus the city list), Event (disaster or live alert / real past event), Mode (Aerial / Earth), Quality. The round button over the head starts (or resumes) the game. "Flight controls" lists the keys. Old menu elements live hidden in #legacy and are driven by the new UI. Honors prefers-reduced-motion and pauses when the tab is hidden.

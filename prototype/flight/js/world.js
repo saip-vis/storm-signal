@@ -6,7 +6,8 @@
 // Data format: {extent, buildings:[{poly:[[x,z]..],h,lv,t,n}], roads:[{pts:[[x,z]..],w,k,b}], water:[{pts,half}], parks:[{poly}]}
 // Coordinates are local meters: x east, z south (north = -z), origin downtown Houston.
 // =====================================================================
-const B=[],PARKS=[],TREES=[],NODES=[],EDGES=[],RIVER=[];let E=760,WSRC='procedural',worldReady=false;
+const B=[],PARKS=[],TREES=[],NODES=[],EDGES=[],RIVER=[];let E=760,WSRC='procedural',worldReady=false;const HOME={x:0,z:0}; // HOME: where the unit starts and hazards happen (big cities are much larger than the play area)
+const spawnPt=()=>({x:HOME.x,z:HOME.z+Math.min(E*.7,1000)});
 
 // ---------- spatial hashes (buildings and road edges), 64 m cells ----------
 const HS=64,BH=new Map(),EH=new Map(),hk=(i,j)=>i*100003+j;let hstamp=0;
@@ -38,8 +39,34 @@ function riverDistRaw(x,z){let bd=1e9;for(const r of RIVER){const p=r.pts;for(le
 // Modeled elevation above the bayou (meters): rises ~1.1 m per 100 m away from the water plus gentle bumps.
 // This is an invented terrain for gameplay, not real LiDAR. Real mode should swap in USGS 3DEP elevation later.
 const elevFn=(x,z,rd)=>rd<0?0:Math.max(.25,.6+Math.min(rd*.011,9)+1.1*Math.sin(x*.0061+1.3)*Math.sin(z*.0053+.4)+.7*Math.sin(x*.013-z*.009));
-function buildFields(){GX0=-E-200;GZ0=-E-200;GW=Math.ceil((2*E+400)/RES);GHh=GW;RD=new Float32Array(GW*GHh);EL=new Float32Array(GW*GHh);
-  for(let j=0;j<GHh;j++)for(let i=0;i<GW;i++){const x=GX0+i*RES,z=GZ0+j*RES,rd=RIVER.length?riverDistRaw(x,z):1e4;RD[j*GW+i]=rd;EL[j*GW+i]=elevFn(x,z,rd)}}
+// Water mask on a grid (cells RES m): river ribbons, lake/riverbank polygons (even-odd scanline), and sea from coastline chains.
+// A coastline way has water on its right (OSM rule). Cells along the line become barriers, seeds are dropped one step to the right
+// of the line, and a 4-connected flood fill from the seeds (blocked by barriers) marks the sea. Then a distance transform gives every
+// land cell its distance to the nearest water, which drives the modeled terrain (and so the flooding).
+function buildFields(coast=[],lakes=[]){RES=Math.max(8,Math.ceil((2*E+400)/900));GX0=-E-200;GZ0=-E-200;GW=Math.ceil((2*E+400)/RES);GHh=GW;const n=GW*GHh;
+  const wat=new Uint8Array(n),bar=new Uint8Array(n),ci=x=>Math.floor((x-GX0)/RES),cj=z=>Math.floor((z-GZ0)/RES);
+  const segCells=(a,b,rad,fn)=>{const x0=Math.max(0,ci(Math.min(a[0],b[0])-rad)),x1=Math.min(GW-1,ci(Math.max(a[0],b[0])+rad)),z0=Math.max(0,cj(Math.min(a[1],b[1])-rad)),z1=Math.min(GHh-1,cj(Math.max(a[1],b[1])+rad)),dx=b[0]-a[0],dz=b[1]-a[1],l2=dx*dx+dz*dz||1;
+    for(let j=z0;j<=z1;j++)for(let i=x0;i<=x1;i++){const x=GX0+(i+.5)*RES,z=GZ0+(j+.5)*RES,u=clamp(((x-a[0])*dx+(z-a[1])*dz)/l2,0,1);if(Math.hypot(a[0]+dx*u-x,a[1]+dz*u-z)<=rad)fn(i,j)}};
+  for(const r of RIVER){const p=r.pts,rad=Math.max(r.half,RES*.6);for(let k=1;k<p.length;k++)segCells(p[k-1],p[k],rad,(i,j)=>{wat[j*GW+i]=1})}
+  for(const L of lakes){let z0=1e9,z1=-1e9;for(const ring of L.rings)for(const q of ring){z0=Math.min(z0,q[1]);z1=Math.max(z1,q[1])}
+    for(let j=Math.max(0,cj(z0));j<=Math.min(GHh-1,cj(z1));j++){const z=GZ0+(j+.5)*RES,xs=[];
+      for(const ring of L.rings)for(let k=0,m=ring.length-1;k<ring.length;m=k++){const a=ring[m],b=ring[k];if((a[1]>z)!==(b[1]>z))xs.push(a[0]+(z-a[1])*(b[0]-a[0])/(b[1]-a[1]))}
+      xs.sort((p,q)=>p-q);for(let s=0;s+1<xs.length;s+=2){const i0=Math.max(0,Math.ceil((xs[s]-GX0)/RES-.5)),i1=Math.min(GW-1,Math.floor((xs[s+1]-GX0)/RES-.5));for(let i=i0;i<=i1;i++)wat[j*GW+i]=1}}}
+  if(coast.length){const seeds=[];
+    // a coastline way that stops near the edge of the map would let the sea flow around its end: extend such ends straight out past the edge
+    const nearEdge=q=>Math.abs(q[0])>E-250||Math.abs(q[1])>E-250,ext=(a,b)=>{const dx=a[0]-b[0],dz=a[1]-b[1],l=Math.hypot(dx,dz)||1;return[a[0]+dx/l*E*2.5,a[1]+dz/l*E*2.5]};
+    for(const c of coast){const p=c.pts;if(p.length>1){if(nearEdge(p[p.length-1]))p.push(ext(p[p.length-1],p[p.length-2]));if(nearEdge(p[0]))p.unshift(ext(p[0],p[1]))}}
+    for(const c of coast){const p=c.pts;for(let k=1;k<p.length;k++){const ax=p[k-1][0],az=p[k-1][1],dx=p[k][0]-ax,dz=p[k][1]-az,L=Math.hypot(dx,dz);if(L<1e-6)continue;
+      const steps=Math.max(1,Math.ceil(L/(RES*.5))),nx=-dz/L,nz=dx/L;
+      for(let s=0;s<=steps;s++){const x=ax+dx*s/steps,z=az+dz*s/steps,i=ci(x),j=cj(z);if(i>=0&&j>=0&&i<GW&&j<GHh)bar[j*GW+i]=1;seeds.push(x+nx*RES*1.7,z+nz*RES*1.7)}}}
+    const q=new Int32Array(n);let qh=0,qt=0;for(let s=0;s<seeds.length;s+=2){const i=ci(seeds[s]),j=cj(seeds[s+1]);if(i<0||j<0||i>=GW||j>=GHh)continue;const k=j*GW+i;if(!bar[k]&&!wat[k]){wat[k]=1;q[qt++]=k}}
+    while(qh<qt){const k=q[qh++],i=k%GW,j=(k/GW)|0;if(i>0&&!wat[k-1]&&!bar[k-1]){wat[k-1]=1;q[qt++]=k-1}if(i<GW-1&&!wat[k+1]&&!bar[k+1]){wat[k+1]=1;q[qt++]=k+1}
+      if(j>0&&!wat[k-GW]&&!bar[k-GW]){wat[k-GW]=1;q[qt++]=k-GW}if(j<GHh-1&&!wat[k+GW]&&!bar[k+GW]){wat[k+GW]=1;q[qt++]=k+GW}}}
+  // distance (m) from each land cell to the nearest water cell: two-pass chamfer
+  RD=new Float32Array(n);EL=new Float32Array(n);let any=false;const INF=1e9,D=new Float32Array(n);for(let k=0;k<n;k++){if(wat[k]){D[k]=0;any=true}else D[k]=INF}
+  if(any){for(let j=0;j<GHh;j++)for(let i=0;i<GW;i++){const k=j*GW+i;let d=D[k];if(i>0)d=Math.min(d,D[k-1]+1);if(j>0){d=Math.min(d,D[k-GW]+1);if(i>0)d=Math.min(d,D[k-GW-1]+1.414);if(i<GW-1)d=Math.min(d,D[k-GW+1]+1.414)}D[k]=d}
+    for(let j=GHh-1;j>=0;j--)for(let i=GW-1;i>=0;i--){const k=j*GW+i;let d=D[k];if(i<GW-1)d=Math.min(d,D[k+1]+1);if(j<GHh-1){d=Math.min(d,D[k+GW]+1);if(i<GW-1)d=Math.min(d,D[k+GW+1]+1.414);if(i>0)d=Math.min(d,D[k+GW-1]+1.414)}D[k]=d}}
+  for(let j=0;j<GHh;j++)for(let i=0;i<GW;i++){const k=j*GW+i,x=GX0+i*RES,z=GZ0+j*RES,rd=wat[k]?-1:any?Math.max(.1,D[k]*RES-RES*.5):1e4;RD[k]=rd;EL[k]=elevFn(x,z,rd)}}
 const fIdx=(x,z)=>{const i=clamp(Math.round((x-GX0)/RES),0,GW-1),j=clamp(Math.round((z-GZ0)/RES),0,GHh-1);return j*GW+i};
 const riverDist=(x,z)=>RD?RD[fIdx(x,z)]:1e4,elevAt=(x,z)=>EL?EL[fIdx(x,z)]:5;
 let waterLevel=0; // current flood level in meters above the bayou (set by hurricane / flood)
@@ -103,7 +130,7 @@ function disposeObj(o){if(!o)return;SC.remove(o);o.traverse&&o.traverse(m=>{if(m
 
 function buildWorld(data,src){WSRC=src;worldReady=false;
   for(const o of [cityMesh,roadMesh,dashMesh,parkMesh,trunkM,crownM,water])disposeObj(o);
-  B.length=PARKS.length=TREES.length=NODES.length=EDGES.length=RIVER.length=0;BH.clear();EH.clear();E=data.extent||760;
+  B.length=PARKS.length=TREES.length=NODES.length=EDGES.length=RIVER.length=0;BH.clear();EH.clear();E=data.extent||760;HOME.x=HOME.z=0;if(src==='houston'&&CITY.spawn){HOME.x=(CITY.spawn[1]-ORIGIN.lng)*M_LNG;HOME.z=-(CITY.spawn[0]-ORIGIN.lat)*M_LAT}
   // buildings
   for(const d of data.buildings){const p=d.poly;if(!p||p.length<3)continue;let x0=1e9,x1=-1e9,z0=1e9,z1=-1e9;for(const q of p){x0=Math.min(x0,q[0]);x1=Math.max(x1,q[0]);z0=Math.min(z0,q[1]);z1=Math.max(z1,q[1])}
     const area=polyArea(p);if(area<12)continue;
@@ -132,7 +159,7 @@ function buildWorld(data,src){WSRC=src;worldReady=false;
   {const comp=new Int32Array(NODES.length).fill(-1);let best=-1,bestN=0;for(let s=0;s<NODES.length;s++){if(comp[s]>=0)continue;const st=[s];comp[s]=s;let n=0;while(st.length){const u=st.pop();n++;for(const [v] of NODES[u].adj)if(comp[v]<0){comp[v]=s;st.push(v)}}if(n>bestN){bestN=n;best=s}}
    for(let i=0;i<NODES.length;i++)if(comp[i]!==best)NODES[i].adj=[];for(const e of EDGES)e.dead=comp[e.a]!==best}
   // river + terrain fields
-  for(const w of data.water)RIVER.push({pts:w.pts,half:w.half||18});buildFields();
+  for(const w of data.water)RIVER.push({pts:w.pts,half:w.half||18});buildFields(data.coast||[],data.lakes||[]);
   // entrances: nearest usable road node to each building (not a freeway), door on the facade, curb stop in the near lane
   for(const b of B){let bi=-1,bd=1e9;const pc=padPoint(b);for(let r=0;r<2;r++){forNearEdges(b.x,b.z,ei=>{const e=EDGES[ei];if(e.dead||e.k==='motorway'||e.k==='motorway_link')return;for(const ni of [e.a,e.b]){const n=NODES[ni],d=bClosest(b,n.x,n.z).d+(r?0:0);if(d<bd&&d>2){bd=d;bi=ni}}});if(bi>=0)break}
     if(bi<0||bd>90)continue;const n=NODES[bi],cl=bClosest(b,n.x,n.z),dx=cl.cx-n.x,dz=cl.cz-n.z,dl=Math.hypot(dx,dz)||1,lane=Math.min(3.5,dl*.35);
@@ -157,7 +184,23 @@ function buildWorld(data,src){WSRC=src;worldReady=false;
    const tex=new THREE.DataTexture(d,w,h,THREE.LuminanceFormat);tex.magFilter=tex.minFilter=THREE.LinearFilter;tex.needsUpdate=true;
    waterU.uEl.value=tex;waterU.uBox.value.set(GX0,GZ0,w*RES,h*RES);
    water=new THREE.Mesh(new THREE.PlaneGeometry(w*RES,h*RES,1,1),waterMat);water.rotation.x=-Math.PI/2;water.position.set(GX0+w*RES/2,.35,GZ0+h*RES/2);SC.add(water)}
-  initTraffic();worldReady=true}
+  setTheme();initTraffic();worldReady=true}
+// ---------- theme: 'aurora' (Alaska) = night sky with northern lights and stars, a snowy ground, and a ring of mountains that follows the camera ----------
+let MTN=null;
+function setTheme(){const au=CITY.theme==='aurora';skyU.aur.value=au?1:0;
+  ground.material.color.setHex(au?0x7d909e:0x2a3631);hemi.color.setHex(au?0x7fa8c8:0xb7d4d8);hemi.groundColor.setHex(au?0x1b2a3a:0x1d2a27);sun.color.setHex(au?0x9fb8ff:0xffc98a);
+  if(parkMesh)parkMesh.material.color.setHex(au?0xaab9c2:0x2c4a33);
+  if(MTN){SC.remove(MTN);MTN.traverse(m=>{if(m.geometry)m.geometry.dispose()});MTN=null}if(!au)return;
+  MTN=new THREE.Group();const N=260,smooth=(a,b,x)=>{const u=clamp((x-a)/(b-a),0,1);return u*u*(3-2*u)};
+  for(const L of [{r:4000,h:1.15,seed:1.3,foot:[.2,.3,.45],snow:[.88,.94,1],mid:[.36,.46,.6]},{r:3350,h:.72,seed:4.1,foot:[.1,.16,.26],snow:[.72,.82,.92],mid:[.2,.28,.4]}]){
+    const pos=[],col=[],idx=[],prof=[[-900,0,0],[-350,.7,1],[0,1,2],[800,0,0]];  // radial offset, height fraction, color slot
+    for(let i=0;i<=N;i++){const a=i/N*Math.PI*2,ridge=Math.abs(Math.sin(a*5.3+L.seed))*.5+Math.abs(Math.sin(a*11.7+2*L.seed))*.3+Math.abs(Math.sin(a*27+3*L.seed))*.2,dirf=.35+.65*(.5+.5*Math.sin(a)),H=L.h*(250+950*ridge)*dirf;
+      for(const [dr,hf,cs] of prof){const r=L.r+dr;pos.push(Math.sin(a)*r,-40+hf*(H+40),-Math.cos(a)*r);const c=cs==0?L.foot:cs==1?L.mid:L.snow,sn=cs==2?smooth(300,900,H):cs==1?smooth(500,1100,H)*.5:0;
+        col.push(c[0]+(L.snow[0]-c[0])*sn*(cs==2?1:.6),c[1]+(L.snow[1]-c[1])*sn*(cs==2?1:.6),c[2]+(L.snow[2]-c[2])*sn*(cs==2?1:.6))}}
+    for(let i=0;i<N;i++)for(let k=0;k<3;k++){const a=i*4+k,b=(i+1)*4+k;idx.push(a,b,a+1,b,b+1,a+1)}
+    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));g.setIndex(idx);
+    MTN.add(new THREE.Mesh(g,new THREE.MeshBasicMaterial({vertexColors:true,fog:false,side:THREE.DoubleSide})))}
+  SC.add(MTN)}
 function forNearEdges(x,z,fn){const gi=Math.floor(x/HS),gj=Math.floor(z/HS),seen=new Set();for(let i=gi-2;i<=gi+2;i++)for(let j=gj-2;j<=gj+2;j++){const a=EH.get(hk(i,j));if(!a)continue;for(const e of a){if(seen.has(e))continue;seen.add(e);fn(e)}}}
 const waterU={uT:{value:0},uLevel:{value:0},uMud:{value:0},uEl:{value:null},uBox:{value:new THREE.Vector4()},uFogC:{value:SC.fog.color},uFogN:{value:160},uFogF:{value:1600}};
 const waterMat=new THREE.ShaderMaterial({uniforms:waterU,transparent:true,depthWrite:false,

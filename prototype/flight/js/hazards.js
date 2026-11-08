@@ -44,7 +44,7 @@ const RUB=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),toon(0x6f6a62),60
 function obsWind(){if(!live.on||!live.obs||live.obs.wind==null)return null;const to=((live.obs.dir||0)+180)*Math.PI/180;return V(Math.sin(to)*live.obs.wind,0,-Math.cos(to)*live.obs.wind)}
 function windAt(x,z){const ow=obsWind(),g=1+.35*Math.sin(t*.9+x*.004)*Math.sin(t*.37+z*.005);
   // derecho (live sample): a straight-line gust front sweeping west to east at ~22 m/s, strongest just behind the front
-  if(disaster=='hurricane'&&H.derecho){const fx=-E-300+22*simT,bh=fx-x,s=bh>0&&bh<500?42*(1-bh/650):9;return V(s*g,0,-2*g)}
+  if(disaster=='hurricane'&&H.derecho){const fx=HOME.x-1800+22*simT,bh=fx-x,s=bh>0&&bh<500?42*(1-bh/650):9;return V(s*g,0,-2*g)}
   if(disaster=='hurricane'){const hc=CFG.hurricane,dx=x-H.ex,dz=z-H.ez,r=Math.hypot(dx,dz)||1,v=hc.vmax*(r<hc.rmax?r/hc.rmax:Math.pow(hc.rmax/r,.6))*(1+.25*Math.sin(t*1.1+x*.01)*Math.sin(t*.43+z*.013));
     return V((dz/r-.25*dx/r)*v,0,(-dx/r-.25*dz/r)*v)}
   if(disaster=='wildfire')return FIRE.dir.clone().multiplyScalar(CFG.wildfire.wind*g);
@@ -53,23 +53,24 @@ function windAt(x,z){const ow=obsWind(),g=1+.35*Math.sin(t*.9+x*.004)*Math.sin(t
   const a=t*.07;return V(Math.sin(a)*9*g,0,Math.cos(a*1.3)*9*g)}
 
 // ---------- reset / sky per disaster ----------
-function hazardReset(){const d=disaster;T.x=-260;T.z=-120;T.vx=T.vz=0;H.ex=CFG.hurricane.eye0[0];H.ez=CFG.hurricane.eye0[1];waterLevel=0;
+function hazardReset(){const d=disaster;T.x=HOME.x-260;T.z=HOME.z-120;T.vx=T.vz=0;H.ex=HOME.x+CFG.hurricane.eye0[0];H.ez=HOME.z+CFG.hurricane.eye0[1];waterLevel=0;
   Q.main=false;Q.next=0;Q.shakeT=0;Q.after=0;Q.collapsed=[];Q.damaged=[];Q.rubble.clear();Q.hard.clear();Q.anim=[];RUB.count=0;
   for(const b of B){b.hs=1;b.char=0;b.dmg=0;if(bState.tex)setBState(b.i,1,0)}
   if(d=='wildfire')fireInit();
   const sky={tornado:[0x1b2c33,0x3d545b,160,1600,.24,1.1,1.3],hurricane:[0x0f1a20,0x2a3a40,90,950,CFG.hurricane.lit,.8,.5],flood:[0x16222a,0x34464d,110,1100,.2,.9,.6],
     wildfire:[0x3a2416,0x7a4a2a,120,1200,.2,1,1.2],earthquake:[0x23303a,0x55646a,180,1700,.28,1.1,1.2],none:[0x2a4050,0x6f8a96,220,2200,.18,1.2,1.4]}[d];
   skyU.top.value.setHex(sky[0]);skyU.bot.value.setHex(sky[1]);SC.fog.color.copy(skyU.bot.value);SC.fog.near=sky[2];SC.fog.far=sky[3];waterU.uFogN.value=sky[2];waterU.uFogF.value=sky[3];
+  if(CITY.theme==='aurora'){skyU.top.value.setHex(0x040a1c);skyU.bot.value.setHex(0x15283c);SC.fog.color.copy(skyU.bot.value);if(d=='none'){sky[4]=.4;sky[5]=.9}sky[6]=Math.min(sky[6],.5)}
   winU.uLit.value=sky[4];hemi.userData.base=sky[5];sun.intensity=sky[6];torn.visible=d=='tornado';waterU.uMud.value=d=='flood'||d=='hurricane'?.7:0;
   BLOCK=new Uint8Array(EDGES.length);for(const a of [FIREP,SMOKE,DUST])a.p.fill(-999)}
 
 // ---------- tick ----------
 function hazardTick(dt){const d=disaster;
-  if(d=='tornado'){T.turn-=dt;if(T.turn<=0){T.turn=1+Math.random()*2.5;const a=Math.random()*6.28,s=18+Math.random()*40;T.tx=Math.cos(a)*s-T.x*.06;T.tz=Math.sin(a)*s-T.z*.06;if(Math.random()<.3){T.tx*=2;T.tz*=2}}
+  if(d=='tornado'){T.turn-=dt;if(T.turn<=0){T.turn=1+Math.random()*2.5;const a=Math.random()*6.28,s=18+Math.random()*40;T.tx=Math.cos(a)*s-(T.x-HOME.x)*.06;T.tz=Math.sin(a)*s-(T.z-HOME.z)*.06;if(Math.random()<.3){T.tx*=2;T.tz*=2}}
     T.vx+=(T.tx-T.vx)*dt*1.6;T.vz+=(T.tz-T.vz)*dt*1.6;T.x=clamp(T.x+T.vx*dt,-E+60,E-60);T.z=clamp(T.z+T.vz*dt,-E+60,E-60);
     // damage path: buildings under the core get damaged (more reports come from here)
     forNear(T.x,T.z,b=>{if(!b.dmg&&bDist(b,T.x,T.z,40)<30){b.dmg=1;b.char=.35;setBState(b.i,b.hs,b.char)}return false})}
-  else if(d=='hurricane'){const hc=CFG.hurricane,dx=-H.ex,dz=-H.ez,dd=Math.hypot(dx,dz);if(dd>500){H.ex+=dx/dd*hc.eyeSpeed*dt;H.ez+=dz/dd*hc.eyeSpeed*dt}waterLevel=hc.maxLevel*ease(clamp(simT/hc.riseTime,0,1))}
+  else if(d=='hurricane'){const hc=CFG.hurricane,dx=HOME.x-H.ex,dz=HOME.z-H.ez,dd=Math.hypot(dx,dz);if(dd>500){H.ex+=dx/dd*hc.eyeSpeed*dt;H.ez+=dz/dd*hc.eyeSpeed*dt}waterLevel=hc.maxLevel*ease(clamp(simT/hc.riseTime,0,1))}
   else if(d=='flood')waterLevel=floodLevelAt(simT);
   else if(d=='wildfire')fireTick(dt);
   else if(d=='earthquake')quakeTick(dt);
@@ -104,7 +105,9 @@ function updateBlocked(){if(BLOCK.length!==EDGES.length)BLOCK=new Uint8Array(EDG
     if(!bl&&d=='earthquake'&&Q.hard.has(e))bl=1;BLOCK[e]=bl}}
 
 // ---------- where calls for help come from ----------
-function pickReportBuilding(){const free=B.filter(b=>b.curb!==undefined&&!reports.some(r=>!r.done&&r.b===b)&&b.hs>.1);if(!free.length)return null;const d=disaster;
+function pickReportBuilding(){let free=B.filter(b=>b.curb!==undefined&&!reports.some(r=>!r.done&&r.b===b)&&b.hs>.1);
+  if(E>2400){const U=unitPos(),near=free.filter(b=>Math.hypot(b.x-U.x,b.z-U.z)<2600);if(near.length)free=near}  // big map: calls come from around where you are
+  if(!free.length)return null;const d=disaster;
   const any=()=>free[Math.floor(Math.random()*free.length)];let pool=null;
   if(d=='tornado'){pool=free.filter(b=>b.dmg);if(Math.random()<.5)pool=free.filter(b=>Math.hypot(b.x-T.x,b.z-T.z)<450)}
   else if(d=='hurricane'||d=='flood'){const lv=d=='flood'?floodLevelAt(simT+60):waterLevel+1.2;pool=free.filter(b=>elevAt(b.x,b.z)<lv+.6&&riverDist(b.x,b.z)>4)} // low ground, soon to flood
@@ -116,13 +119,13 @@ function reportTau(b){if(disaster=='earthquake'&&b.hs<.6)return CFG.earthquake.t
 function reportShare(b){const base=.003+Math.random()*.012;if(disaster=='earthquake'&&b.hs<.6)return base*3;if(WSRC==='houston')return Math.min(.2,base*4);return base}
 
 // ---------- wildfire: cellular spread on a 40 m grid, faster downwind, spotting embers ----------
-function fireInit(){const c=CFG.wildfire.cell;FIRE.cell=c;FIRE.x0=-E-100;FIRE.z0=-E-100;FIRE.nx=Math.ceil((2*E+200)/c);FIRE.nz=FIRE.nx;const n=FIRE.nx*FIRE.nz;
+function fireInit(){const c=Math.max(CFG.wildfire.cell,Math.ceil(E/130));FIRE.cell=c;FIRE.x0=-E-100;FIRE.z0=-E-100;FIRE.nx=Math.ceil((2*E+200)/c);FIRE.nz=FIRE.nx;const n=FIRE.nx*FIRE.nz;
   FIRE.st=new Uint8Array(n);FIRE.tm=new Float32Array(n);FIRE.fuel=new Float32Array(n);FIRE.arr=new Float32Array(n).fill(999);FIRE.arrT=0;
   const ang=-.35+(Math.random()-.5)*.6;FIRE.dir=V(Math.cos(ang),0,Math.sin(ang)); // wind toward roughly east (fire starts on the west side)
   for(let j=0;j<FIRE.nz;j++)for(let i=0;i<FIRE.nx;i++){const x=FIRE.x0+(i+.5)*c,z=FIRE.z0+(j+.5)*c,k=j*FIRE.nx+i;let f=.45;          // urban fuel: low
     if(riverDist(x,z)<0)f=0;else{forNear(x,z,b=>{if(bDist(b,x,z,30)<1){f=.75;return true}return false});for(const tr of TREES)if(Math.abs(tr.x-x)<c&&Math.abs(tr.z-z)<c){f=1.6;break}}FIRE.fuel[k]=f}
   // ignition: a strip on the upwind edge of the city
-  const sx=-FIRE.dir.x,sz=-FIRE.dir.z;for(let q=-3;q<=3;q++){const x=sx*(E*.85)+(-sz)*q*c*2,z=sz*(E*.85)+sx*q*c*2,i=Math.floor((x-FIRE.x0)/c),j=Math.floor((z-FIRE.z0)/c);if(i>=0&&j>=0&&i<FIRE.nx&&j<FIRE.nz){FIRE.st[j*FIRE.nx+i]=1}}
+  const sx=-FIRE.dir.x,sz=-FIRE.dir.z;for(let q=-3;q<=3;q++){const fr=Math.min(E*.85,1500),x=HOME.x+sx*fr+(-sz)*q*c*2,z=HOME.z+sz*fr+sx*q*c*2,i=Math.floor((x-FIRE.x0)/c),j=Math.floor((z-FIRE.z0)/c);if(i>=0&&j>=0&&i<FIRE.nx&&j<FIRE.nz){FIRE.st[j*FIRE.nx+i]=1}}
   fireArrivalUpdate()}
 function fireTick(dt){const f=FIRE,nx=f.nx,c=f.cell,w=windAt(0,0),wl=w.length()||1,wx=w.x/wl,wz=w.z/wl;f.burning.length=0;
   for(let k=0;k<f.st.length;k++){if(f.st[k]!==1)continue;f.burning.push(k);f.tm[k]+=dt;if(f.tm[k]>28){f.st[k]=2;continue}const i=k%nx,j=(k/nx)|0;
@@ -145,7 +148,7 @@ function fireArrival(x,z){const f=FIRE;if(!f.st||disaster!='wildfire')return 999
 // ---------- earthquake: main shock, staged collapses with dust, damage, aftershocks, rubble on roads ----------
 function quakeTick(dt){const qc=CFG.earthquake;
   if(!Q.main&&simT>=qc.t0){Q.main=true;Q.shakeT=3;shake=Math.max(shake,2.2);say('EARTHQUAKE');sfx('quake');
-    const sorted=B.slice().sort(()=>Math.random()-.5);for(const b of sorted){const r=Math.random();if(r<qc.collapse*(.6+Math.min(1,b.h/120)))collapse(b);else if(r<qc.collapse+qc.damage){b.dmg=1;b.char=.22;b.hs=.95;setBState(b.i,b.hs,b.char);Q.damaged.push(b)}}
+    const sorted=B.filter(b=>Math.hypot(b.x-HOME.x,b.z-HOME.z)<2800).sort(()=>Math.random()-.5);for(const b of sorted){const r=Math.random();if(r<qc.collapse*(.6+Math.min(1,b.h/120)))collapse(b);else if(r<qc.collapse+qc.damage){b.dmg=1;b.char=.22;b.hs=.95;setBState(b.i,b.hs,b.char);Q.damaged.push(b)}}
     Q.next=simT+qc.after[0]+Math.random()*(qc.after[1]-qc.after[0]);for(let i=0;i<3;i++)addReport()}
   if(Q.main&&simT>=Q.next){Q.next=simT+qc.after[0]+Math.random()*(qc.after[1]-qc.after[0]);Q.after=9;Q.shakeT=1.4;shake=Math.max(shake,1.1);say('aftershock');sfx('quake');radio('aftershock: stay clear of damaged towers for about 9 seconds',true);
     for(const b of Q.damaged)if(b.hs>.6&&Math.random()<.12)collapse(b)}

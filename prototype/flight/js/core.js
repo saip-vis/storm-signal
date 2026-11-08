@@ -11,15 +11,23 @@ if(URLQ.get('rseed')){let s=+URLQ.get('rseed')||1;Math.random=()=>{s=s+0x6D2B79F
 const store={get(k,d){try{return localStorage.getItem(k)||d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
 
 // Houston local time, done properly with the IANA zone (handles CST/CDT, no fixed UTC-6)
-function houstonTime(d=new Date()){const p=new Intl.DateTimeFormat('en-US',{timeZone:'America/Chicago',hour:'numeric',minute:'numeric',weekday:'short',hour12:false}).formatToParts(d);
-  const g=k=>(p.find(x=>x.type===k)||{}).value;const h=(+g('hour'))%24,m=+g('minute'),wd=g('weekday');return{h,m,hf:h+m/60,wd,weekend:wd==='Sat'||wd==='Sun',label:new Intl.DateTimeFormat('en-US',{timeZone:'America/Chicago',weekday:'short',hour:'numeric',minute:'2-digit'}).format(d)}}
+function houstonTime(d=new Date()){const p=new Intl.DateTimeFormat('en-US',{timeZone:CITY.tz,hour:'numeric',minute:'numeric',weekday:'short',hour12:false}).formatToParts(d);
+  const g=k=>(p.find(x=>x.type===k)||{}).value;const h=(+g('hour'))%24,m=+g('minute'),wd=g('weekday');return{h,m,hf:h+m/60,wd,weekend:wd==='Sat'||wd==='Sun',label:new Intl.DateTimeFormat('en-US',{timeZone:CITY.tz,weekday:'short',hour:'numeric',minute:'2-digit'}).format(d)}}
 
 // local meters <-> lat/lng around downtown Houston (equirectangular, fine at a few km). x east, z south (north = -z).
 // Cities (origin must match CITIES in serve.py). ORIGIN and M_LNG are updated by setCity(). pop: city census 2020, used by the procedural map.
-const CITIES={houston:{name:'Houston',lat:29.7604,lng:-95.3698,pop:2304580},dallas:{name:'Dallas',lat:32.7770,lng:-96.8065,pop:1304379}};
+// tz: IANA zone for the people-now estimate. spawn: [lat,lng] where the unit starts and hazards happen (the map can be much bigger than the action zone). theme 'aurora': Alaska night sky + mountains.
+const CITIES={
+  houston:{name:'Houston',lat:29.7604,lng:-95.3698,pop:2304580,tz:'America/Chicago'},
+  dallas:{name:'Dallas',lat:32.7770,lng:-96.8065,pop:1304379,tz:'America/Chicago'},
+  richardson:{name:'Richardson',lat:32.9857,lng:-96.7502,pop:119469,tz:'America/Chicago'},
+  sf:{name:'San Francisco',lat:37.7655,lng:-122.4375,pop:873965,tz:'America/Los_Angeles',spawn:[37.7885,-122.4005]},
+  miami:{name:'Miami',lat:25.7800,lng:-80.1925,pop:442241,tz:'America/New_York',spawn:[25.7700,-80.1920]},
+  nyc:{name:'New York',lat:40.7525,lng:-73.9850,pop:8804190,tz:'America/New_York',spawn:[40.7560,-73.9860]},
+  anchorage:{name:'Anchorage',lat:61.2170,lng:-149.8950,pop:291247,tz:'America/Anchorage',theme:'aurora',spawn:[61.2165,-149.8940]}};
 const ORIGIN={lat:29.7604,lng:-95.3698},M_LAT=110540;let M_LNG=111320*Math.cos(ORIGIN.lat*Math.PI/180);
-const CITY={name:'Houston',pop:2304580,key:'houston'};
-function setCity(k){const c=CITIES[k]||CITIES.houston;ORIGIN.lat=c.lat;ORIGIN.lng=c.lng;M_LNG=111320*Math.cos(ORIGIN.lat*Math.PI/180);CITY.name=c.name;CITY.pop=c.pop;CITY.key=k in CITIES?k:'houston'}
+const CITY={name:'Houston',pop:2304580,key:'houston',tz:'America/Chicago',theme:'',spawn:null};
+function setCity(k){const c=CITIES[k]||CITIES.houston;ORIGIN.lat=c.lat;ORIGIN.lng=c.lng;M_LNG=111320*Math.cos(ORIGIN.lat*Math.PI/180);CITY.name=c.name;CITY.pop=c.pop;CITY.key=k in CITIES?k:'houston';CITY.tz=c.tz||'America/Chicago';CITY.theme=c.theme||'';CITY.spawn=c.spawn||null}
 const toLatLng=(x,z)=>({lat:ORIGIN.lat-z/M_LAT,lng:ORIGIN.lng+x/M_LNG});
 
 // =====================================================================
@@ -52,11 +60,20 @@ const CFG={
 // =====================================================================
 const R=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});R.setSize(innerWidth,innerHeight);document.body.prepend(R.domElement);
 const SC=new THREE.Scene();
-const C=new THREE.PerspectiveCamera(62,innerWidth/innerHeight,.5,6000);
-const skyU={top:{value:new THREE.Color(0x1b2c33)},bot:{value:new THREE.Color(0x3d545b)},flash:{value:0}};
+const C=new THREE.PerspectiveCamera(62,innerWidth/innerHeight,.5,7000);
+const skyU={top:{value:new THREE.Color(0x1b2c33)},bot:{value:new THREE.Color(0x3d545b)},flash:{value:0},aur:{value:0},tm:{value:0}};
 const sky=new THREE.Mesh(new THREE.SphereGeometry(4500,24,12),new THREE.ShaderMaterial({uniforms:skyU,side:THREE.BackSide,depthWrite:false,fog:false,
   vertexShader:'varying vec3 vP;void main(){vP=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-  fragmentShader:'uniform vec3 top,bot;uniform float flash;varying vec3 vP;void main(){float h=clamp(normalize(vP).y*1.7+.08,0.,1.);vec3 c=mix(bot,top,h);c+=flash*vec3(.5,.58,.72)*(1.-h*.5);gl_FragColor=vec4(c,1.);}'}));
+  fragmentShader:`uniform vec3 top,bot;uniform float flash,aur,tm;varying vec3 vP;
+  void main(){vec3 dr=normalize(vP);float h=clamp(dr.y*1.7+.08,0.,1.);vec3 c=mix(bot,top,h);c+=flash*vec3(.5,.58,.72)*(1.-h*.5);
+   if(aur>.01){float el=dr.y,az=atan(dr.x,dr.z);
+    vec3 q=floor(dr*110.);float s=fract(sin(dot(q,vec3(12.9898,78.233,37.719)))*43758.5453);c+=vec3(.9,.95,1.)*step(.9968,s)*(.55+.45*sin(tm*2.5+s*60.))*smoothstep(.08,.35,el)*aur;
+    float curtain=smoothstep(.02,.28,el)*smoothstep(.95,.4,el);
+    float band=pow(max(0.,sin(az*3.+sin(az*1.7+tm*.13)*2.2+tm*.07)*.5+.5),1.6)+.35*pow(max(0.,sin(az*7.-tm*.09+1.7)*.5+.5),2.);
+    float rays=.55+.45*sin(az*55.+sin(az*9.+tm*.4)*3.+tm*.6);
+    vec3 g=mix(vec3(.12,1.,.55),vec3(.55,.22,.95),smoothstep(.32,.8,el));g=mix(g,vec3(.9,.25,.5),smoothstep(.78,1.,el)*.3);
+    c+=g*curtain*band*rays*.62*aur;c+=vec3(.05,.2,.12)*smoothstep(.0,.25,el)*smoothstep(.6,.1,el)*aur*.5;}
+   gl_FragColor=vec4(c,1.);}`}));
 sky.renderOrder=-1;SC.add(sky);
 SC.fog=new THREE.Fog(0x3d545b,160,1600);
 const hemi=new THREE.HemisphereLight(0xb7d4d8,0x1d2a27,1.1);SC.add(hemi);

@@ -107,7 +107,29 @@ const SAMPLES_ALL={houston:{
   tornado19:{label:'Dallas EF3 tornado, Oct 20 2019',d:'tornado',info:'A night-time EF3 hit north Dallas (Preston Hollow to Richardson), damaging 1,000+ buildings, no deaths. Moved to downtown to show the routing.'},
   storm24:{label:'DFW windstorm, May 28 2024',d:'hurricane',info:'Severe storms with gusts near 80 mph across Dallas-Fort Worth, big power outages and broken glass. Modeled as a fast gust front.',over:{derecho:true,maxLevel:.3}},
   flood22:{label:'Dallas flash flood, Aug 22 2022',d:'flood',info:'Record rainfall (9+ inches in places) closed roads and flooded cars and homes. Modeled as fast-rising water from the Trinity River side of downtown.',over:{maxLevel:3.6,riseTime:240}},
-  normal:{label:'Normal day (no hazard)',d:'none',info:'Routine calls with live Dallas wind. Good for comparing Aerial vs Earth travel times.'}}};
+  normal:{label:'Normal day (no hazard)',d:'none',info:'Routine calls with live Dallas wind. Good for comparing Aerial vs Earth travel times.'}},
+  richardson:{
+  tornado19:{label:'North Texas EF3 tornado, Oct 20 2019',d:'tornado',info:'A night-time EF3 hit north Dallas, southwest of Richardson, damaging 1,000+ buildings with no deaths. Moved to the UT Dallas area to show the routing.'},
+  storm24:{label:'DFW windstorm, May 28 2024',d:'hurricane',info:'Severe storms with gusts near 80 mph across Dallas-Fort Worth, big power outages and broken glass. Modeled as a fast gust front.',over:{derecho:true,maxLevel:.3}},
+  flood22:{label:'North Texas flash flood, Aug 22 2022',d:'flood',info:'Record rainfall (9+ inches in places) closed roads and flooded cars and homes across Dallas-Fort Worth. Modeled as fast-rising water over the low ground.',over:{maxLevel:3.2,riseTime:240}},
+  normal:{label:'Normal day (no hazard)',d:'none',info:'Routine calls with live Richardson wind. Good for comparing Aerial vs Earth travel times.'}},
+  sf:{
+  quake89:{label:'Loma Prieta quake, Oct 17 1989',d:'earthquake',info:'A M6.9 quake during the World Series: the Bay Bridge span fell, the Marina District burned and collapsed. Modeled as a main shock, collapses and aftershocks.'},
+  river23:{label:'Atmospheric river floods, Jan 2023',d:'flood',info:'A chain of strong storms flooded streets and caused landslides and outages around the Bay Area. Modeled as water rising from the Bay over low ground.',over:{maxLevel:2.4,riseTime:280}},
+  normal:{label:'Normal day (no hazard)',d:'none',info:'Routine calls with live San Francisco wind. Good for comparing Aerial vs Earth travel times.'}},
+  miami:{
+  irma17:{label:'Hurricane Irma, Sep 2017',d:'hurricane',info:'Irma passed west of Miami after hitting the Keys. Miami saw strong winds and a surge that flooded Brickell and downtown streets, with construction cranes in the wind. Game-scaled.',over:{eye0:[2400,2200],vmax:36,maxLevel:2.2}},
+  andrew92:{label:'Hurricane Andrew, Aug 1992',d:'hurricane',info:'Category 5 landfall in south Miami-Dade, one of the costliest US storms. Modeled here as a direct hit on the city for the routing.',over:{eye0:[-2200,1600],vmax:46,maxLevel:2.8}},
+  king:{label:'Sunny-day flooding (king tide)',d:'flood',info:'High tides push water up storm drains and flood low streets with no rain, a regular thing in Miami and Miami Beach. Modeled as slow, shallow flooding.',over:{maxLevel:1.1,riseTime:420}},
+  normal:{label:'Normal day (no hazard)',d:'none',info:'Routine calls with live Miami wind. Good for comparing Aerial vs Earth travel times.'}},
+  nyc:{
+  sandy12:{label:'Superstorm Sandy, Oct 29 2012',d:'hurricane',info:'A storm surge of about 14 ft at the Battery flooded Lower Manhattan, tunnels and subways, and knocked out power south of 39th St. Game-scaled wind and surge.',over:{eye0:[-2300,2600],vmax:34,maxLevel:4.3}},
+  ida21:{label:'Ida flash flood, Sep 1 2021',d:'flood',info:'A record 3 inches of rain in one hour flooded subway stations and basement apartments. Modeled as fast-rising street flooding.',over:{maxLevel:2.6,riseTime:150}},
+  normal:{label:'Normal day (no hazard)',d:'none',info:'Routine calls with live New York wind. Good for comparing Aerial vs Earth travel times.'}},
+  anchorage:{
+  quake18:{label:'Anchorage quake, Nov 30 2018',d:'earthquake',info:'A M7.1 quake 7 miles north of Anchorage cracked roads and bridges, damaged buildings and shook the city for about a minute. Modeled with collapses and aftershocks.'},
+  quake64:{label:'Good Friday quake, Mar 27 1964',d:'earthquake',info:'The M9.2 megathrust quake, second largest ever recorded, devastated Anchorage with landslides and collapses. Modeled the same way as any quake here (not its real size).'},
+  normal:{label:'Normal day (no hazard)',d:'none',info:'Routine calls with live Anchorage wind. Good for comparing Aerial vs Earth travel times.'}}};
 let SAMPLES=SAMPLES_ALL[CITY.key]||SAMPLES_ALL.houston;
 // map an NWS alert to a hazard module
 function alertHazard(a){const e=(a.event||'').toLowerCase();if(e.includes('tornado'))return'tornado';if(e.includes('hurricane')||e.includes('tropical')||e.includes('storm surge'))return'hurricane';
@@ -123,7 +145,7 @@ async function loadCity(){const tok=++cityLoading,nm=CITY.name;$('liveStatus').t
 async function refreshLive(){try{const [al,ob,qk]=await Promise.all([getJSON('/api/alerts?c='+CITY.key).catch(()=>null),getJSON('/api/obs?c='+CITY.key).catch(()=>null),getJSON('/api/quakes?c='+CITY.key).catch(()=>null)]);
   if(al)live.alerts=al.alerts||[];if(ob)live.obs=ob;if(qk)live.quakes=qk.quakes||[];renderLivePanel()}catch(e){}}
 let liveChoice='';
-function renderLivePanel(){const el=$('livePanel');if(!live.server){$('liveStatus').textContent='Needs the local server (details below when selected).';el.innerHTML='<p><b>Live city mode needs the local server.</b> Your Google key and the live data feeds only work on your machine. In Terminal: <code>cd prototype/flight && python3 serve.py</code>, then open <code>http://localhost:8765</code>.</p><p>This published version runs the scenario simulator on the cartoon city.</p>';return}
+function renderLivePanel(){const el=$('livePanel');if(!live.server){$('liveStatus').textContent='Needs the local server (see Experience).';el.innerHTML='<p><b>Live city mode needs the local server.</b> Your Google key and the live data feeds only work on your machine. In Terminal: <code>cd prototype/flight && python3 serve.py</code>, then open <code>http://localhost:8765</code>.</p><p>This published version runs the scenario simulator on the cartoon city.</p>';return}
   const opts=[];for(const a of live.alerts){const h=alertHazard(a);if(h)opts.push({k:'alert:'+a.id,label:'LIVE: '+a.event+' ('+a.severity+')',d:h,info:a.headline||''})}
   for(const q of live.quakes)if(q.mag>=3)opts.push({k:'quake:'+q.id,label:'LIVE: M'+q.mag.toFixed(1)+' quake, '+q.place,d:'earthquake',info:'USGS, '+new Date(q.time).toLocaleString()});
   const obs=live.obs?(CITY.name+' now: '+(live.obs.desc||'')+', wind '+(live.obs.wind==null?'n/a':Math.round(live.obs.wind)+' m/s')+(live.obs.temp!=null?', '+Math.round(live.obs.temp)+' C':'')):'';
@@ -151,14 +173,14 @@ function applyScenarioOverrides(){Object.assign(CFG.hurricane,BASE_CFG.hurricane
 function resetSim(){for(const r of reports)if(!r.done)closeReport(r);reports.length=0;userRoute=[];Object.assign(stats,{saved:0,missed:0,crashes:0,carHits:0,guards:0,stuck:0,dodges:0,unsafeSkips:0});learn.urg=0;style=0;
   simT=0;spawnT=0;landR=null;ap='go';pad.visible=false;applyScenarioOverrides();hazardReset();
   // spawn: south of the center, above everything nearby
-  let top=60;forNear(0,E*.7,b=>{top=Math.max(top,bH(b));return false});P.set(0,Math.min(CFG.air.ceiling-20,top+40),E*.7);yaw=0;pitch=0;spd=30;bat=100;tbat=100;placeTruck(0,E*.7);
+  const sp=spawnPt();let top=60;forNear(sp.x,sp.z,b=>{top=Math.max(top,bH(b));return false});P.set(sp.x,Math.min(CFG.air.ceiling-20,top+40),sp.z);yaw=0;pitch=0;spd=30;bat=100;tbat=100;placeTruck(sp.x,sp.z);
   if(disaster!='earthquake'&&disaster!='none')for(let i=0;i<4;i++)addReport();planT=0;CAM.yaw=0;CAM.pitch=0}
 function syncMenu(){document.querySelectorAll('.opt[data-k]').forEach(o=>o.classList.toggle('on',set[o.dataset.k]===o.dataset.v));
   document.querySelectorAll('.appcard').forEach(o=>o.classList.toggle('on',set.app===o.dataset.app));$('livePanel').style.display=set.app=='live'?'block':'none';$('scenPanel').style.display=set.app=='scenario'?'block':'none'}
 document.querySelectorAll('.opt[data-k]').forEach(o=>o.onclick=()=>{const k=o.dataset.k,v=o.dataset.v;if(k=='mode')swapMode(v);else{set[k]=v;store.set('df.'+k,v)}
   if(k=='disaster'&&v!==disaster&&app=='scenario'){disaster=v;resetSim()}if(k=='quality')applyQuality();syncMenu()});
 document.querySelectorAll('.appcard').forEach(o=>o.onclick=()=>{set.app=o.dataset.app;syncMenu()});
-function openMenu(on){paused=on;$('menu').style.display=on?'flex':'none'}
+function openMenu(on){paused=on;$('menu').style.display=on?'block':'none'}
 $('start').onclick=()=>{const prevApp=app,prevD=disaster;app=set.app;live.on=app==='live'&&live.server;
   if(app==='live'){if(!live.server){set.app=app='scenario';syncMenu()}else{const k=liveChoice||'sample:normal';const al=live.alerts.find(a=>'alert:'+a.id===k),qk=live.quakes.find(q=>'quake:'+q.id===k);
     disaster=al?alertHazard(al):qk?'earthquake':SAMPLES[k.slice(7)]?SAMPLES[k.slice(7)].d:'none';live.note=al?al.event+': '+(al.headline||''):qk?'M'+qk.mag+' '+qk.place:SAMPLES[k.slice(7)]?SAMPLES[k.slice(7)].label:''}}
@@ -198,7 +220,7 @@ function step(rdt){
   if(pad.visible)pad.material.opacity=.5+.4*Math.sin(t*6);ringTick(dt)}
 let popT=0;
 function visuals(rdt){const dt=rdt*timeScale,q=QUAL[set.quality]||QUAL.medium;camTick(rdt);
-  flash*=Math.pow(.003,dt);skyU.flash.value=flash;$('fl').style.opacity=flash*.35;hemi.intensity=(hemi.userData.base||1.1)+flash*1.2;waterU.uT.value=t;
+  flash*=Math.pow(.003,dt);skyU.flash.value=flash;$('fl').style.opacity=flash*.35;hemi.intensity=(hemi.userData.base||1.1)+flash*1.2;waterU.uT.value=t;skyU.tm.value=t;if(MTN){MTN.position.x=C.position.x;MTN.position.z=C.position.z}
   if(mode=='air'){D.position.copy(P);D.rotation.set(0,0,0);D.rotateY(Math.PI-yaw);D.rotateX(-pitch);D.rotateZ(roll)}
   D.visible=mode=='air';PILOT.group.visible=mode=='ground';
   for(const g of PILOT.wings)g.rotation.z=g.userData.sd*(.15+Math.sin(t*(3+Math.abs(TR.spd)*.3)+g.userData.ph*3)*.08);
