@@ -9,27 +9,28 @@ const vis=()=>M.style.display!=='none';
 const R=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true});R.setClearColor(0,0);
 const S=new THREE.Scene(),cam=new THREE.PerspectiveCamera(34,1,1,400);cam.up.set(0,0,-1);
 S.add(new THREE.AmbientLight(0xcfd8ff,.55));const dl=new THREE.DirectionalLight(0xffffff,.55);dl.position.set(-6,20,6);S.add(dl);
-const rim=new THREE.PointLight(0xa07cff,.45,60);rim.position.set(8,8,12);S.add(rim);
-const mint=new THREE.MeshStandardMaterial({color:0x6fd6aa,roughness:.6,metalness:.05}),dark=new THREE.MeshStandardMaterial({color:0x27403d,roughness:.55}),
- eye=new THREE.MeshStandardMaterial({color:0x4fae3b,roughness:.3,emissive:0x1d4a14,emissiveIntensity:.5}),leg=new THREE.MeshStandardMaterial({color:0x1f2f2d,roughness:.7});
+const rim=new THREE.PointLight(0xb8a0ff,.25,60);rim.position.set(8,8,12);S.add(rim);
+const mint=new THREE.MeshStandardMaterial({color:0x78b87f,roughness:.6,metalness:.05}),dark=new THREE.MeshStandardMaterial({color:0x121a17,roughness:.45}),
+ eye=new THREE.MeshStandardMaterial({color:0x6fa84a,roughness:.35,emissive:0x1d3a14,emissiveIntensity:.5}),leg=new THREE.MeshStandardMaterial({color:0x151a18,roughness:.7});
 const DF=new THREE.Group();S.add(DF);
 const add=(g,m,x,y,z,sx=1,sy=1,sz=1)=>{const o=new THREE.Mesh(g,m);o.position.set(x,y,z);o.scale.set(sx,sy,sz);DF.add(o);return o};
 const sph=new THREE.SphereGeometry(1,28,20);
 const head=add(sph,mint,0,0,-4.3,1.0,.8,.95);add(sph,eye,-.78,.25,-4.55,.55,.5,.6);add(sph,eye,.78,.25,-4.55,.55,.5,.6);
 add(sph,mint,0,.05,-2.6,1.15,.95,1.9);
-const N=11;for(let i=0;i<N;i++){const z0=-.9+i*.88,r=.58-i*.03;const g=new THREE.CylinderGeometry(r*.92,r,.86,16);g.rotateX(Math.PI/2);add(g,i%2?dark:mint,0,0,z0+.43)}
-{const g=new THREE.ConeGeometry(.3,1.1,12);g.rotateX(-Math.PI/2);add(g,dark,0,0,-.9+N*.88+.55)}
-for(const sx of[-1,1])for(let k=0;k<3;k++){const g=new THREE.CylinderGeometry(.06,.06,1.8,6);g.rotateZ(Math.PI/2);add(g,leg,sx*1.2,-.5,-3.3+k*.6).rotation.y=sx*(.4-k*.35)}
+const N=12;for(let i=0;i<N;i++){const r=.62-i*.03;add(sph,i%2?dark:mint,0,0,-.9+i*.82+.4,r,r*.9,.5)}
+{const g=new THREE.ConeGeometry(.3,1.3,12);g.rotateX(-Math.PI/2);add(g,mint,0,0,-.9+N*.82+.55)}
+for(const sx of[-1,1])for(let k=0;k<3;k++){const g=new THREE.CylinderGeometry(.07,.07,2.6,6);g.rotateZ(Math.PI/2);add(g,leg,sx*1.6,-.5,-3.5+k*.7).rotation.y=sx*(.5-k*.4)}
 // wings: pivot at the thorax, flap about the body axis (z); tips angle forward (fore) or back (hind)
-const wm=new THREE.MeshStandardMaterial({color:0xf4eddc,roughness:.35,transparent:true,opacity:.5,side:THREE.DoubleSide,depthWrite:false,emissive:0x2a2630,emissiveIntensity:.4}),
+const wm=new THREE.MeshStandardMaterial({color:0xf4eddc,roughness:.35,transparent:true,opacity:.58,side:THREE.DoubleSide,depthWrite:false,emissive:0x2a2630,emissiveIntensity:.4}),
  vm=new THREE.LineBasicMaterial({color:0xcfc4aa,transparent:true,opacity:.55});
 function wingGeo(L,w){const s=new THREE.Shape();s.moveTo(0,-.35*w);s.bezierCurveTo(L*.22,-1.5*w,L*.75,-1.45*w,L,-.2*w);s.bezierCurveTo(L*.85,.8*w,L*.35,1.25*w,0,.55*w);s.closePath();const g=new THREE.ShapeGeometry(s,16);g.rotateX(-Math.PI/2);return g}
 const wings=[];
 function mkWing(side,fore){const L=fore?9.2:9.8,w=fore?1:1.3,piv=new THREE.Group();piv.position.set(side*.9,.15,fore?-3.0:-1.9);
-  const holder=new THREE.Group();holder.rotation.y=side*(fore?.2:-.22);piv.add(holder);
+  const holder=new THREE.Group();holder.rotation.y=side*(fore?.45:-.4);piv.add(holder);
   const m=new THREE.Mesh(wingGeo(L,w),wm);m.renderOrder=5;if(side<0)m.scale.x=-1;holder.add(m);
   for(let i=0;i<5;i++){const t=(i-2)/2.6,pts=[new THREE.Vector3(0,.02,0),new THREE.Vector3(side*L*.5,.02,-t*.55*w),new THREE.Vector3(side*L*(.93-Math.abs(t)*.12),.02,-t*.3*w*1.0)];holder.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),vm))}
-  const anc=new THREE.Object3D();anc.position.set(side*L*.58,0,fore?-.15:.15);holder.add(anc);
+  for(let i=1;i<7;i++){const x=side*L*i/7.4,a=-w*(1.1-.9*(i/7)),c=w*(1.0-.8*(i/7));holder.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(x,.02,a),new THREE.Vector3(x,.02,c)]),vm))}
+  const anc=new THREE.Object3D();anc.position.set(side*L*.6,0,0);holder.add(anc);
   DF.add(piv);wings.push({piv,side,fore,anc,base:fore?.5:-.42,ph:fore?0:.9})}
 mkWing(-1,1);mkWing(1,1);mkWing(-1,0);mkWing(1,0);
 const A=Object.fromEntries(['exp','evt','mode','q'].map(k=>[k,M.querySelector('[data-wing="'+k+'"]')]));
@@ -37,7 +38,7 @@ const WK={exp:[0,-1],evt:[1,-1],mode:[0,1],q:[1,1]}; // [side index, fore/hind];
 const wIdx={exp:0,evt:1,mode:2,q:3};
 const v3=new THREE.Vector3();let W=1,H=1,T0=performance.now(),run=false,rid=0;
 function resize(){W=M.clientWidth||innerWidth;H=M.clientHeight||innerHeight;R.setPixelRatio(Math.min(devicePixelRatio,2));R.setSize(W,H,false);cam.aspect=W/H;
-  const th=Math.tan(cam.fov*Math.PI/360),D=Math.max((innerWidth<640?22:28)/(2*th*cam.aspect),(innerWidth<640?20:23)/(2*th));cam.position.set(0,D,2.4);cam.lookAt(0,0,2.4);cam.updateProjectionMatrix()}
+  const th=Math.tan(cam.fov*Math.PI/360),D=Math.max((innerWidth<640?20:24)/(2*th*cam.aspect),(innerWidth<640?24:24)/(2*th));cam.position.set(0,D,1.2);cam.lookAt(0,0,1.2);cam.updateProjectionMatrix()}
 function place(el,x,y){const w=el.offsetWidth/2,h=el.offsetHeight/2;x=Math.max(w+8,Math.min(W-w-8,x));y=Math.max(h+8,Math.min(H-h-8,y));el.style.left=x+'px';el.style.top=y+'px'}
 function pose(t){const f=reduce.matches?0:Math.sin(t*2*Math.PI*.7);
   for(const w of wings){const a=w.base+.2*Math.sin(t*2*Math.PI*.7+w.ph)*(reduce.matches?0:1);w.piv.rotation.z=w.side*a;
@@ -66,7 +67,7 @@ function refresh(){
   A.mode.querySelector('b').textContent=set.mode==='air'?'Aerial: dragonfly':'Earth: fire truck';
   A.q.querySelector('b').textContent=cap(set.quality);
   $('mDesc').textContent='Explore disaster response across '+CITY.name+'.';
-  const st=$('mStart');const t=go?'RESUME':'START';if(st.textContent!==t){st.textContent=t;st.setAttribute('aria-label',t==='START'?'Start':'Resume')}
+  const st=$('mStart');const t=go?'RESUME':'START';M.classList.toggle('ingame',!!go);if(st.dataset.t!==t){st.dataset.t=t;st.innerHTML=t+'<span aria-hidden="true">&uarr;</span>';st.setAttribute('aria-label',t==='START'?'Start':'Resume')}
   if(vis())layout()}
 setInterval(()=>{if(vis()){refresh();if(!run)start()}else stop()},400);
 // ---- dialogs ----
@@ -76,8 +77,8 @@ function optBtn(o){return'<button class="dopt" role="radio" aria-checked="'+!!o.
 function group(opts,label,pills){return'<div role="radiogroup" aria-label="'+esc(label)+'"'+(pills?' class="dpills"':'')+'>'+opts.map(optBtn).join('')+'</div>'}
 function content(){
   if(kind==='exp'){const lp=$('livePanel');
-    let h='<h3>Experience</h3>'+group([{v:'live',label:'Live '+CITY.name,on:set.app==='live'&&live.server,dis:!live.server,d:'Real downtown map of the chosen city (OpenStreetMap), live NWS alerts and wind, people estimated for the current local time. Serious mode.'},
-      {v:'scenario',label:'Scenario simulator',on:!(set.app==='live'&&live.server),d:'Pick a disaster. Autopilot finds the route that saves the most lives, or click reports on the map (M) to pick the order yourself.'}],'Experience');
+    let h='<h3>Live Status</h3>'+group([{v:'live',label:'Live '+CITY.name,on:set.app==='live'&&live.server,dis:!live.server,d:'Real downtown map of the chosen city (OpenStreetMap), live NWS alerts and wind, people estimated for the current local time. Serious mode.'},
+      {v:'scenario',label:'Scenario simulator',on:!(set.app==='live'&&live.server),d:'Pick a disaster. Autopilot finds the route that saves the most lives, or click reports on the map (M) to pick the order yourself.'}],'Live Status');
     if(live.server)h+='<h3>City</h3>'+group([...document.querySelectorAll('[data-city]')].map(c=>({v:c.dataset.city,label:c.textContent,on:c.dataset.city===CITY.key})),'City',true);
     else h+='<p>Live city mode needs the local server. In Terminal: <code>cd prototype/flight &amp;&amp; python3 serve.py</code>, then open <code>http://localhost:8765</code>. This version runs the scenario simulator on the cartoon city.</p>';
     return h}
@@ -90,7 +91,7 @@ function content(){
 function render(focusV){dBody.innerHTML=content();const o=[...dBody.querySelectorAll('.dopt')];
   const sel=o.find(x=>focusV!=null?x.dataset.v===focusV:x.getAttribute('aria-checked')==='true')||o.find(x=>x.getAttribute('aria-disabled')!=='true');
   o.forEach(x=>x.tabIndex=x===sel?0:-1);return sel}
-const TITLES={exp:'Experience',evt:'Event',mode:'Mode',q:'Quality',keys:'Flight controls'};
+const TITLES={exp:'Live Status',evt:'Event',mode:'Mode',q:'Quality',keys:'Flight controls'};
 function openDlg(k,from){kind=k;opener=from;$('dTitle').textContent=TITLES[k];dlg.hidden=false;const s=render();$('dDone').style.display=(k==='exp'||k==='keys')?'':'none';(s||$('dDone')).focus()}
 function closeDlg(){if(dlg.hidden)return;dlg.hidden=true;refresh();if(opener)opener.focus()}
 function pick(v){

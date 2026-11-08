@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Dragon Flyght</title>
+<title>DRAGON FLYGHT</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{--ink:#e9f1ee;--dim:#8fa6a3;--hot:#ffb347;--red:#ff5a4a;--bg:#0d1a1f}
@@ -59,24 +59,24 @@ p{margin:6px 0;color:var(--dim)}b{color:var(--ink)}
 #mapbar{position:absolute;top:14px;right:16px;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;max-width:70vw}
 
 /* ---- dragonfly menu ---- */
-#menu{--lav:#b9a7ff;--pur:#8b5cf6;--pur2:#6d3fe0;--pan:rgba(58,58,66,.78);--ln:rgba(139,92,246,.7);font-family:Geist,"Avenir Next",system-ui,sans-serif;background:radial-gradient(60% 55% at 50% 48%,#2a2236 0%,#1c1b21 55%,#141418 100%);display:block;overflow:hidden;color:#ececf1}
+#menu{--lav:#b9a7ff;--pur:#8b5cf6;--pur2:#6d3fe0;--pan:rgba(44,40,56,.72);--ln:rgba(176,148,236,.85);font-family:Geist,"Avenir Next",system-ui,sans-serif;background:radial-gradient(70% 60% at 50% 50%,#4b4953 0%,#35343c 60%,#26252c 100%);display:block;overflow:hidden;color:#ececf1}
 #menu button{font:inherit;color:inherit;cursor:pointer}
 #dfc{position:absolute;inset:0;width:100%;height:100%}
 .mhead{position:absolute;left:clamp(16px,3vw,36px);top:clamp(14px,3vh,32px);max-width:min(60vw,420px);z-index:2}
-#menu h1{margin:0;font-size:clamp(22px,3vw,30px);font-weight:500;letter-spacing:0;color:#f2f0fa}
+#menu h1{margin:0;font-size:clamp(26px,3.4vw,40px);font-weight:500;letter-spacing:0;color:#f2f0fa}
 #menu .mhead p{margin:4px 0 0;font-size:14px;color:#a9a7b6}
 .wing{position:absolute;z-index:3;transform:translate(-50%,-50%);min-width:136px;max-width:200px;text-align:left;padding:10px 34px 10px 14px;border-radius:12px;background:var(--pan);border:1.5px solid var(--ln);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);transition:border-color .15s,background .15s,box-shadow .15s}
-.wing small{display:block;font-size:11.5px;color:#a9a7b6;letter-spacing:.02em}
+.wing small{display:block;font-size:11px;color:#b9b7c6;letter-spacing:.1em;text-transform:uppercase}
 .wing b{display:block;font-weight:500;font-size:14.5px;color:var(--lav);margin-top:2px;line-height:1.25}
 .wing i,#mKeys i{font-style:normal;position:absolute;right:11px;top:9px;color:var(--lav);font-size:14px}
 .wing:hover,.wing:focus-visible,#mKeys:hover,#mKeys:focus-visible{border-color:#c9bbff;background:rgba(78,70,98,.88)}
 #menu button:focus-visible{outline:2px solid #e3dbff;outline-offset:3px}
-#mStart{position:absolute;z-index:4;transform:translate(-50%,-50%);width:92px;height:92px;border-radius:50%;border:2px solid #c9bbff;background:radial-gradient(circle at 35% 30%,#a07cff,var(--pur2));font-weight:600;font-size:15px;letter-spacing:.06em;box-shadow:0 6px 22px rgba(109,63,224,.4);transition:transform .15s,box-shadow .15s}
+#mStart{position:absolute;z-index:4;transform:translate(-50%,-50%);width:74px;height:74px;border-radius:50%;border:2.5px solid #e6dcff;background:radial-gradient(circle at 35% 30%,#c9b6f5,#a98fe6);color:#1c1330!important;font-weight:700;font-size:10.5px;letter-spacing:.02em;line-height:1.1;padding:0;box-shadow:0 6px 22px rgba(120,80,230,.35);transition:transform .15s,box-shadow .15s}
 #mStart:hover{box-shadow:0 8px 28px rgba(139,92,246,.6);transform:translate(-50%,-50%) scale(1.05)}
-#mStatus{position:absolute;left:50%;bottom:clamp(44px,7vh,64px);transform:translateX(-50%);z-index:2;max-width:min(92vw,620px);text-align:center;font-size:12.5px;color:#a9a7b6;line-height:1.4}
+#mStatus{position:absolute;left:50%;bottom:66px;transform:translateX(-50%);z-index:2;max-width:min(92vw,620px);text-align:center;font-size:12.5px;color:#a9a7b6;line-height:1.4}
 #mStatus u{color:var(--lav);cursor:pointer}
 .mfoot{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px clamp(16px,3vw,36px);z-index:3;font-size:12.5px;color:#a9a7b6}
-#mKeys{position:relative;padding:8px 30px 8px 14px;border-radius:10px;background:var(--pan);border:1.5px solid var(--ln);font-size:13px}#mKeys i{top:7px}
+#mKeys{position:relative;padding:8px 28px 8px 8px;border-radius:8px;background:none;border:0;font-size:14px;color:#ececf1}#mKeys i{top:7px;right:6px}
 #mdlg{position:absolute;inset:0;z-index:8;background:rgba(10,9,14,.45);display:flex;align-items:center;justify-content:center;padding:16px}#mdlg[hidden]{display:none}
 .dbox{width:min(400px,100%);max-height:84vh;overflow:auto;background:rgba(62,62,70,.94);border:1.5px solid var(--ln);border-radius:14px;padding:16px;box-shadow:0 18px 50px rgba(0,0,0,.5)}
 .dbox h2{margin:0 0 10px;font-size:15px;font-weight:500;color:#f2f0fa}
@@ -92,7 +92,11 @@ p{margin:6px 0;color:var(--dim)}b{color:var(--ink)}
 .dact{display:flex;justify-content:flex-end;margin-top:12px}#dDone{padding:8px 18px;border-radius:10px;background:var(--pur2);border:1.5px solid #c9bbff}
 .dkeys p b{color:var(--lav);font-weight:500}
 @media (prefers-reduced-motion:reduce){#menu *{transition:none!important}}
-@media (max-width:640px){.wing{min-width:118px;max-width:46vw;padding:8px 28px 8px 10px}.wing b{font-size:13px}#mStart{width:76px;height:76px;font-size:13px}.mfoot{flex-direction:column-reverse;align-items:stretch;gap:8px}#mKeys{align-self:flex-end}#mStatus{bottom:104px}}
+@media (max-width:640px){.wing{min-width:118px;max-width:46vw;padding:8px 28px 8px 10px}.wing b{font-size:13px}#mStart{width:62px;height:62px;font-size:10.5px}.mfoot{flex-direction:column-reverse;align-items:stretch;gap:8px}#mKeys{align-self:flex-end}#mStatus{bottom:104px}}
+#mStart span{display:block;font-size:16px;font-weight:500;margin-top:1px}
+.mrule{position:absolute;left:clamp(16px,3vw,36px);right:clamp(16px,3vw,36px);margin:0;border:0;height:1px;background:rgba(255,255,255,.13);z-index:1}.mrule.top{top:clamp(92px,13vh,120px)}.mrule.bot{bottom:56px}
+#menu.ingame{background:radial-gradient(70% 60% at 50% 50%,rgba(40,36,54,.55),rgba(14,13,20,.6));backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+@media (max-width:640px){.mrule.bot{bottom:100px}}
 </style></head><body>
 <div id="hud" class="ui"><div id="spd">0<small>m/s</small></div><div>alt <b id="alt">0</b> m &middot; <span id="st">cruise</span></div><div class="bar"><i id="bat" style="width:100%"></i></div></div>
 <div id="wind" class="ui">wind <b id="w">0</b> m/s<br><span id="wd">calm</span></div>
@@ -103,7 +107,7 @@ p{margin:6px 0;color:var(--dim)}b{color:var(--ink)}
 <div id="msg"></div><div id="radio"></div><div id="wp"><div class="wpa"></div><div class="wpt"></div></div>
 <div id="menu" role="dialog" aria-label="Dragon Flyght start menu">
 <canvas id="dfc" aria-hidden="true"></canvas>
-<header class="mhead"><h1>Dragon Flyght</h1><p id="mDesc">Explore disaster response across Houston.</p></header>
+<hr class="mrule top"><hr class="mrule bot"><header class="mhead"><h1>DRAGON FLYGHT</h1><p id="mDesc">Explore disaster response across Houston.</p></header>
 <button class="wing" data-wing="exp" aria-haspopup="dialog"><small>Live Status</small><b></b><i aria-hidden="true">&#8599;</i></button>
 <button class="wing" data-wing="evt" aria-haspopup="dialog"><small>Event</small><b></b><i aria-hidden="true">&#8599;</i></button>
 <button class="wing" data-wing="mode" aria-haspopup="dialog"><small>Mode</small><b></b><i aria-hidden="true">&#8599;</i></button>
