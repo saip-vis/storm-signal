@@ -3,13 +3,13 @@
   "county": "Collin County, TX",
   "fips": "48085",
   "tractCount": 21,
-  "acquiredAt": "2026-11-08T09:56:04.988Z",
-  "populationAvailable": false,
-  "dataYear": null,
+  "acquiredAt": "2026-11-08T10:07:53.671Z",
+  "populationAvailable": true,
+  "dataYear": 2022,
   "source": {
     "provider": "US Census Bureau",
     "geometrySource": "TIGER/Line",
-    "populationSource": "unavailable — geometry only"
+    "populationSource": "ACS 5-Year Estimates 2022"
   },
   "features": [
     {
@@ -306,14 +306,14 @@
           ]
         ]
       },
-      "population": null,
-      "housingUnits": null,
+      "population": 3548,
+      "housingUnits": 1504,
       "dataYear": 2022,
       "source": {
         "provider": "US Census Bureau",
         "geometrySource": "TIGER/Line",
         "populationSource": "ACS 5-Year Estimates 2022",
-        "acquiredAt": "2026-11-08T09:56:04.988Z"
+        "acquiredAt": "2026-11-08T10:07:53.671Z"
       }
     },
     {
@@ -698,14 +698,14 @@
           ]
         ]
       },
-      "population": null,
-      "housingUnits": null,
+      "population": 1617,
+      "housingUnits": 918,
       "dataYear": 2022,
       "source": {
         "provider": "US Census Bureau",
         "geometrySource": "TIGER/Line",
         "populationSource": "ACS 5-Year Estimates 2022",
-        "acquiredAt": "2026-11-08T09:56:04.988Z"
+        "acquiredAt": "2026-11-08T10:07:53.671Z"
       }
     },
     {
@@ -958,14 +958,14 @@
           ]
         ]
       },
-      "population": null,
-      "housingUnits": null,
+      "population": 3280,
+      "housingUnits": 2196,
       "dataYear": 2022,
       "source": {
         "provider": "US Census Bureau",
         "geometrySource": "TIGER/Line",
         "populationSource": "ACS 5-Year Estimates 2022",
-        "acquiredAt": "2026-11-08T09:56:04.988Z"
+        "acquiredAt": "2026-11-08T10:07:53.671Z"
       }
     },
     {
@@ -1214,14 +1214,14 @@
           ]
         ]
       },
-      "population": null,
-      "housingUnits": null,
+      "population": 1920,
+      "housingUnits": 1430,
       "dataYear": 2022,
       "source": {
         "provider": "US Census Bureau",
         "geometrySource": "TIGER/Line",
         "populationSource": "ACS 5-Year Estimates 2022",
-        "acquiredAt": "2026-11-08T09:56:04.988Z"
+        "acquiredAt": "2026-11-08T10:07:53.671Z"
       }
     },
     {
@@ -1706,14 +1706,14 @@
           ]
         ]
       },
-      "population": null,
-      "housingUnits": null,
+      "population": 4416,
+      "housingUnits": 2079,
       "dataYear": 2022,
       "source": {
         "provider": "US Census Bureau",
         "geometrySource": "TIGER/Line",
         "populationSource": "ACS 5-Year Estimates 2022",
-        "acquiredAt": "2026-11-08T09:56:04.988Z"
+        "acquiredAt": "2026-11-08T10:07:53.671Z"
       }
     },
     {
@@ -2166,14 +2166,14 @@
           ]
         ]
       },
-      "population": null,
-      "housingUnits": null,
+      "population": 3091,
+      "housingUnits": 1508,
       "dataYear": 2022,
       "source": {
         "provider": "US Census Bureau",
         "geometrySource": "TIGER/Line",
         "populationSource": "ACS 5-Year Estimates 2022",
-        "acquiredAt": "2026-11-08T09:56:04.988Z"
+        "acquiredAt": "2026-11-08T10:07:53.671Z"
       }
     },
     {
@@ -2674,14 +2674,14 @@
           ]
         ]
       },
-      "population": null,
-      "housingUnits": null,
+      "population": 2965,
+      "housingUnits": 948,
       "dataYear": 2022,
       "source": {
         "provider": "US Census Bureau",
         "geometrySource": "TIGER/Line",
         "populationSource": "ACS 5-Year Estimates 2022",
-        "acquiredAt": "2026-11-08T09:56:04.988Z"
+        "acquiredAt": "2026-11-08T10:07:53.671Z"
       }
     },
     {
@@ -3346,14 +3346,14 @@
           ]
         ]
       },
-      "population": null,
-      "housingUnits": null,
+      "population": 3004,
+      "housingUnits": 1573,
       "dataYear": 2022,
       "source": {
         "provider": "US Census Bureau",
         "geometrySource": "TIGER/Line",
         "populationSource": "ACS 5-Year Estimates 2022",
-        "acquiredAt": "2026-11-08T09:56:04.988Z"
+        "acquiredAt": "2026-11-08T10:07:53.671Z"
       }
     },
     {
@@ -4166,14 +4166,14 @@
           ]
         ]
       },
-      "population": null,
-      "housingUnits": null,
+      "population": 2736,
+      "housingUnits": 1193,
       "dataYear": 2022,
       "source": {
         "provider": "US Census Bureau",
         "geometrySource": "TIGER/Line",
         "populationSource": "ACS 5-Year Estimates 2022",
-        "acquiredAt": "2026-11-08T09:56:04.988Z"
+        "acquiredAt": "2026-11-08T10:07:53.671Z"
       }
     },
     {
@@ -4358,14 +4358,14 @@
           ]
         ]
       },
-      "population": null,
-      "housingUnits": null,
+      "population": 2901,
+      "housingUnits": 2014,
       "dataYear": 2022,
       "source": {
         "provider": "US Census Bureau",
         "geometrySource": "TIGER/Line",
         "populationSource": "ACS 5-Year Estimates 2022",
-        "acquiredAt": "2026-11-08T09:56:04.988Z"
+        "acquiredAt": "2026-11-08T10:07:53.671Z"
       }
     },
     {
@@ -4658,14 +4658,14 @@
           ]
         ]
       },
-      "population": null,
-      "housingUnits": null,
+      "population": 1674,
+      "housingUnits": 942,
       "dataYear": 2022,
       "source": {
         "provider": "US Census Bureau",
         "geometrySource": "TIGER/Line",
         "populationSource": "ACS 5-Year Estimates 2022",
-        "acquiredAt": "2026-11-08T09:56:04.988Z"
+        "acquiredAt": "2026-11-08T10:07:53.671Z"
       }
     },
     {
@@ -5066,14 +5066,14 @@
           ]
         ]
       },
-      "population": null,
-      "housingUnits": null,
+      "population": 3262,
+      "housingUnits": 1737,
       "dataYear": 2022,
       "source": {
         "provider": "US Census Bureau",
         "geometrySource": "TIGER/Line",
         "populationSource": "ACS 5-Year Estimates 2022",
-        "acquiredAt": "2026-11-08T09:56:04.988Z"
+        "acquiredAt": "2026-11-08T10:07:53.671Z"
       }
     },
     {
@@ -5702,14 +5702,14 @@
           ]
         ]
       },
-      "population": null,
-      "housingUnits": null,
+      "population": 3972,
+      "housingUnits": 2205,
       "dataYear": 2022,
       "source": {
         "provider": "US Census Bureau",
         "geometrySource": "TIGER/Line",
         "populationSource": "ACS 5-Year Estimates 2022",
-        "acquiredAt": "2026-11-08T09:56:04.988Z"
+        "acquiredAt": "2026-11-08T10:07:53.671Z"
       }
     },
     {
@@ -6166,14 +6166,14 @@
           ]
         ]
       },
-      "population": null,
-      "housingUnits": null,
+      "population": 5869,
+      "housingUnits": 2404,
       "dataYear": 2022,
       "source": {
         "provider": "US Census Bureau",
         "geometrySource": "TIGER/Line",
         "populationSource": "ACS 5-Year Estimates 2022",
-        "acquiredAt": "2026-11-08T09:56:04.988Z"
+        "acquiredAt": "2026-11-08T10:07:53.671Z"
       }
     },
     {
@@ -6522,14 +6522,14 @@
           ]
         ]
       },
-      "population": null,
-      "housingUnits": null,
+      "population": 2534,
+      "housingUnits": 1078,
       "dataYear": 2022,
       "source": {
         "provider": "US Census Bureau",
         "geometrySource": "TIGER/Line",
         "populationSource": "ACS 5-Year Estimates 2022",
-        "acquiredAt": "2026-11-08T09:56:04.988Z"
+        "acquiredAt": "2026-11-08T10:07:53.671Z"
       }
     },
     {
@@ -6902,14 +6902,14 @@
           ]
         ]
       },
-      "population": null,
-      "housingUnits": null,
+      "population": 1954,
+      "housingUnits": 1052,
       "dataYear": 2022,
       "source": {
         "provider": "US Census Bureau",
         "geometrySource": "TIGER/Line",
         "populationSource": "ACS 5-Year Estimates 2022",
-        "acquiredAt": "2026-11-08T09:56:04.988Z"
+        "acquiredAt": "2026-11-08T10:07:53.671Z"
       }
     },
     {
@@ -7366,14 +7366,14 @@
           ]
         ]
       },
-      "population": null,
-      "housingUnits": null,
+      "population": 4083,
+      "housingUnits": 710,
       "dataYear": 2022,
       "source": {
         "provider": "US Census Bureau",
         "geometrySource": "TIGER/Line",
         "populationSource": "ACS 5-Year Estimates 2022",
-        "acquiredAt": "2026-11-08T09:56:04.988Z"
+        "acquiredAt": "2026-11-08T10:07:53.671Z"
       }
     },
     {
@@ -7990,14 +7990,14 @@
           ]
         ]
       },
-      "population": null,
-      "housingUnits": null,
+      "population": 2837,
+      "housingUnits": 1541,
       "dataYear": 2022,
       "source": {
         "provider": "US Census Bureau",
         "geometrySource": "TIGER/Line",
         "populationSource": "ACS 5-Year Estimates 2022",
-        "acquiredAt": "2026-11-08T09:56:04.988Z"
+        "acquiredAt": "2026-11-08T10:07:53.671Z"
       }
     },
     {
@@ -8378,14 +8378,14 @@
           ]
         ]
       },
-      "population": null,
-      "housingUnits": null,
+      "population": 1211,
+      "housingUnits": 776,
       "dataYear": 2022,
       "source": {
         "provider": "US Census Bureau",
         "geometrySource": "TIGER/Line",
         "populationSource": "ACS 5-Year Estimates 2022",
-        "acquiredAt": "2026-11-08T09:56:04.988Z"
+        "acquiredAt": "2026-11-08T10:07:53.671Z"
       }
     },
     {
@@ -9074,14 +9074,14 @@
           ]
         ]
       },
-      "population": null,
-      "housingUnits": null,
+      "population": 2148,
+      "housingUnits": 755,
       "dataYear": 2022,
       "source": {
         "provider": "US Census Bureau",
         "geometrySource": "TIGER/Line",
         "populationSource": "ACS 5-Year Estimates 2022",
-        "acquiredAt": "2026-11-08T09:56:04.988Z"
+        "acquiredAt": "2026-11-08T10:07:53.671Z"
       }
     },
     {
@@ -9618,14 +9618,14 @@
           ]
         ]
       },
-      "population": null,
-      "housingUnits": null,
+      "population": 1807,
+      "housingUnits": 838,
       "dataYear": 2022,
       "source": {
         "provider": "US Census Bureau",
         "geometrySource": "TIGER/Line",
         "populationSource": "ACS 5-Year Estimates 2022",
-        "acquiredAt": "2026-11-08T09:56:04.988Z"
+        "acquiredAt": "2026-11-08T10:07:53.671Z"
       }
     }
   ]

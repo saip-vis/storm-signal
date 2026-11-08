@@ -1,0 +1,1770 @@
+[
+  [
+    "B01003_001E",
+    "B25001_001E",
+    "NAME",
+    "state",
+    "county",
+    "tract"
+  ],
+  [
+    "2874",
+    "1013",
+    "Census Tract 301.01; Collin County; Texas",
+    "48",
+    "085",
+    "030101"
+  ],
+  [
+    "3795",
+    "1472",
+    "Census Tract 301.02; Collin County; Texas",
+    "48",
+    "085",
+    "030102"
+  ],
+  [
+    "5985",
+    "2215",
+    "Census Tract 302.01; Collin County; Texas",
+    "48",
+    "085",
+    "030201"
+  ],
+  [
+    "5687",
+    "2154",
+    "Census Tract 302.02; Collin County; Texas",
+    "48",
+    "085",
+    "030202"
+  ],
+  [
+    "7785",
+    "2929",
+    "Census Tract 302.04; Collin County; Texas",
+    "48",
+    "085",
+    "030204"
+  ],
+  [
+    "5625",
+    "1975",
+    "Census Tract 302.05; Collin County; Texas",
+    "48",
+    "085",
+    "030205"
+  ],
+  [
+    "5054",
+    "1636",
+    "Census Tract 302.06; Collin County; Texas",
+    "48",
+    "085",
+    "030206"
+  ],
+  [
+    "15551",
+    "5083",
+    "Census Tract 302.07; Collin County; Texas",
+    "48",
+    "085",
+    "030207"
+  ],
+  [
+    "9893",
+    "3181",
+    "Census Tract 303.01; Collin County; Texas",
+    "48",
+    "085",
+    "030301"
+  ],
+  [
+    "5637",
+    "1777",
+    "Census Tract 303.02; Collin County; Texas",
+    "48",
+    "085",
+    "030302"
+  ],
+  [
+    "10558",
+    "3589",
+    "Census Tract 303.03; Collin County; Texas",
+    "48",
+    "085",
+    "030303"
+  ],
+  [
+    "8922",
+    "2714",
+    "Census Tract 303.04; Collin County; Texas",
+    "48",
+    "085",
+    "030304"
+  ],
+  [
+    "14106",
+    "4602",
+    "Census Tract 303.06; Collin County; Texas",
+    "48",
+    "085",
+    "030306"
+  ],
+  [
+    "16971",
+    "5267",
+    "Census Tract 303.07; Collin County; Texas",
+    "48",
+    "085",
+    "030307"
+  ],
+  [
+    "7165",
+    "2445",
+    "Census Tract 304.03; Collin County; Texas",
+    "48",
+    "085",
+    "030403"
+  ],
+  [
+    "5695",
+    "2190",
+    "Census Tract 304.04; Collin County; Texas",
+    "48",
+    "085",
+    "030404"
+  ],
+  [
+    "5382",
+    "2457",
+    "Census Tract 304.05; Collin County; Texas",
+    "48",
+    "085",
+    "030405"
+  ],
+  [
+    "5403",
+    "2309",
+    "Census Tract 304.06; Collin County; Texas",
+    "48",
+    "085",
+    "030406"
+  ],
+  [
+    "3576",
+    "1343",
+    "Census Tract 304.07; Collin County; Texas",
+    "48",
+    "085",
+    "030407"
+  ],
+  [
+    "2847",
+    "1290",
+    "Census Tract 304.09; Collin County; Texas",
+    "48",
+    "085",
+    "030409"
+  ],
+  [
+    "4274",
+    "2150",
+    "Census Tract 304.10; Collin County; Texas",
+    "48",
+    "085",
+    "030410"
+  ],
+  [
+    "4116",
+    "2584",
+    "Census Tract 305.04; Collin County; Texas",
+    "48",
+    "085",
+    "030504"
+  ],
+  [
+    "6371",
+    "4093",
+    "Census Tract 305.05; Collin County; Texas",
+    "48",
+    "085",
+    "030505"
+  ],
+  [
+    "4916",
+    "2389",
+    "Census Tract 305.06; Collin County; Texas",
+    "48",
+    "085",
+    "030506"
+  ],
+  [
+    "1816",
+    "604",
+    "Census Tract 305.07; Collin County; Texas",
+    "48",
+    "085",
+    "030507"
+  ],
+  [
+    "2846",
+    "1027",
+    "Census Tract 305.09; Collin County; Texas",
+    "48",
+    "085",
+    "030509"
+  ],
+  [
+    "3338",
+    "1101",
+    "Census Tract 305.10; Collin County; Texas",
+    "48",
+    "085",
+    "030510"
+  ],
+  [
+    "13992",
+    "4173",
+    "Census Tract 305.11; Collin County; Texas",
+    "48",
+    "085",
+    "030511"
+  ],
+  [
+    "5366",
+    "1489",
+    "Census Tract 305.12; Collin County; Texas",
+    "48",
+    "085",
+    "030512"
+  ],
+  [
+    "7567",
+    "2360",
+    "Census Tract 305.15; Collin County; Texas",
+    "48",
+    "085",
+    "030515"
+  ],
+  [
+    "6762",
+    "2242",
+    "Census Tract 305.16; Collin County; Texas",
+    "48",
+    "085",
+    "030516"
+  ],
+  [
+    "11069",
+    "3746",
+    "Census Tract 305.17; Collin County; Texas",
+    "48",
+    "085",
+    "030517"
+  ],
+  [
+    "10167",
+    "2815",
+    "Census Tract 305.18; Collin County; Texas",
+    "48",
+    "085",
+    "030518"
+  ],
+  [
+    "8300",
+    "3154",
+    "Census Tract 305.19; Collin County; Texas",
+    "48",
+    "085",
+    "030519"
+  ],
+  [
+    "6567",
+    "2223",
+    "Census Tract 305.20; Collin County; Texas",
+    "48",
+    "085",
+    "030520"
+  ],
+  [
+    "5241",
+    "1428",
+    "Census Tract 305.21; Collin County; Texas",
+    "48",
+    "085",
+    "030521"
+  ],
+  [
+    "8762",
+    "2825",
+    "Census Tract 305.24; Collin County; Texas",
+    "48",
+    "085",
+    "030524"
+  ],
+  [
+    "5390",
+    "1946",
+    "Census Tract 305.25; Collin County; Texas",
+    "48",
+    "085",
+    "030525"
+  ],
+  [
+    "3606",
+    "1229",
+    "Census Tract 305.29; Collin County; Texas",
+    "48",
+    "085",
+    "030529"
+  ],
+  [
+    "7261",
+    "2566",
+    "Census Tract 305.31; Collin County; Texas",
+    "48",
+    "085",
+    "030531"
+  ],
+  [
+    "2373",
+    "951",
+    "Census Tract 305.32; Collin County; Texas",
+    "48",
+    "085",
+    "030532"
+  ],
+  [
+    "3017",
+    "1157",
+    "Census Tract 305.33; Collin County; Texas",
+    "48",
+    "085",
+    "030533"
+  ],
+  [
+    "2811",
+    "996",
+    "Census Tract 305.34; Collin County; Texas",
+    "48",
+    "085",
+    "030534"
+  ],
+  [
+    "2755",
+    "1224",
+    "Census Tract 305.35; Collin County; Texas",
+    "48",
+    "085",
+    "030535"
+  ],
+  [
+    "6621",
+    "1920",
+    "Census Tract 305.36; Collin County; Texas",
+    "48",
+    "085",
+    "030536"
+  ],
+  [
+    "7844",
+    "2525",
+    "Census Tract 305.37; Collin County; Texas",
+    "48",
+    "085",
+    "030537"
+  ],
+  [
+    "5762",
+    "1781",
+    "Census Tract 305.38; Collin County; Texas",
+    "48",
+    "085",
+    "030538"
+  ],
+  [
+    "6601",
+    "2053",
+    "Census Tract 305.39; Collin County; Texas",
+    "48",
+    "085",
+    "030539"
+  ],
+  [
+    "3598",
+    "2016",
+    "Census Tract 305.40; Collin County; Texas",
+    "48",
+    "085",
+    "030540"
+  ],
+  [
+    "3069",
+    "1338",
+    "Census Tract 305.41; Collin County; Texas",
+    "48",
+    "085",
+    "030541"
+  ],
+  [
+    "7403",
+    "4050",
+    "Census Tract 305.42; Collin County; Texas",
+    "48",
+    "085",
+    "030542"
+  ],
+  [
+    "3981",
+    "1646",
+    "Census Tract 305.43; Collin County; Texas",
+    "48",
+    "085",
+    "030543"
+  ],
+  [
+    "5547",
+    "2086",
+    "Census Tract 305.44; Collin County; Texas",
+    "48",
+    "085",
+    "030544"
+  ],
+  [
+    "2780",
+    "945",
+    "Census Tract 305.45; Collin County; Texas",
+    "48",
+    "085",
+    "030545"
+  ],
+  [
+    "5576",
+    "1907",
+    "Census Tract 305.46; Collin County; Texas",
+    "48",
+    "085",
+    "030546"
+  ],
+  [
+    "5136",
+    "2087",
+    "Census Tract 305.47; Collin County; Texas",
+    "48",
+    "085",
+    "030547"
+  ],
+  [
+    "6055",
+    "1821",
+    "Census Tract 305.48; Collin County; Texas",
+    "48",
+    "085",
+    "030548"
+  ],
+  [
+    "2665",
+    "957",
+    "Census Tract 305.49; Collin County; Texas",
+    "48",
+    "085",
+    "030549"
+  ],
+  [
+    "4028",
+    "1457",
+    "Census Tract 305.50; Collin County; Texas",
+    "48",
+    "085",
+    "030550"
+  ],
+  [
+    "3862",
+    "925",
+    "Census Tract 306.04; Collin County; Texas",
+    "48",
+    "085",
+    "030604"
+  ],
+  [
+    "6827",
+    "2470",
+    "Census Tract 306.05; Collin County; Texas",
+    "48",
+    "085",
+    "030605"
+  ],
+  [
+    "6006",
+    "2537",
+    "Census Tract 306.06; Collin County; Texas",
+    "48",
+    "085",
+    "030606"
+  ],
+  [
+    "5189",
+    "1868",
+    "Census Tract 306.07; Collin County; Texas",
+    "48",
+    "085",
+    "030607"
+  ],
+  [
+    "2392",
+    "860",
+    "Census Tract 306.08; Collin County; Texas",
+    "48",
+    "085",
+    "030608"
+  ],
+  [
+    "7533",
+    "2778",
+    "Census Tract 306.09; Collin County; Texas",
+    "48",
+    "085",
+    "030609"
+  ],
+  [
+    "3292",
+    "1344",
+    "Census Tract 307.01; Collin County; Texas",
+    "48",
+    "085",
+    "030701"
+  ],
+  [
+    "5419",
+    "2066",
+    "Census Tract 307.02; Collin County; Texas",
+    "48",
+    "085",
+    "030702"
+  ],
+  [
+    "4234",
+    "2044",
+    "Census Tract 308.01; Collin County; Texas",
+    "48",
+    "085",
+    "030801"
+  ],
+  [
+    "5677",
+    "2533",
+    "Census Tract 308.02; Collin County; Texas",
+    "48",
+    "085",
+    "030802"
+  ],
+  [
+    "2660",
+    "643",
+    "Census Tract 309.01; Collin County; Texas",
+    "48",
+    "085",
+    "030901"
+  ],
+  [
+    "0",
+    "0",
+    "Census Tract 309.02; Collin County; Texas",
+    "48",
+    "085",
+    "030902"
+  ],
+  [
+    "7075",
+    "2966",
+    "Census Tract 309.03; Collin County; Texas",
+    "48",
+    "085",
+    "030903"
+  ],
+  [
+    "12247",
+    "4049",
+    "Census Tract 310.03; Collin County; Texas",
+    "48",
+    "085",
+    "031003"
+  ],
+  [
+    "3383",
+    "1381",
+    "Census Tract 310.05; Collin County; Texas",
+    "48",
+    "085",
+    "031005"
+  ],
+  [
+    "3643",
+    "1348",
+    "Census Tract 310.06; Collin County; Texas",
+    "48",
+    "085",
+    "031006"
+  ],
+  [
+    "7394",
+    "2238",
+    "Census Tract 310.07; Collin County; Texas",
+    "48",
+    "085",
+    "031007"
+  ],
+  [
+    "3044",
+    "1153",
+    "Census Tract 310.08; Collin County; Texas",
+    "48",
+    "085",
+    "031008"
+  ],
+  [
+    "6127",
+    "2417",
+    "Census Tract 311.01; Collin County; Texas",
+    "48",
+    "085",
+    "031101"
+  ],
+  [
+    "6885",
+    "2291",
+    "Census Tract 311.02; Collin County; Texas",
+    "48",
+    "085",
+    "031102"
+  ],
+  [
+    "8987",
+    "3139",
+    "Census Tract 312.01; Collin County; Texas",
+    "48",
+    "085",
+    "031201"
+  ],
+  [
+    "7452",
+    "2592",
+    "Census Tract 312.02; Collin County; Texas",
+    "48",
+    "085",
+    "031202"
+  ],
+  [
+    "7149",
+    "2214",
+    "Census Tract 313.08; Collin County; Texas",
+    "48",
+    "085",
+    "031308"
+  ],
+  [
+    "6068",
+    "1895",
+    "Census Tract 313.14; Collin County; Texas",
+    "48",
+    "085",
+    "031314"
+  ],
+  [
+    "5347",
+    "1801",
+    "Census Tract 313.18; Collin County; Texas",
+    "48",
+    "085",
+    "031318"
+  ],
+  [
+    "4873",
+    "1867",
+    "Census Tract 313.19; Collin County; Texas",
+    "48",
+    "085",
+    "031319"
+  ],
+  [
+    "6801",
+    "2374",
+    "Census Tract 313.20; Collin County; Texas",
+    "48",
+    "085",
+    "031320"
+  ],
+  [
+    "6512",
+    "2098",
+    "Census Tract 313.21; Collin County; Texas",
+    "48",
+    "085",
+    "031321"
+  ],
+  [
+    "7977",
+    "2943",
+    "Census Tract 313.22; Collin County; Texas",
+    "48",
+    "085",
+    "031322"
+  ],
+  [
+    "6264",
+    "1753",
+    "Census Tract 313.23; Collin County; Texas",
+    "48",
+    "085",
+    "031323"
+  ],
+  [
+    "4739",
+    "1599",
+    "Census Tract 313.24; Collin County; Texas",
+    "48",
+    "085",
+    "031324"
+  ],
+  [
+    "1879",
+    "663",
+    "Census Tract 313.25; Collin County; Texas",
+    "48",
+    "085",
+    "031325"
+  ],
+  [
+    "6921",
+    "1863",
+    "Census Tract 313.26; Collin County; Texas",
+    "48",
+    "085",
+    "031326"
+  ],
+  [
+    "3863",
+    "1043",
+    "Census Tract 313.27; Collin County; Texas",
+    "48",
+    "085",
+    "031327"
+  ],
+  [
+    "3565",
+    "1046",
+    "Census Tract 313.28; Collin County; Texas",
+    "48",
+    "085",
+    "031328"
+  ],
+  [
+    "7706",
+    "1867",
+    "Census Tract 313.29; Collin County; Texas",
+    "48",
+    "085",
+    "031329"
+  ],
+  [
+    "6217",
+    "1985",
+    "Census Tract 313.30; Collin County; Texas",
+    "48",
+    "085",
+    "031330"
+  ],
+  [
+    "4180",
+    "1446",
+    "Census Tract 313.31; Collin County; Texas",
+    "48",
+    "085",
+    "031331"
+  ],
+  [
+    "4698",
+    "1553",
+    "Census Tract 313.32; Collin County; Texas",
+    "48",
+    "085",
+    "031332"
+  ],
+  [
+    "4371",
+    "1309",
+    "Census Tract 313.33; Collin County; Texas",
+    "48",
+    "085",
+    "031333"
+  ],
+  [
+    "3770",
+    "1103",
+    "Census Tract 313.34; Collin County; Texas",
+    "48",
+    "085",
+    "031334"
+  ],
+  [
+    "5441",
+    "1726",
+    "Census Tract 313.35; Collin County; Texas",
+    "48",
+    "085",
+    "031335"
+  ],
+  [
+    "5725",
+    "2187",
+    "Census Tract 313.36; Collin County; Texas",
+    "48",
+    "085",
+    "031336"
+  ],
+  [
+    "3833",
+    "1066",
+    "Census Tract 314.08; Collin County; Texas",
+    "48",
+    "085",
+    "031408"
+  ],
+  [
+    "6321",
+    "1838",
+    "Census Tract 314.11; Collin County; Texas",
+    "48",
+    "085",
+    "031411"
+  ],
+  [
+    "7158",
+    "3108",
+    "Census Tract 314.12; Collin County; Texas",
+    "48",
+    "085",
+    "031412"
+  ],
+  [
+    "8306",
+    "2025",
+    "Census Tract 314.13; Collin County; Texas",
+    "48",
+    "085",
+    "031413"
+  ],
+  [
+    "7711",
+    "2086",
+    "Census Tract 314.14; Collin County; Texas",
+    "48",
+    "085",
+    "031414"
+  ],
+  [
+    "6426",
+    "2188",
+    "Census Tract 314.15; Collin County; Texas",
+    "48",
+    "085",
+    "031415"
+  ],
+  [
+    "10163",
+    "3340",
+    "Census Tract 314.16; Collin County; Texas",
+    "48",
+    "085",
+    "031416"
+  ],
+  [
+    "5205",
+    "1969",
+    "Census Tract 314.17; Collin County; Texas",
+    "48",
+    "085",
+    "031417"
+  ],
+  [
+    "5618",
+    "2057",
+    "Census Tract 314.18; Collin County; Texas",
+    "48",
+    "085",
+    "031418"
+  ],
+  [
+    "5138",
+    "1756",
+    "Census Tract 314.19; Collin County; Texas",
+    "48",
+    "085",
+    "031419"
+  ],
+  [
+    "3029",
+    "1678",
+    "Census Tract 314.20; Collin County; Texas",
+    "48",
+    "085",
+    "031420"
+  ],
+  [
+    "3637",
+    "1236",
+    "Census Tract 314.21; Collin County; Texas",
+    "48",
+    "085",
+    "031421"
+  ],
+  [
+    "4405",
+    "1592",
+    "Census Tract 314.22; Collin County; Texas",
+    "48",
+    "085",
+    "031422"
+  ],
+  [
+    "3793",
+    "1142",
+    "Census Tract 314.23; Collin County; Texas",
+    "48",
+    "085",
+    "031423"
+  ],
+  [
+    "2746",
+    "996",
+    "Census Tract 314.24; Collin County; Texas",
+    "48",
+    "085",
+    "031424"
+  ],
+  [
+    "5545",
+    "1903",
+    "Census Tract 314.25; Collin County; Texas",
+    "48",
+    "085",
+    "031425"
+  ],
+  [
+    "6129",
+    "2362",
+    "Census Tract 315.04; Collin County; Texas",
+    "48",
+    "085",
+    "031504"
+  ],
+  [
+    "7040",
+    "3425",
+    "Census Tract 315.07; Collin County; Texas",
+    "48",
+    "085",
+    "031507"
+  ],
+  [
+    "5653",
+    "2225",
+    "Census Tract 315.08; Collin County; Texas",
+    "48",
+    "085",
+    "031508"
+  ],
+  [
+    "4030",
+    "1600",
+    "Census Tract 315.09; Collin County; Texas",
+    "48",
+    "085",
+    "031509"
+  ],
+  [
+    "6877",
+    "2503",
+    "Census Tract 315.10; Collin County; Texas",
+    "48",
+    "085",
+    "031510"
+  ],
+  [
+    "4877",
+    "2033",
+    "Census Tract 315.11; Collin County; Texas",
+    "48",
+    "085",
+    "031511"
+  ],
+  [
+    "3427",
+    "1321",
+    "Census Tract 315.12; Collin County; Texas",
+    "48",
+    "085",
+    "031512"
+  ],
+  [
+    "3606",
+    "1368",
+    "Census Tract 316.11; Collin County; Texas",
+    "48",
+    "085",
+    "031611"
+  ],
+  [
+    "5543",
+    "2029",
+    "Census Tract 316.13; Collin County; Texas",
+    "48",
+    "085",
+    "031613"
+  ],
+  [
+    "6356",
+    "2825",
+    "Census Tract 316.21; Collin County; Texas",
+    "48",
+    "085",
+    "031621"
+  ],
+  [
+    "6731",
+    "2377",
+    "Census Tract 316.22; Collin County; Texas",
+    "48",
+    "085",
+    "031622"
+  ],
+  [
+    "2582",
+    "1147",
+    "Census Tract 316.23; Collin County; Texas",
+    "48",
+    "085",
+    "031623"
+  ],
+  [
+    "2876",
+    "1337",
+    "Census Tract 316.24; Collin County; Texas",
+    "48",
+    "085",
+    "031624"
+  ],
+  [
+    "4485",
+    "1752",
+    "Census Tract 316.25; Collin County; Texas",
+    "48",
+    "085",
+    "031625"
+  ],
+  [
+    "2227",
+    "891",
+    "Census Tract 316.26; Collin County; Texas",
+    "48",
+    "085",
+    "031626"
+  ],
+  [
+    "5314",
+    "1944",
+    "Census Tract 316.27; Collin County; Texas",
+    "48",
+    "085",
+    "031627"
+  ],
+  [
+    "3982",
+    "1434",
+    "Census Tract 316.28; Collin County; Texas",
+    "48",
+    "085",
+    "031628"
+  ],
+  [
+    "3715",
+    "1326",
+    "Census Tract 316.29; Collin County; Texas",
+    "48",
+    "085",
+    "031629"
+  ],
+  [
+    "4295",
+    "1514",
+    "Census Tract 316.30; Collin County; Texas",
+    "48",
+    "085",
+    "031630"
+  ],
+  [
+    "5353",
+    "1984",
+    "Census Tract 316.31; Collin County; Texas",
+    "48",
+    "085",
+    "031631"
+  ],
+  [
+    "5811",
+    "2495",
+    "Census Tract 316.32; Collin County; Texas",
+    "48",
+    "085",
+    "031632"
+  ],
+  [
+    "3803",
+    "1434",
+    "Census Tract 316.33; Collin County; Texas",
+    "48",
+    "085",
+    "031633"
+  ],
+  [
+    "2920",
+    "1161",
+    "Census Tract 316.34; Collin County; Texas",
+    "48",
+    "085",
+    "031634"
+  ],
+  [
+    "4774",
+    "2016",
+    "Census Tract 316.35; Collin County; Texas",
+    "48",
+    "085",
+    "031635"
+  ],
+  [
+    "7186",
+    "2925",
+    "Census Tract 316.36; Collin County; Texas",
+    "48",
+    "085",
+    "031636"
+  ],
+  [
+    "7363",
+    "2407",
+    "Census Tract 316.39; Collin County; Texas",
+    "48",
+    "085",
+    "031639"
+  ],
+  [
+    "6544",
+    "2142",
+    "Census Tract 316.41; Collin County; Texas",
+    "48",
+    "085",
+    "031641"
+  ],
+  [
+    "4564",
+    "1671",
+    "Census Tract 316.42; Collin County; Texas",
+    "48",
+    "085",
+    "031642"
+  ],
+  [
+    "4661",
+    "1862",
+    "Census Tract 316.43; Collin County; Texas",
+    "48",
+    "085",
+    "031643"
+  ],
+  [
+    "1703",
+    "608",
+    "Census Tract 316.45; Collin County; Texas",
+    "48",
+    "085",
+    "031645"
+  ],
+  [
+    "5453",
+    "2153",
+    "Census Tract 316.46; Collin County; Texas",
+    "48",
+    "085",
+    "031646"
+  ],
+  [
+    "3380",
+    "1495",
+    "Census Tract 316.47; Collin County; Texas",
+    "48",
+    "085",
+    "031647"
+  ],
+  [
+    "5428",
+    "2868",
+    "Census Tract 316.49; Collin County; Texas",
+    "48",
+    "085",
+    "031649"
+  ],
+  [
+    "4333",
+    "1497",
+    "Census Tract 316.54; Collin County; Texas",
+    "48",
+    "085",
+    "031654"
+  ],
+  [
+    "4403",
+    "2087",
+    "Census Tract 316.55; Collin County; Texas",
+    "48",
+    "085",
+    "031655"
+  ],
+  [
+    "3388",
+    "1810",
+    "Census Tract 316.57; Collin County; Texas",
+    "48",
+    "085",
+    "031657"
+  ],
+  [
+    "2671",
+    "1240",
+    "Census Tract 316.59; Collin County; Texas",
+    "48",
+    "085",
+    "031659"
+  ],
+  [
+    "4752",
+    "2197",
+    "Census Tract 316.60; Collin County; Texas",
+    "48",
+    "085",
+    "031660"
+  ],
+  [
+    "3539",
+    "1173",
+    "Census Tract 316.61; Collin County; Texas",
+    "48",
+    "085",
+    "031661"
+  ],
+  [
+    "4361",
+    "1460",
+    "Census Tract 316.62; Collin County; Texas",
+    "48",
+    "085",
+    "031662"
+  ],
+  [
+    "3503",
+    "1293",
+    "Census Tract 316.63; Collin County; Texas",
+    "48",
+    "085",
+    "031663"
+  ],
+  [
+    "3653",
+    "1231",
+    "Census Tract 316.64; Collin County; Texas",
+    "48",
+    "085",
+    "031664"
+  ],
+  [
+    "3197",
+    "1556",
+    "Census Tract 316.65; Collin County; Texas",
+    "48",
+    "085",
+    "031665"
+  ],
+  [
+    "6249",
+    "2137",
+    "Census Tract 316.66; Collin County; Texas",
+    "48",
+    "085",
+    "031666"
+  ],
+  [
+    "2967",
+    "1229",
+    "Census Tract 316.67; Collin County; Texas",
+    "48",
+    "085",
+    "031667"
+  ],
+  [
+    "4134",
+    "1676",
+    "Census Tract 316.68; Collin County; Texas",
+    "48",
+    "085",
+    "031668"
+  ],
+  [
+    "2361",
+    "997",
+    "Census Tract 316.69; Collin County; Texas",
+    "48",
+    "085",
+    "031669"
+  ],
+  [
+    "1111",
+    "1170",
+    "Census Tract 316.70; Collin County; Texas",
+    "48",
+    "085",
+    "031670"
+  ],
+  [
+    "2675",
+    "1825",
+    "Census Tract 316.71; Collin County; Texas",
+    "48",
+    "085",
+    "031671"
+  ],
+  [
+    "2093",
+    "1355",
+    "Census Tract 316.72; Collin County; Texas",
+    "48",
+    "085",
+    "031672"
+  ],
+  [
+    "2389",
+    "1339",
+    "Census Tract 316.73; Collin County; Texas",
+    "48",
+    "085",
+    "031673"
+  ],
+  [
+    "5046",
+    "2117",
+    "Census Tract 316.74; Collin County; Texas",
+    "48",
+    "085",
+    "031674"
+  ],
+  [
+    "2894",
+    "1182",
+    "Census Tract 316.75; Collin County; Texas",
+    "48",
+    "085",
+    "031675"
+  ],
+  [
+    "3115",
+    "1550",
+    "Census Tract 316.76; Collin County; Texas",
+    "48",
+    "085",
+    "031676"
+  ],
+  [
+    "3118",
+    "1000",
+    "Census Tract 316.77; Collin County; Texas",
+    "48",
+    "085",
+    "031677"
+  ],
+  [
+    "3220",
+    "1059",
+    "Census Tract 316.78; Collin County; Texas",
+    "48",
+    "085",
+    "031678"
+  ],
+  [
+    "2325",
+    "859",
+    "Census Tract 316.79; Collin County; Texas",
+    "48",
+    "085",
+    "031679"
+  ],
+  [
+    "4386",
+    "1255",
+    "Census Tract 316.80; Collin County; Texas",
+    "48",
+    "085",
+    "031680"
+  ],
+  [
+    "2613",
+    "913",
+    "Census Tract 316.81; Collin County; Texas",
+    "48",
+    "085",
+    "031681"
+  ],
+  [
+    "4349",
+    "1673",
+    "Census Tract 316.82; Collin County; Texas",
+    "48",
+    "085",
+    "031682"
+  ],
+  [
+    "3650",
+    "1890",
+    "Census Tract 317.04; Collin County; Texas",
+    "48",
+    "085",
+    "031704"
+  ],
+  [
+    "2332",
+    "850",
+    "Census Tract 317.06; Collin County; Texas",
+    "48",
+    "085",
+    "031706"
+  ],
+  [
+    "3972",
+    "2205",
+    "Census Tract 317.08; Collin County; Texas",
+    "48",
+    "085",
+    "031708"
+  ],
+  [
+    "5869",
+    "2404",
+    "Census Tract 317.09; Collin County; Texas",
+    "48",
+    "085",
+    "031709"
+  ],
+  [
+    "3532",
+    "1674",
+    "Census Tract 317.11; Collin County; Texas",
+    "48",
+    "085",
+    "031711"
+  ],
+  [
+    "5129",
+    "2930",
+    "Census Tract 317.13; Collin County; Texas",
+    "48",
+    "085",
+    "031713"
+  ],
+  [
+    "2736",
+    "1193",
+    "Census Tract 317.15; Collin County; Texas",
+    "48",
+    "085",
+    "031715"
+  ],
+  [
+    "3004",
+    "1573",
+    "Census Tract 317.16; Collin County; Texas",
+    "48",
+    "085",
+    "031716"
+  ],
+  [
+    "2001",
+    "1237",
+    "Census Tract 317.17; Collin County; Texas",
+    "48",
+    "085",
+    "031717"
+  ],
+  [
+    "2534",
+    "1078",
+    "Census Tract 317.18; Collin County; Texas",
+    "48",
+    "085",
+    "031718"
+  ],
+  [
+    "1674",
+    "942",
+    "Census Tract 317.19; Collin County; Texas",
+    "48",
+    "085",
+    "031719"
+  ],
+  [
+    "2901",
+    "2014",
+    "Census Tract 317.20; Collin County; Texas",
+    "48",
+    "085",
+    "031720"
+  ],
+  [
+    "1410",
+    "1109",
+    "Census Tract 317.21; Collin County; Texas",
+    "48",
+    "085",
+    "031721"
+  ],
+  [
+    "2669",
+    "1906",
+    "Census Tract 317.22; Collin County; Texas",
+    "48",
+    "085",
+    "031722"
+  ],
+  [
+    "3961",
+    "2128",
+    "Census Tract 317.23; Collin County; Texas",
+    "48",
+    "085",
+    "031723"
+  ],
+  [
+    "2394",
+    "1412",
+    "Census Tract 317.24; Collin County; Texas",
+    "48",
+    "085",
+    "031724"
+  ],
+  [
+    "3262",
+    "1737",
+    "Census Tract 318.06; Collin County; Texas",
+    "48",
+    "085",
+    "031806"
+  ],
+  [
+    "4499",
+    "2175",
+    "Census Tract 318.07; Collin County; Texas",
+    "48",
+    "085",
+    "031807"
+  ],
+  [
+    "3345",
+    "1303",
+    "Census Tract 318.08; Collin County; Texas",
+    "48",
+    "085",
+    "031808"
+  ],
+  [
+    "2548",
+    "1059",
+    "Census Tract 318.09; Collin County; Texas",
+    "48",
+    "085",
+    "031809"
+  ],
+  [
+    "1617",
+    "918",
+    "Census Tract 318.10; Collin County; Texas",
+    "48",
+    "085",
+    "031810"
+  ],
+  [
+    "1920",
+    "1430",
+    "Census Tract 318.11; Collin County; Texas",
+    "48",
+    "085",
+    "031811"
+  ],
+  [
+    "1954",
+    "1052",
+    "Census Tract 318.12; Collin County; Texas",
+    "48",
+    "085",
+    "031812"
+  ],
+  [
+    "4083",
+    "710",
+    "Census Tract 318.13; Collin County; Texas",
+    "48",
+    "085",
+    "031813"
+  ],
+  [
+    "1807",
+    "838",
+    "Census Tract 318.14; Collin County; Texas",
+    "48",
+    "085",
+    "031814"
+  ],
+  [
+    "4416",
+    "2079",
+    "Census Tract 318.15; Collin County; Texas",
+    "48",
+    "085",
+    "031815"
+  ],
+  [
+    "3091",
+    "1508",
+    "Census Tract 318.16; Collin County; Texas",
+    "48",
+    "085",
+    "031816"
+  ],
+  [
+    "2837",
+    "1541",
+    "Census Tract 319.01; Collin County; Texas",
+    "48",
+    "085",
+    "031901"
+  ],
+  [
+    "3832",
+    "1738",
+    "Census Tract 319.02; Collin County; Texas",
+    "48",
+    "085",
+    "031902"
+  ],
+  [
+    "1211",
+    "776",
+    "Census Tract 319.03; Collin County; Texas",
+    "48",
+    "085",
+    "031903"
+  ],
+  [
+    "3280",
+    "2196",
+    "Census Tract 319.04; Collin County; Texas",
+    "48",
+    "085",
+    "031904"
+  ],
+  [
+    "5753",
+    "2252",
+    "Census Tract 320.03; Collin County; Texas",
+    "48",
+    "085",
+    "032003"
+  ],
+  [
+    "4114",
+    "1504",
+    "Census Tract 320.08; Collin County; Texas",
+    "48",
+    "085",
+    "032008"
+  ],
+  [
+    "6880",
+    "2137",
+    "Census Tract 320.10; Collin County; Texas",
+    "48",
+    "085",
+    "032010"
+  ],
+  [
+    "3354",
+    "1299",
+    "Census Tract 320.12; Collin County; Texas",
+    "48",
+    "085",
+    "032012"
+  ],
+  [
+    "6393",
+    "2136",
+    "Census Tract 320.13; Collin County; Texas",
+    "48",
+    "085",
+    "032013"
+  ],
+  [
+    "5313",
+    "1508",
+    "Census Tract 320.14; Collin County; Texas",
+    "48",
+    "085",
+    "032014"
+  ],
+  [
+    "2045",
+    "882",
+    "Census Tract 320.15; Collin County; Texas",
+    "48",
+    "085",
+    "032015"
+  ],
+  [
+    "2148",
+    "755",
+    "Census Tract 320.16; Collin County; Texas",
+    "48",
+    "085",
+    "032016"
+  ],
+  [
+    "5349",
+    "2229",
+    "Census Tract 320.17; Collin County; Texas",
+    "48",
+    "085",
+    "032017"
+  ],
+  [
+    "3548",
+    "1504",
+    "Census Tract 320.18; Collin County; Texas",
+    "48",
+    "085",
+    "032018"
+  ],
+  [
+    "2965",
+    "948",
+    "Census Tract 320.19; Collin County; Texas",
+    "48",
+    "085",
+    "032019"
+  ]
+]
