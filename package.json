@@ -17,7 +17,8 @@
     "data:buildings:validate": "node scripts/buildings-cache.js normalize",
     "data:buildings:summary": "node scripts/buildings-cache.js summary",
     "data:pois:fetch": "node --env-file-if-exists=.env scripts/fetch-pois.js",
-    "data:census:fetch": "node --env-file-if-exists=.env scripts/fetch-census.js"
+    "data:census:fetch": "node --env-file-if-exists=.env scripts/fetch-census.js",
+    "agent:smoke": "node --env-file-if-exists=.env scripts/nemotron-smoke.js"
   },
   "dependencies": {
     "cytoscape": "^3.34.4",

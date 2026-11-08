@@ -779,7 +779,15 @@ $('#ask').onclick = async () => {
       response.answer + '\n\nTools: ' +
       response.toolTrace.map(item => `${item.toolName} (${item.status})`).join(', ');
   } catch (error) {
-    chat.textContent = `Agent error: ${error.message}`;
+    const raw = String(error.message ?? '');
+    const lower = raw.toLowerCase();
+    if (lower.includes('nvidia_api_key') || lower.includes('api key') || lower.includes('api_key')) {
+      chat.textContent = 'NVIDIA API key is not configured on the server.';
+    } else if (lower.includes('timeout') || lower.includes('aborted') || lower.includes('timed out')) {
+      chat.textContent = `Agent request timed out. ${raw}`;
+    } else {
+      chat.textContent = `Agent error: ${raw}`;
+    }
   } finally {
     ask.textContent = 'Investigate with Nemotron';
     ask.disabled = false;
