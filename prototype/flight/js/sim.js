@@ -10,7 +10,7 @@ function dijkstra(src,blocked){const n=NODES.length,d=new Float64Array(n).fill(I
   const up=i=>{while(i){const p=(i-1)>>1;if(h[p][0]<=h[i][0])break;[h[p],h[i]]=[h[i],h[p]];i=p}},
         dn=i=>{for(;;){const l=2*i+1,r=l+1;let m=i;if(l<h.length&&h[l][0]<h[m][0])m=l;if(r<h.length&&h[r][0]<h[m][0])m=r;if(m===i)break;[h[m],h[i]]=[h[i],h[m]];i=m}};
   while(h.length){const top=h[0],last=h.pop();if(h.length){h[0]=last;dn(0)}const [du,u]=top;if(du>d[u])continue;
-    for(const [v,w,e] of NODES[u].adj){if(blocked&&blocked[e])continue;const nd=du+w;if(nd<d[v]){d[v]=nd;prev[v]=u;h.push([nd,v]);up(h.length-1)}}}
+    for(const [v,w0,e] of NODES[u].adj){const bk=blocked?blocked[e]:0;if(bk===1)continue;const w=bk===2?w0*4:w0;const nd=du+w;if(nd<d[v]){d[v]=nd;prev[v]=u;h.push([nd,v]);up(h.length-1)}}}
   return{d,prev}}
 function nearestNode(x,z){const e=EDGES[nearestEdge(x,z)];if(!e)return 0;const a=NODES[e.a],b=NODES[e.b];return Math.hypot(a.x-x,a.z-z)<Math.hypot(b.x-x,b.z-z)?e.a:e.b}
 
@@ -192,7 +192,18 @@ function airTick(dt,W){
 const gAim=V();let gs='drive',gT=0,gPath=[],gFor=0,gRe=0,gStuck=0,gRev=0,gRevS=1,gUT=0,gBlockT=0;
 function placeTruck(x,z){const ei=nearestEdge(x,z),e=EDGES[ei];if(!e)return;const A=NODES[e.a],Bn=NODES[e.b];const n=Math.hypot(A.x-x,A.z-z)<Math.hypot(Bn.x-x,Bn.z-z)?A:Bn,o=n===A?Bn:A;
   TR.x=n.x;TR.z=n.z;TR.yaw=Math.atan2(o.x-n.x,-(o.z-n.z));TR.spd=0;gs='drive';gPath=[];gFor=0}
-function truckPath(r){const tb=dijkstra(r.b.curb,BLOCK),hx=Math.sin(TR.yaw),hz=-Math.cos(TR.yaw),e=EDGES[nearestEdge(TR.x,TR.z)];let best=-1,bc=Infinity;
+// no reachable call and the truck is sitting in floodwater: drive (wading if needed) to the nearest dry road node and wait there
+let ESC=null,escT=-9;
+function rubbleRep(){ // earthquake: every call is cut off by rubble. Pick the nearest one and crawl through the blocked roads (speed is capped over rubble).
+  if(ESC&&ESC.rub&&!ESC.done&&simT-escT<3)return ESC;const open=reports.filter(r=>!r.done&&!r.claimed&&r.b.stop);if(!open.length)return null;escT=simT;
+  const eb=new Uint8Array(EDGES.length);for(let e=0;e<EDGES.length;e++)eb[e]=EDGES[e].dead?1:BLOCK[e]?2:0;const tb=dijkstra(nearestNode(TR.x,TR.z),eb);let best=null,bd=Infinity;
+  for(const r of open){const d=tb.d[r.b.curb];if(isFinite(d)&&d<bd){bd=d;best=r}}if(!best)return null;for(const x of reports)x.blk=null;best.blk=eb;best.rub=true;if(!ESC||!ESC.rub)say('roads blocked: crawling over rubble');return ESC=best}
+function escapeRep(){if(disaster=='earthquake')return rubbleRep();if(disaster!='flood'&&disaster!='hurricane')return null;if(floodDepth(TR.x,TR.z)<.12&&!ESC)return null;
+  if(ESC&&simT-escT<4)return ESC;escT=simT;const dry=n=>floodDepth(n.x,n.z)<.08;if(floodDepth(TR.x,TR.z)<.12){ESC=null;return null}
+  const eb=new Uint8Array(EDGES.length);for(let e=0;e<EDGES.length;e++)eb[e]=EDGES[e].dead?1:BLOCK[e]==1?2:BLOCK[e];
+  const tb=dijkstra(nearestNode(TR.x,TR.z),eb);let best=-1,bd=Infinity;for(let i=0;i<NODES.length;i++)if(isFinite(tb.d[i])&&tb.d[i]<bd&&dry(NODES[i])){bd=tb.d[i];best=i}
+  if(best<0){ESC=null;return null}const n=NODES[best];if(!ESC)say('flooded in: heading to dry ground');return ESC={id:-9,esc:true,hold:0,blk:eb,b:{curb:best,stop:{x:n.x,z:n.z}}}}
+function truckPath(r){const tb=dijkstra(r.b.curb,r.blk||BLOCK),hx=Math.sin(TR.yaw),hz=-Math.cos(TR.yaw),e=EDGES[nearestEdge(TR.x,TR.z)];let best=-1,bc=Infinity;
   // start candidates: both ends of the road we're on, plus nodes straight ahead (within ~17 deg of our heading, < 80 m).
   // Turning toward a node off our heading costs extra, more at speed, so we never try to cut across a block.
   const cand=new Set([e.a,e.b]);{const A=NODES[e.a],Bn=NODES[e.b],fwdN=((Bn.x-A.x)*hx+(Bn.z-A.z)*hz)>0?e.b:e.a;let cur=fwdN,prev=fwdN===e.b?e.a:e.b,run=0;
@@ -203,7 +214,7 @@ function truckPath(r){const tb=dijkstra(r.b.curb,BLOCK),hx=Math.sin(TR.yaw),hz=-
     const c=d+tb.d[i]+(cs<-.2?45:0)+(cs<.955?20+Math.abs(TR.spd)*2.5:0);if(c<bc){bc=c;best=i}}
   if(best<0)return null;const out=[];for(let v=best;v>=0;v=tb.prev[v])out.push(v);return out}
 const laneOf=(a,b)=>{let w=CFG.truck.lane*2;for(const [v,l,ei] of NODES[a].adj)if(v===b){w=EDGES[ei].w;break}return Math.min(CFG.truck.lane,w*.25)};
-function groundAuto(dt){const r=route.find(x=>!(x.hold>simT))||null;
+function groundAuto(dt){let r=route.find(x=>!(x.hold>simT))||null;if(r){if(r.blk)r.blk=null}else r=escapeRep();
   if(gs=='board'){gT-=dt;TR.spd*=Math.pow(.01,dt);return{st:0,vt:0}}
   if(gRev>0){gRev-=dt;return{st:-gRevS,vt:-4}}
   if(!r||!r.b.stop)return{st:0,vt:0};
@@ -236,19 +247,22 @@ function groundAuto(dt){const r=route.find(x=>!(x.hold>simT))||null;
   if(nitroCd<=0&&nitroT<=0&&!blocker&&Math.abs(err)<.15&&Math.min(cornerAt,ds)>110&&TR.spd>8&&tbat>15){nitroT=CFG.truck.nitroT;nitroCd=4.5;tbat-=1;shock();caKick=.6;sfx('nitro')}
   if(Math.abs(err)>1.5){vt=Math.min(vt,4.5);gUT+=dt;if(gUT>4){gUT=0;gRev=1.3;gRevS=Math.sign(err)}}else gUT=0;
   const dStop=Math.hypot(r.b.stop.x-TR.x,r.b.stop.z-TR.z);
-  if(dStop<3.2&&Math.abs(TR.spd)<2.5){gs='board';reach(r,'aboard');gT=pickupDoor(r)*(1-CFG.learn.board*learn.urg);return{st:0,vt:0}}
+  if(r.esc){if(dStop<4)return{st:0,vt:0}}else if(dStop<3.2&&Math.abs(TR.spd)<2.5){gs='board';reach(r,'aboard');gT=pickupDoor(r)*(1-CFG.learn.board*learn.urg);return{st:0,vt:0}}
   if(Math.abs(TR.spd)<.8&&dStop>5&&!blocker){gStuck+=dt;if(gStuck>3){gStuck=0;gRev=1.4;gRevS=Math.sign(err)||1;gRe=0;stats.stuck++;learn.urg=Math.min(1,learn.urg+.05)}}else gStuck=Math.max(0,gStuck-dt);
   return{st:clamp(err*2.2,-1,1),vt}}
 function truckTick(dt){let st,vt,brake=false;
   if(auto){if(gs=='board'&&gT<=0){gs='drive';gRe=0}const o=groundAuto(dt);st=o.st;vt=o.vt}
   else{st=Math.abs(M.x)<.06?0:clamp(M.x*1.4,-1,1);vt=nitroT>0?CFG.truck.max+CFG.truck.nitro:K.KeyW?CFG.truck.max:K.KeyS?-8:null;brake=!!K.Space}
   nitroT-=dt;nitroCd-=dt;
-  if(vt===null)TR.spd-=Math.sign(TR.spd)*Math.min(Math.abs(TR.spd),1.5*dt);else{const a=vt>TR.spd?CFG.truck.accel*(nitroT>0?2:1):CFG.truck.brake;TR.spd+=clamp(vt-TR.spd,-a*dt,a*dt)}
+  // smooth throttle: proportional approach to the target speed, accel low-passed (no jerk), so it eases on and off the pedal
+  let aT;if(vt===null)aT=-Math.sign(TR.spd)*Math.min(1.5,Math.abs(TR.spd)/Math.max(dt,.001));else aT=clamp((vt-TR.spd)*3.2,-CFG.truck.brake,CFG.truck.accel*(nitroT>0?2:1));
+  TR.acc=lerp(TR.acc||0,aT,1-Math.exp(-dt*7));TR.spd+=TR.acc*dt;
   if(brake)TR.spd*=Math.pow(.05,dt);
   const ei=nearestEdge(TR.x,TR.z),onBridge=ei>=0&&EDGES[ei].bridge&&edgeDist(ei,TR.x,TR.z)<EDGES[ei].w/2+1,fd=onBridge?0:floodDepth(TR.x,TR.z);
   let cap=fd>1?2:fd>.4?6:99;if(disaster=='earthquake'&&ei>=0&&Q.rubble.has(ei))cap=Math.min(cap,5); // crawling over rubble
   if(riverDist(TR.x,TR.z)<0&&!onBridge)cap=3;if(tbat<=0)cap=Math.min(cap,10);TR.spd=clamp(TR.spd,-8,Math.min(cap,CFG.truck.max+CFG.truck.nitro));
-  TR.yaw+=st*1.4*clamp(Math.abs(TR.spd)/3,0,1)*Math.sign(TR.spd||1)*(brake?1.6:1)*dt;
+  // steering wheel is rate-limited, and the turn rate falls with speed (about 11 m/s^2 sideways at most) instead of snapping
+  TR.steer=(TR.steer||0)+clamp(st-(TR.steer||0),-dt*6,dt*6);const yr=TR.steer*Math.min(1.5,11/Math.max(4,Math.abs(TR.spd)))*clamp(Math.abs(TR.spd)/3,0,1)*Math.sign(TR.spd||1)*(brake?1.4:1);TR.yaw+=yr*dt;
   TR.x+=Math.sin(TR.yaw)*TR.spd*dt;TR.z+=-Math.cos(TR.yaw)*TR.spd*dt;TR.y=onBridge?1.3:riverDist(TR.x,TR.z)<0?-.8:0;
   if(disaster=='tornado'){const tx=T.x-TR.x,tz=T.z-TR.z,td=Math.hypot(tx,tz)||1;if(td<90){const k=1-td/90;TR.x+=tx/td*k*8*dt;TR.z+=tz/td*k*8*dt;shake=Math.max(shake,k*.6)}}
   // autopilot keeps clearance from walls (soft push), then hard collision: push out along the wall normal, lose speed
@@ -257,7 +271,9 @@ function truckTick(dt){let st,vt,brake=false;
   for(const c of CARS){if(Math.abs(c.x-TR.x)<2.4&&Math.abs(c.z-TR.z)<2.4&&Math.abs(c.y-.8-TR.y)<.6){stats.carHits++;if(!auto)TR.spd*=.85;c.pull=1;c.s+=Math.sign((c.x-TR.x)*c.hx+(c.z-TR.z)*c.hz||1)*6*dt}} // overlapping car gets nudged along its lane
   TR.x=clamp(TR.x,-E-20,E+20);TR.z=clamp(TR.z,-E-20,E+20);
   tbat-=dt*(.04+Math.abs(TR.spd)*.003);bat=Math.min(100,bat+3*dt); // truck fuel drains slowly; docked dragonfly recharges 3%/s
-  truck.position.set(TR.x,TR.y,TR.z);truck.rotation.set(0,Math.PI-TR.yaw,0);
+  // body motion: nose dips when braking, squats when accelerating, leans out of turns, small road bumps
+  TR.odo=(TR.odo||0)+Math.abs(TR.spd)*dt;const kk=1-Math.exp(-dt*6);TR.pitch=lerp(TR.pitch||0,clamp(-(TR.acc||0)*.0045,-.07,.07),kk);TR.roll=lerp(TR.roll||0,clamp(-yr*TR.spd*.006,-.07,.07),kk);
+  truck.position.set(TR.x,TR.y+Math.sin(TR.odo*1.9)*.022*clamp(Math.abs(TR.spd)/12,0,1)*(floodDepth(TR.x,TR.z)>.3?0:1),TR.z);truck.rotation.order='YXZ';truck.rotation.set(TR.pitch,Math.PI-TR.yaw,TR.roll);
   const blink=Math.sin(t*14)>0;sirenR.color.setHex(blink?0xff2a2a:0x400808);sirenB.color.setHex(blink?0x0a1440:0x2a6aff)}
 
 // ---------- guide: where to go next (used by the 3D arrow and the on-screen marker) ----------

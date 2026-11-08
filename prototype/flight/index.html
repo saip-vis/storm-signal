@@ -62,13 +62,14 @@ p{margin:6px 0;color:var(--dim)}b{color:var(--ink)}
 <div id="badge" class="ui"></div><div id="fsbtn" title="Full screen (G)">&#x26F6; Full screen</div>
 <div id="vig"></div><div id="fl"></div><div id="sim" class="ui"></div><div id="fps" class="ui"></div><div id="warn"></div>
 <div id="map"><canvas id="mc" width="760" height="760"></canvas><div id="gmap"></div><div id="mapbar"><span data-layer="radar">Weather radar</span><span data-layer="heat">Hazard heat map</span><span data-layer="alerts">Alert areas</span><span id="clearRoute">Clear my route</span></div>
-<div id="maptxt">Autopilot plans the amber route. Click red dots to set your own order instead (blue numbers), Clear to go back. Radar = live NEXRAD (Live Houston map). Grey dashed: nearest-first. Hollow = not reachable by road. Blue: water. M closes.</div></div>
+<div id="maptxt">Autopilot plans the amber route. Click red dots to set your own order instead (blue numbers), Clear to go back. Radar = live NEXRAD (real-map mode). Grey dashed: nearest-first. Hollow = not reachable by road. Blue: water. M closes.</div></div>
 <div id="msg"></div><div id="radio"></div><div id="wp"><div class="wpa"></div><div class="wpt"></div></div>
 <div id="menu"><div class="card">
 <h1>Dragon Flyght</h1>
 <p>Disaster rescue simulator. Every number is a modeled estimate under stated assumptions, not a real rescue prediction.</p>
+<div class="row" id="cityRow" style="display:none"><span class="lab">City</span><span class="opt" data-city="houston">Houston</span><span class="opt" data-city="dallas">Dallas</span></div>
 <div class="apps">
- <div class="appcard" data-app="live"><b>Live Houston</b><p>Real downtown Houston (OpenStreetMap), live NWS alerts and wind, people estimated for the current Houston time. Serious mode.</p><div id="liveStatus">Checking for the local server...</div></div>
+ <div class="appcard" data-app="live"><b id="liveName">Live Houston</b><p>Real downtown map of the chosen city (OpenStreetMap), live NWS alerts and wind, people estimated for the current local time. Serious mode.</p><div id="liveStatus">Checking for the local server...</div></div>
  <div class="appcard" data-app="scenario"><b>Scenario simulator</b><p>Pick a disaster. Autopilot finds the route that saves the most lives, or click reports on the map (M) to pick the order yourself.</p></div>
 </div>
 <div id="livePanel"></div>

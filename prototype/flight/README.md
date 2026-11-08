@@ -54,3 +54,11 @@ Dash (air) only on a long, clear, level leg (>380 m to go, nose on target, batte
 - Live Houston was tested against synthetic OpenStreetMap-shaped data; run it locally to see the real map.
 
 Data: (c) OpenStreetMap contributors (ODbL). Alerts and observations: NOAA/NWS api.weather.gov. Earthquakes: USGS.
+
+
+## Update: Dallas, sound, radio voice, driving
+- **Cities:** pick Houston or Dallas in the City row (needs `serve.py`). Each city downloads its own downtown from OpenStreetMap the first time (cached in `cache/`), and uses that city's NWS alerts, weather station (KHOU/KIAH or KDAL/KDFW) and USGS quakes. Dallas has its own real past events (2019 EF3 tornado, 2022 flash flood, 2024 windstorm). Add a city by adding one entry to `CITIES` in both `serve.py` and `js/core.js`.
+- **Sound:** every scene has its own sound (tornado roar, howl and warning siren; hurricane gusts, rain and surf; flood rushing water; wildfire roar and crackle; quake rumble, debris and car alarms; a calm city with birds on a normal day). Real recordings can replace the built-in beds: drop `tornado`, `hurricane`, `flood`, `wildfire`, `earthquake`, `city` files (mp3/ogg/wav) in `audio/` (see `audio/README.txt`). Mix levels are the `LEVEL` line in `js/audio.js`. Radio speech ducks the ambience.
+- **Radio voice:** `serve.py` renders each dispatcher line with the Mac's built-in voice (`say`, voice from `TTS_VOICE` in `.env`, default Alex), then the browser runs it through a handheld-radio filter with static and squelch. Without a speech engine it falls back to the browser voice.
+- **Truck:** smoother throttle and steering, body lean and bumps, calmer camera. Flood: shallow water is avoided but waded if there is no dry way, deep water closes the road, and a truck caught in water drives to dry ground. Earthquake: if rubble cuts off every call it crawls through.
+- **Full screen:** button or G.

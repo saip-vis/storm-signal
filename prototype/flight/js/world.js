@@ -61,10 +61,10 @@ function occFrac(c,h,we){const day=h>=8&&h<18,eve=h>=18&&h<23,night=h<6||h>=23;
 function estPeople(b,tm){const o=OCC[b.t]||OCC.default,fl=b.lv||Math.max(1,Math.round(b.h/3.6));return Math.round(b.area*fl/o.a*occFrac(o.c,tm.h,tm.weekend))}
 let popTotal=0,popLabel='';
 function updatePopulation(){if(WSRC==='houston'){const tm=houstonTime();popTotal=0;for(const b of B){b.pop=estPeople(b,tm);popTotal+=b.pop}
-    popLabel='Downtown Houston est. '+popTotal.toLocaleString()+' people now ('+tm.label+', modeled)'}
+    popLabel='Downtown '+CITY.name+' est. '+popTotal.toLocaleString()+' people now ('+tm.label+', modeled)'}
   else{popTotal=CITY.pop;popLabel=CITY.name+' '+CITY.pop.toLocaleString()+' people over '+B.length+' districts (modeled)'}}
 // Procedural mode: Houston city 2020 Census (2,304,580) spread over buildings by volume. Each box stands in for a district.
-const CITY={name:'Houston',pop:2304580};let POPMAX=1;
+let POPMAX=1;
 
 // ---------- procedural data (invented layout) ----------
 function proceduralData(){const S=CFG.S,G=CFG.G,ext=(G+.5)*S,rz=x=>CFG.river.z+CFG.river.amp*Math.sin(x/CFG.river.len),rdist=(x,z)=>Math.abs(z-rz(x))-CFG.river.half;

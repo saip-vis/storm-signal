@@ -15,7 +15,11 @@ function houstonTime(d=new Date()){const p=new Intl.DateTimeFormat('en-US',{time
   const g=k=>(p.find(x=>x.type===k)||{}).value;const h=(+g('hour'))%24,m=+g('minute'),wd=g('weekday');return{h,m,hf:h+m/60,wd,weekend:wd==='Sat'||wd==='Sun',label:new Intl.DateTimeFormat('en-US',{timeZone:'America/Chicago',weekday:'short',hour:'numeric',minute:'2-digit'}).format(d)}}
 
 // local meters <-> lat/lng around downtown Houston (equirectangular, fine at a few km). x east, z south (north = -z).
-const ORIGIN={lat:29.7604,lng:-95.3698},M_LAT=110540,M_LNG=111320*Math.cos(ORIGIN.lat*Math.PI/180);
+// Cities (origin must match CITIES in serve.py). ORIGIN and M_LNG are updated by setCity(). pop: city census 2020, used by the procedural map.
+const CITIES={houston:{name:'Houston',lat:29.7604,lng:-95.3698,pop:2304580},dallas:{name:'Dallas',lat:32.7770,lng:-96.8065,pop:1304379}};
+const ORIGIN={lat:29.7604,lng:-95.3698},M_LAT=110540;let M_LNG=111320*Math.cos(ORIGIN.lat*Math.PI/180);
+const CITY={name:'Houston',pop:2304580,key:'houston'};
+function setCity(k){const c=CITIES[k]||CITIES.houston;ORIGIN.lat=c.lat;ORIGIN.lng=c.lng;M_LNG=111320*Math.cos(ORIGIN.lat*Math.PI/180);CITY.name=c.name;CITY.pop=c.pop;CITY.key=k in CITIES?k:'houston'}
 const toLatLng=(x,z)=>({lat:ORIGIN.lat-z/M_LAT,lng:ORIGIN.lng+x/M_LNG});
 
 // =====================================================================
@@ -39,7 +43,8 @@ const CFG={
   flood:{riseTime:300,maxLevel:4.6,rain:1},       // flash flood: water climbs the (modeled) terrain from the bayou up to maxLevel m
   wildfire:{cell:40,baseSpread:.02,wind:13},      // fire spread probability per s per neighbor (scaled by fuel and wind)
   earthquake:{t0:4,collapse:.05,damage:.16,after:[40,75],tau:40}, // collapse/damage fractions, aftershock gap s, faster survival decay
-  roadDepth:.3,                                    // water deeper than this (m) closes a road for the truck
+  roadDepth:.3,wadeDepth:.7,   // water over roadDepth m is avoided; over wadeDepth m the road is closed (a fire truck can ford shallow water at low speed)
+                                      // water deeper than this (m) closes a road for the truck
 };
 
 // =====================================================================
@@ -76,10 +81,11 @@ const COL={mint:0x8fdcb4,teal:0x2c6f7a,red:0xe0362c,redD:0xb3241d,orange:0xff8a1
 // =====================================================================
 // shared game state
 // =====================================================================
-const set={app:'scenario',disaster:store.get('df.disaster','tornado'),mode:store.get('df.mode','air'),quality:store.get('df.quality','medium')};
-['disaster','mode','quality'].forEach(k=>{if(URLQ.get(k))set[k]=URLQ.get(k)});
+const set={app:'scenario',city:store.get('df.city','houston'),disaster:store.get('df.disaster','tornado'),mode:store.get('df.mode','air'),quality:store.get('df.quality','medium')};
+['disaster','mode','quality','city'].forEach(k=>{if(URLQ.get(k))set[k]=URLQ.get(k)});
 let mode=set.mode,disaster=set.disaster,app='scenario',go=false,paused=true,auto=false,t=0,simT=0,timeScale=1,slowT=0;
 const P=V(0,90,560),vel=V(0,0,-30);let yaw=0,pitch=0,spd=30,roll=0,fov=62,bat=100,tbat=100,nitroT=0,nitroCd=0,dashCd=0,sw=null,swL=0,shake=0,msgT=0,hitCd=0,warnCd=0,style=0;
+setCity(set.city);
 const K={},M={x:0,y:0};
 const stats={saved:0,missed:0,crashes:0,carHits:0,guards:0,stuck:0,dodges:0,unsafeSkips:0};
 const learn={urg:0};

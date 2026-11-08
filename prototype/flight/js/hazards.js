@@ -19,10 +19,10 @@ const FIRE={nx:0,nz:0,x0:0,z0:0,cell:40,st:null,tm:null,fuel:null,dir:V(1,0,0),b
 const ROUTING_NOTE={
   tornado:'Tornado: avoids the forecast funnel track (position + current motion, growing uncertainty) and skips stops it would still be at when the funnel arrives.',
   hurricane:'Hurricane: headwinds cost time and battery, strongest near the eyewall; storm surge closes low roads, so far-bank reports may be air-only.',
-  flood:'Flood: ranks by how soon water reaches each building on the modeled terrain; roads close as water passes 0.3 m, ground access shrinks over time.',
+  flood:'Flood: ranks by how soon water reaches each building on the modeled terrain; the truck avoids water over 0.3 m, only wades shallow water if there is no dry way, and roads over 0.7 m are closed.',
   wildfire:'Wildfire: ranks by forecast fire arrival (downwind spreads faster), no landing in or just ahead of the front, flies high over smoke.',
   earthquake:'Earthquake: trapped people first (faster survival decay), rubble blocks nearby roads, avoids damaged towers during aftershocks.',
-  none:'Normal day: no hazard and no calls. Free roam with live Houston wind.'};
+  none:'Normal day: no hazard and no calls. Free roam with live wind.'};
 
 // ---------- visuals shared by hazards ----------
 const TN=1800,tg=new THREE.BufferGeometry(),tp=new Float32Array(TN*3);tg.setAttribute('position',new THREE.BufferAttribute(tp,3));
@@ -98,7 +98,8 @@ function hazardStall(x,z){return disaster=='tornado'?Math.hypot(x-T.x,z-T.z)<130
 function updateBlocked(){if(BLOCK.length!==EDGES.length)BLOCK=new Uint8Array(EDGES.length);const d=disaster;
   for(let e=0;e<EDGES.length;e++){const E_=EDGES[e];let bl=E_.dead?1:0;
     if(!bl&&d=='tornado'){const k=4;bl=Math.hypot(E_.mx-T.x-T.vx*k,E_.mz-T.z-T.vz*k)<CFG.tornado.block||Math.hypot(E_.mx-T.x,E_.mz-T.z)<CFG.tornado.block?1:0}
-    if(!bl&&(d=='hurricane'||d=='flood')&&!E_.bridge&&floodDepth(E_.mx,E_.mz)>CFG.roadDepth)bl=1;
+    if(!bl&&(d=='hurricane'||d=='flood')&&!E_.bridge){const fd=floodDepth(E_.mx,E_.mz);if(fd>CFG.wadeDepth)bl=1;else if(fd>CFG.roadDepth)bl=2}  // 1 = closed, 2 = shallow water: the planner avoids it (x4 cost) but can wade through if there is no dry way
+    
     if(!bl&&d=='wildfire'&&fireArrival(E_.mx,E_.mz)<6)bl=1;
     if(!bl&&d=='earthquake'&&Q.hard.has(e))bl=1;BLOCK[e]=bl}}
 

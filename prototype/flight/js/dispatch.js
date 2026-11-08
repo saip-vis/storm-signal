@@ -10,7 +10,7 @@ function dispatchAvailable(){return live.server&&live.nvidia}
 function situation(event){const U=unitPos(),tm=houstonTime(),spdNow=Math.round(mode=='air'?spd:Math.abs(TR.spd));
   const next=route.slice(0,3).map(r=>{const d=mode=='air'?Math.hypot(r.x-U.x,r.z-U.z):(guide.on&&r===route[0]?guide.dist:Math.hypot(r.b.stop.x-U.x,r.b.stop.z-U.z));
     const dl=isFinite(r.deadlineAbs)?Math.round(r.deadlineAbs-simT):null;return{people_est:r.people,building:r.b.n||r.b.t,distance_m:Math.round(d),eta_s:Math.round(d/Math.max(10,mode=='air'?cruiseAir():CFG.truck.avg)),hazard_reaches_in_s:dl,minutes_waiting:+(r.age/60).toFixed(1)}});
-  return{event,houston_time:tm.label,mode_of_play:app==='live'?'Live Houston':'scenario',hazard:{tornado:'tornado',hurricane:H.derecho?'derecho wind storm':'hurricane',flood:'flash flood',wildfire:'wildfire',earthquake:'earthquake',none:'none'}[disaster],
+  return{event,local_time:tm.label,city:CITY.name,mode_of_play:app==='live'?'Live real-data mode':'scenario',hazard:{tornado:'tornado',hurricane:H.derecho?'derecho wind storm':'hurricane',flood:'flash flood',wildfire:'wildfire',earthquake:'earthquake',none:'none'}[disaster],
     live_alert:app==='live'?live.note:null,unit:mode=='air'?'dragonfly drone':'fire truck',autopilot:auto,speed_mps:spdNow,battery_pct:Math.round(mode=='air'?bat:tbat),
     wind_mps:Math.round(lastWind.length()),next_stops:next,unreachable_by_road:est.unreach,plan_lives_est:Math.round(est.a),nearest_first_lives_est:Math.round(est.b),
     reached_so_far:stats.saved,missed_so_far:stats.missed,routing_rule:ROUTING_NOTE[disaster]}}
@@ -25,5 +25,10 @@ function dispatchTick(){if(DSP.pending&&!DSP.busy&&simT-DSP.last>14)send(DSP.pen
   if(go&&!paused&&dispatchAvailable()&&disaster!='none'&&simT-DSP.last>45&&route.length)radio('periodic status update')}
 let radioHide=0;
 function showRadio(text,dim){const el=$('radio');el.innerHTML='<b>DISPATCH</b> <span class="k">NVIDIA Nemotron, narrating the planner</span><br>'+text.replace(/</g,'&lt;');el.style.opacity=dim?.6:1;el.style.display='block';clearTimeout(radioHide);radioHide=setTimeout(()=>el.style.opacity=0,11000)}
-function speak(text){sfx('squelch');if(!DSP.voice||!AU.on||!window.speechSynthesis)return;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.rate=1.08;u.pitch=.9;u.volume=.9;
-  const vs=speechSynthesis.getVoices(),v=vs.find(v=>/en-US/.test(v.lang)&&/Samantha|Alex|Daniel|Google US/.test(v.name))||vs.find(v=>/^en/.test(v.lang));if(v)u.voice=v;setTimeout(()=>speechSynthesis.speak(u),180)}catch(e){}}
+// speech: the server renders the line with the computer's own voice, then audioRadio() plays it through a radio filter (band-limited, clipped, static, squelch).
+// If the server has no speech engine, the browser's voice is used (it cannot be filtered, so it is only given the squelch).
+async function speak(text){sfx('squelch');if(!DSP.voice||!AU.on||!AU.ctx)return;
+  if(live.tts!==false){try{const r=await fetch('/api/tts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});
+    if(r.ok){const buf=await AU.ctx.decodeAudioData(await r.arrayBuffer());live.tts=true;if(AU.radioSrc){try{AU.radioSrc.stop()}catch(e){}}audioRadio(buf);return}live.tts=false}catch(e){live.tts=false}}
+  if(!window.speechSynthesis)return;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.rate=1.12;u.pitch=.85;u.volume=.85;
+    const vs=speechSynthesis.getVoices(),v=vs.find(v=>/en-US/.test(v.lang)&&/Alex|Daniel|Google US/.test(v.name))||vs.find(v=>/^en/.test(v.lang));if(v)u.voice=v;AU.duck=4;setTimeout(()=>speechSynthesis.speak(u),180)}catch(e){}}

@@ -11,7 +11,7 @@ const TL=12,trails=[0,1].map(()=>{const g=new THREE.BufferGeometry(),p=new Float
   const l=new THREE.Line(g,new THREE.LineBasicMaterial({vertexColors:true,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false}));l.frustumCulled=false;SC.add(l);return{g,p,c,on:new Float32Array(TL)}});
 function trailTick(){const on=mode=='air'&&(spd>50||sw)?1:0;[-1,1].forEach((sd,k)=>{const tr=trails[k],w=D.localToWorld(V(sd*2.75,.34,.14));tr.p.copyWithin(3,0,(TL-1)*3);tr.on.copyWithin(1,0,TL-1);tr.p[0]=w.x;tr.p[1]=w.y;tr.p[2]=w.z;tr.on[0]=on;
   for(let i=0;i<TL;i++){const far=i>0&&Math.hypot(tr.p[i*3]-tr.p[i*3-3],tr.p[i*3+1]-tr.p[i*3-2],tr.p[i*3+2]-tr.p[i*3-1])>25,a=far?0:tr.on[i]*(1-i/TL)*.7;if(far)tr.on[i]=0;tr.c[i*3]=a*.85;tr.c[i*3+1]=a*.95;tr.c[i*3+2]=a}tr.g.attributes.position.needsUpdate=tr.g.attributes.color.needsUpdate=true})}
-const ring=new THREE.Mesh(new THREE.RingGeometry(.8,1,48),new THREE.MeshBasicMaterial({color:0xffd9a0,transparent:true,opacity:0,side:2,blending:THREE.AdditiveBlending,depthWrite:false}));SC.add(ring);let ringT=1,caKick=0;
+const ring=new THREE.Mesh(new THREE.RingGeometry(.8,1,48),new THREE.MeshBasicMaterial({color:0xffd9a0,transparent:true,opacity:0,side:2,blending:THREE.AdditiveBlending,depthWrite:false}));SC.add(ring);let camHy=0;let ringT=1,caKick=0;
 function shock(){ringT=0;ring.position.copy(mode=='air'?P:V(TR.x,1.5,TR.z))}
 function ringTick(dt){if(ringT>=1){ring.visible=false;return}ringT+=dt/.45;ring.visible=true;ring.scale.setScalar(.5+ringT*26);ring.material.opacity=(1-ringT)*.85;ring.lookAt(C.position)}
 const rope=new THREE.Line(new THREE.BufferGeometry().setFromPoints([V(),V()]),new THREE.LineBasicMaterial({color:0xffb347}));rope.visible=false;rope.frustumCulled=false;SC.add(rope);
@@ -59,7 +59,7 @@ function drawMap(){const cv=$('mc'),g=cv.getContext('2d'),W=E*2+80,k=cv.width/W,
   // water: bayou + anything currently flooded on the modeled terrain
   const st=24;for(let x=-W/2;x<W/2;x+=st)for(let z=-W/2;z<W/2;z+=st){const rd=riverDist(x,z);if(rd<0){g.fillStyle='#1f4d63';g.fillRect(X(x),Z(z),st*k+1,st*k+1)}else if(waterLevel>0&&floodDepth(x,z)>0){g.fillStyle='rgba(60,140,200,'+Math.min(.6,.15+floodDepth(x,z)*.15)+')';g.fillRect(X(x),Z(z),st*k+1,st*k+1)}}
   g.fillStyle='#24432c';for(const p of PARKS){g.beginPath();p.poly.forEach((q,i)=>i?g.lineTo(X(q[0]),Z(q[1])):g.moveTo(X(q[0]),Z(q[1])));g.fill()}
-  g.lineWidth=1;EDGES.forEach((e,i)=>{if(e.dead)return;const a=NODES[e.a],b=NODES[e.b];g.strokeStyle=BLOCK[i]?'rgba(255,90,74,.6)':'rgba(255,255,255,.1)';g.beginPath();g.moveTo(X(a.x),Z(a.z));g.lineTo(X(b.x),Z(b.z));g.stroke()});
+  g.lineWidth=1;EDGES.forEach((e,i)=>{if(e.dead)return;const a=NODES[e.a],b=NODES[e.b];g.strokeStyle=BLOCK[i]==1?'rgba(255,90,74,.6)':BLOCK[i]==2?'rgba(255,190,80,.55)':'rgba(255,255,255,.1)';g.beginPath();g.moveTo(X(a.x),Z(a.z));g.lineTo(X(b.x),Z(b.z));g.stroke()});
   for(const b of B){g.fillStyle=b.hs<.6?'rgba(255,90,74,.5)':'rgba(120,200,190,'+(.1+.6*Math.min(1,b.pop/POPMAX))+')';g.beginPath();b.poly.forEach((q,i)=>i?g.lineTo(X(q[0]),Z(q[1])):g.moveTo(X(q[0]),Z(q[1])));g.fill()}
   drawHeat(g,X,Z,k,W);hazardMap(g,X,Z,k);
   const U=unitPos();
@@ -97,34 +97,48 @@ function showMap(on){mapOn=on;$('map').style.display=on?'flex':'none';const useG
 // ---------- live Houston data (only when serve.py is running locally) ----------
 async function getJSON(u,ms=4000){const c=new AbortController(),tm=setTimeout(()=>c.abort(),ms);try{const r=await fetch(u,{signal:c.signal});if(!r.ok){let m=r.status;try{m=(await r.json()).error||m}catch(e){}throw new Error(m)}return await r.json()}finally{clearTimeout(tm)}}
 // real past events, used when there is no active alert. Parameters are game-scaled; descriptions summarize public reports.
-const SAMPLES={
+const SAMPLES_ALL={houston:{
   beryl:{label:'Hurricane Beryl, Jul 8 2024',d:'hurricane',info:'Cat 1 landfall near Matagorda, then north through Houston. Most of the city lost power. Wind from the SSW eye path, light surge downtown.',over:{eye0:[-900,3200],vmax:38,maxLevel:1.6}},
   derecho:{label:'Houston derecho, May 16 2024',d:'hurricane',info:'Straight-line winds near 100 mph through downtown, high-rise windows blown out, 1M+ without power. Modeled as a fast gust front moving east.',over:{derecho:true,maxLevel:.3}},
   harvey:{label:'Harvey flooding, Aug 2017',d:'flood',info:'Days of extreme rain (feet, not inches) across Harris County. Modeled as fast-rising water from Buffalo Bayou over the terrain.',over:{maxLevel:6.2,riseTime:260}},
   pasadena:{label:'Pasadena EF3 tornado, Jan 24 2023',d:'tornado',info:'An EF3 tornado tracked through Pasadena and Baytown, southeast of downtown. Moved here to show the routing.'},
-  normal:{label:'Normal day (no hazard)',d:'none',info:'Routine calls with live Houston wind. Good for comparing Aerial vs Earth travel times.'}};
+  normal:{label:'Normal day (no hazard)',d:'none',info:'Routine calls with live Houston wind. Good for comparing Aerial vs Earth travel times.'}},
+  dallas:{
+  tornado19:{label:'Dallas EF3 tornado, Oct 20 2019',d:'tornado',info:'A night-time EF3 hit north Dallas (Preston Hollow to Richardson), damaging 1,000+ buildings, no deaths. Moved to downtown to show the routing.'},
+  storm24:{label:'DFW windstorm, May 28 2024',d:'hurricane',info:'Severe storms with gusts near 80 mph across Dallas-Fort Worth, big power outages and broken glass. Modeled as a fast gust front.',over:{derecho:true,maxLevel:.3}},
+  flood22:{label:'Dallas flash flood, Aug 22 2022',d:'flood',info:'Record rainfall (9+ inches in places) closed roads and flooded cars and homes. Modeled as fast-rising water from the Trinity River side of downtown.',over:{maxLevel:3.6,riseTime:240}},
+  normal:{label:'Normal day (no hazard)',d:'none',info:'Routine calls with live Dallas wind. Good for comparing Aerial vs Earth travel times.'}}};
+let SAMPLES=SAMPLES_ALL[CITY.key]||SAMPLES_ALL.houston;
 // map an NWS alert to a hazard module
 function alertHazard(a){const e=(a.event||'').toLowerCase();if(e.includes('tornado'))return'tornado';if(e.includes('hurricane')||e.includes('tropical')||e.includes('storm surge'))return'hurricane';
   if(e.includes('flood'))return'flood';if(e.includes('red flag')||e.includes('fire'))return'wildfire';if(e.includes('thunderstorm')||e.includes('wind'))return'hurricane';return null}
 async function checkServer(){try{const s=await getJSON('/api/status',5000);live.server=!!s.ok;live.hasKey=!!s.google;live.nvidia=!!s.nvidia}catch(e){live.server=false}
-  renderLivePanel();if(!live.server)return;
+  renderLivePanel();syncCity();if(!live.server)return;
   loadGoogle();refreshLive();setInterval(refreshLive,60000);
-  loadHouston()}
-async function loadHouston(){$('liveStatus').textContent='Loading downtown Houston buildings from OpenStreetMap (first time can take 30-90 s, then cached)...';
-  try{const data=await getJSON('/api/houston',180000);buildWorld(data,'houston');resetSim();$('liveStatus').textContent='Real downtown Houston loaded: '+B.length.toLocaleString()+' buildings, '+EDGES.filter(e=>!e.dead).length.toLocaleString()+' road segments (OpenStreetMap).'}
-  catch(e){$('liveStatus').innerHTML='Could not load Houston map data: '+String(e.message).replace(/</g,'&lt;')+'. Using the cartoon city. <u id="retryH" style="cursor:pointer;color:#ffb347">Retry</u> (the Terminal running serve.py shows details)';const rb=$('retryH');if(rb)rb.onclick=ev=>{ev.stopPropagation();loadHouston()}}}
-async function refreshLive(){try{const [al,ob,qk]=await Promise.all([getJSON('/api/alerts').catch(()=>null),getJSON('/api/obs').catch(()=>null),getJSON('/api/quakes').catch(()=>null)]);
+  loadCity()}
+let cityLoading=0;
+async function loadCity(){const tok=++cityLoading,nm=CITY.name;$('liveStatus').textContent='Loading downtown '+nm+' buildings from OpenStreetMap (first time can take 30-90 s, then cached)...';
+  try{const data=await getJSON('/api/city?c='+CITY.key,180000);if(tok!==cityLoading)return;buildWorld(data,'houston');resetSim();gmapRefit();$('liveStatus').textContent='Real downtown '+nm+' loaded: '+B.length.toLocaleString()+' buildings, '+EDGES.filter(e=>!e.dead).length.toLocaleString()+' road segments (OpenStreetMap).'}
+  catch(e){$('liveStatus').innerHTML='Could not load '+nm+' map data: '+String(e.message).replace(/</g,'&lt;')+'. Using the cartoon city. <u id="retryH" style="cursor:pointer;color:#ffb347">Retry</u> (the Terminal running serve.py shows details)';const rb=$('retryH');if(rb)rb.onclick=ev=>{ev.stopPropagation();loadCity()}}}
+async function refreshLive(){try{const [al,ob,qk]=await Promise.all([getJSON('/api/alerts?c='+CITY.key).catch(()=>null),getJSON('/api/obs?c='+CITY.key).catch(()=>null),getJSON('/api/quakes?c='+CITY.key).catch(()=>null)]);
   if(al)live.alerts=al.alerts||[];if(ob)live.obs=ob;if(qk)live.quakes=qk.quakes||[];renderLivePanel()}catch(e){}}
 let liveChoice='';
-function renderLivePanel(){const el=$('livePanel');if(!live.server){$('liveStatus').textContent='Needs the local server (details below when selected).';el.innerHTML='<p><b>Live Houston needs the local server.</b> Your Google key and the live data feeds only work on your machine. In Terminal: <code>cd prototype/flight && python3 serve.py</code>, then open <code>http://localhost:8765</code>.</p><p>This published version runs the scenario simulator on the cartoon city.</p>';return}
+function renderLivePanel(){const el=$('livePanel');if(!live.server){$('liveStatus').textContent='Needs the local server (details below when selected).';el.innerHTML='<p><b>Live city mode needs the local server.</b> Your Google key and the live data feeds only work on your machine. In Terminal: <code>cd prototype/flight && python3 serve.py</code>, then open <code>http://localhost:8765</code>.</p><p>This published version runs the scenario simulator on the cartoon city.</p>';return}
   const opts=[];for(const a of live.alerts){const h=alertHazard(a);if(h)opts.push({k:'alert:'+a.id,label:'LIVE: '+a.event+' ('+a.severity+')',d:h,info:a.headline||''})}
   for(const q of live.quakes)if(q.mag>=3)opts.push({k:'quake:'+q.id,label:'LIVE: M'+q.mag.toFixed(1)+' quake, '+q.place,d:'earthquake',info:'USGS, '+new Date(q.time).toLocaleString()});
-  const obs=live.obs?('Houston now: '+(live.obs.desc||'')+', wind '+(live.obs.wind==null?'n/a':Math.round(live.obs.wind)+' m/s')+(live.obs.temp!=null?', '+Math.round(live.obs.temp)+' C':'')):'';
-  el.innerHTML='<p>'+(live.alerts.length?'<b>'+live.alerts.length+' active NWS alert(s) for downtown Houston.</b>':'<b>No active NWS alerts for downtown Houston right now.</b> Pick a real past event or a normal day.')+'<br>'+obs+'</p>'+
+  const obs=live.obs?(CITY.name+' now: '+(live.obs.desc||'')+', wind '+(live.obs.wind==null?'n/a':Math.round(live.obs.wind)+' m/s')+(live.obs.temp!=null?', '+Math.round(live.obs.temp)+' C':'')):'';
+  el.innerHTML='<p>'+(live.alerts.length?'<b>'+live.alerts.length+' active NWS alert(s) for downtown '+CITY.name+'.</b>':'<b>No active NWS alerts for downtown '+CITY.name+' right now.</b> Pick a real past event or a normal day.')+'<br>'+obs+'</p>'+
     '<div class="row">'+opts.concat(Object.entries(SAMPLES).map(([k,s])=>({k:'sample:'+k,label:s.label,d:s.d,info:s.info}))).map(o=>'<span class="opt'+(liveChoice===o.k?' on':'')+'" data-live="'+o.k+'" title="'+(o.info||'').replace(/"/g,'')+'">'+o.label+'</span>').join('')+'</div><p id="liveInfo"></p>';
   el.querySelectorAll('[data-live]').forEach(o=>o.onclick=()=>{liveChoice=o.dataset.live;renderLivePanel();const all=opts.concat(Object.entries(SAMPLES).map(([k,s])=>({k:'sample:'+k,d:s.d,info:s.info})));const c=all.find(x=>x.k===liveChoice);$('liveInfo').textContent=c?c.info:''});
   if(!liveChoice)liveChoice=opts.length?opts[0].k:'sample:normal'}
 
+// ---------- city switch (Houston / Dallas): needs the local server for real map data ----------
+function syncCity(){document.querySelectorAll('[data-city]').forEach(o=>o.classList.toggle('on',o.dataset.city===CITY.key));$('cityRow').style.display=live.server?'flex':'none';
+  const ln=$('liveName');if(ln)ln.textContent='Live '+CITY.name}
+function switchCity(k){if(k===CITY.key)return;set.city=k;store.set('df.city',k);setCity(k);SAMPLES=SAMPLES_ALL[k];liveChoice='';live.alerts=[];live.obs=null;live.quakes=[];
+  syncCity();renderLivePanel();if(live.server){loadCity();refreshLive();gmapRefit()}}
+document.querySelectorAll('[data-city]').forEach(o=>o.onclick=()=>switchCity(o.dataset.city));
+function gmapRefit(){if(!gmap)return;gmap.setCenter({lat:ORIGIN.lat,lng:ORIGIN.lng});const sw=toLatLng(-E,E),ne=toLatLng(E,-E);gmap.fitBounds({south:sw.lat,west:sw.lng,north:ne.lat,east:ne.lng},20);if(gHeat){gHeat.setMap(null);gHeat=null}}
 // ---------- mode swap, reset, menu ----------
 function swapMode(to){if(to===mode)return;
   if(landR){landR.claimed=false;landR=null}ap='go';pad.visible=false;if(sw){sw=null;rope.visible=false}
@@ -193,7 +207,7 @@ function visuals(rdt){const dt=rdt*timeScale,q=QUAL[set.quality]||QUAL.medium;ca
     o.position.set(tr.x,0,tr.z);o.rotation.set(0,0,0);if(l>.01)o.rotateOnWorldAxis(V(w.z,0,-w.x).normalize(),-bend);o.scale.set(tr.s,tr.s*3,tr.s);o.updateMatrix();trunkM.setMatrixAt(i,o.matrix);o.scale.setScalar(tr.s);o.updateMatrix();crownM.setMatrixAt(i,o.matrix)});
    if(trunkM){trunkM.instanceMatrix.needsUpdate=crownM.instanceMatrix.needsUpdate=true}}
   // camera: follow from behind, orbit offsets from the arrow keys (CAM.yaw/pitch), wheel zoom
-  const U=mode=='air'?P.clone():V(TR.x,TR.y+1.5,TR.z),hy=mode=='air'?yaw:TR.yaw,sv=mode=='air'?spd:Math.abs(TR.spd);
+  camHy+=wrap(TR.yaw-camHy)*(1-Math.exp(-dt*5));const U=mode=='air'?P.clone():V(TR.x,TR.y+1.5,TR.z),hy=mode=='air'?yaw:camHy,sv=mode=='air'?spd:Math.abs(TR.spd);
   const dist=(mode=='air'?7+spd*.07:16+Math.abs(TR.spd)*.15)*CAM.zoom,basePitch=mode=='air'?.28-pitch*.5:.3,pc=clamp(basePitch+CAM.pitch,-.25,1.3),cy=hy+Math.PI+CAM.yaw;
   const want=V(U.x+Math.sin(cy)*Math.cos(pc)*dist,U.y+Math.sin(pc)*dist+(mode=='air'?1.5:1),U.z-Math.cos(cy)*Math.cos(pc)*dist);
   const fh=V(Math.sin(hy),0,-Math.cos(hy)),la=Math.max(0,Math.cos(CAM.yaw))*(mode=='air'?16:10),look=U.clone().addScaledVector(fh,la).add(V(0,1,0));
@@ -217,11 +231,11 @@ function visuals(rdt){const dt=rdt*timeScale,q=QUAL[set.quality]||QUAL.medium;ca
   $('st').textContent=mode=='air'?(parked()?{approach:'gliding in',board:'boarding',lift:'lifting off'}[ap]:sw?'swinging':spd>75?'boosting':P.y<8?'low':'cruise'):(auto&&gs=='board'?'loading at the door':floodDepth(TR.x,TR.z)>.4?'driving through floodwater':Math.abs(TR.spd)<.5?'stopped':'driving');
   $('w').textContent=Math.round(Wd.length());const hd=mode=='air'?fwd():V(Math.sin(TR.yaw),0,-Math.cos(TR.yaw)),tl=Wd.dot(hd);$('wd').textContent=tl>3?'tailwind':tl<-3?'headwind':'crosswind';
   const dn={tornado:'Tornado',hurricane:H.derecho?'Wind storm (derecho)':'Hurricane',flood:'Flood',wildfire:'Wildfire',earthquake:'Earthquake',none:'Normal day'}[disaster];
-  $('badge').innerHTML=(app==='live'?'<b style="color:#ff7a6a">LIVE HOUSTON</b> &middot; ':'')+'<b>'+(mode=='air'?'Aerial':'Earth')+'</b> &middot; '+dn+'<br>'+(auto?'AUTOPILOT':'MANUAL')+' (A) &middot; E swap &middot; arrows: camera';
+  $('badge').innerHTML=(app==='live'?'<b style="color:#ff7a6a">LIVE '+CITY.name.toUpperCase()+'</b> &middot; ':'')+'<b>'+(mode=='air'?'Aerial':'Earth')+'</b> &middot; '+dn+'<br>'+(auto?'AUTOPILOT':'MANUAL')+' (A) &middot; E swap &middot; arrows: camera';
   guideTick(rdt);guideVisuals(rdt);nitroVisuals();routeLineTick(rdt);
   labelTick();if(mapOn){popT-=rdt;if(popT<=0){popT=WSRC==='houston'&&gmap?1:.15;if(WSRC==='houston'&&gmap)updateGoogle();else drawMap()}}}
 function hudSim(){const u=learn.urg,open=reports.filter(r=>!r.done).length;
-  if(disaster=='none'){$('sim').innerHTML=(app==='live'?'<b style="color:#8fd">Normal day in Houston</b>':'<b>Free roam</b>')+'<br><span class="k">No hazard, no calls. Fly or drive around.</span>'+(live.obs&&live.obs.wind!=null?'<br><span class="k">Houston now: '+(live.obs.desc||'')+', wind '+Math.round(live.obs.wind)+' m/s</span>':'')+'<br><span class="k">'+popLabel+'</span>';return}
+  if(disaster=='none'){$('sim').innerHTML=(app==='live'?'<b style="color:#8fd">Normal day in '+CITY.name+'</b>':'<b>Free roam</b>')+'<br><span class="k">No hazard, no calls. Fly or drive around.</span>'+(live.obs&&live.obs.wind!=null?'<br><span class="k">'+CITY.name+' now: '+(live.obs.desc||'')+', wind '+Math.round(live.obs.wind)+' m/s</span>':'')+'<br><span class="k">'+popLabel+'</span>';return}
   $('sim').innerHTML=(app==='live'&&live.note?'<b style="color:#ff7a6a">'+live.note.slice(0,110)+'</b><br>':'')+
    'reached <b>'+stats.saved+'</b> people &middot; missed '+stats.missed+' &middot; open '+open+
    '<br><span class="k">rescue-priority</span> '+Math.round(est.a)+' <span class="k">vs nearest-first</span> '+Math.round(est.b)+' <span class="k">lives (modeled)</span>'+
@@ -290,7 +304,7 @@ function updateGoogleHeat(){if(!gmap||!layers.heat||disaster=='none')return;gHea
   const sw=toLatLng(-E,E),ne=toLatLng(E,-E),ov=new google.maps.GroundOverlay(cv.toDataURL(),{south:sw.lat,west:sw.lng,north:ne.lat,east:ne.lng},{opacity:.85,clickable:false});ov.setMap(gmap);if(gHeat)gHeat.setMap(null);gHeat=ov}
 
 // ---------- boot ----------
-buildWorld(proceduralData(),'procedural');disaster=set.disaster;resetSim();applyQuality();syncMenu();
+buildWorld(proceduralData(),'procedural');disaster=set.disaster;resetSim();applyQuality();syncMenu();syncCity();
 if(set.mode=='ground'){mode='air';swapMode('ground')}
 if(location.protocol.startsWith('http'))checkServer();else renderLivePanel();
 if(URLQ.get('test')){window.GAME={step,visuals,get state(){return{P,TR,ap,gs,auto,mode,stats,learn,route,reports,spd}},start(a){app='scenario';go=true;openMenu(false);auto=a},swapMode,resetSim,buildWorld,setDisaster(d){disaster=d;resetSim()}}}

@@ -21,17 +21,27 @@ Data notes
   missing heights use documented defaults (DEFAULT_H). Occupancy is NOT from any data feed: the game estimates it from
   floor area, building type and Houston local time (see world.js, OCC). Google provides no occupancy or foot-traffic data.
 """
-import json, os, sys, time, math, re, ssl, threading, urllib.request, urllib.parse
+import json, os, sys, time, math, re, ssl, threading, shutil, subprocess, tempfile, urllib.request, urllib.parse
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 CACHE = os.path.join(HERE, 'cache')
 PORT = int(os.environ.get('PORT', '8765'))
 UA = 'DragonFlyght/0.3 (student disaster-rescue sim; local)'  # NWS asks for an identifying User-Agent
-ORIGIN = (29.7604, -95.3698)  # downtown Houston, same as the game's ORIGIN
 M_LAT = 110540.0
-M_LNG = 111320.0 * math.cos(math.radians(ORIGIN[0]))
-BBOX = (29.7465, -95.3800, 29.7705, -95.3545)  # south, west, north, east: downtown + Buffalo Bayou edge (~2.5 x 2.7 km)
+# Each city: ORIGIN (local meters 0,0, must match CITIES in js/core.js), BBOX (south, west, north, east), NWS stations for observations.
+CITIES = {
+    'houston': {'name': 'Houston', 'origin': (29.7604, -95.3698), 'bbox': (29.7465, -95.3800, 29.7705, -95.3545), 'stations': ('KHOU', 'KIAH')},  # downtown + Buffalo Bayou
+    'dallas': {'name': 'Dallas', 'origin': (32.7770, -96.8065), 'bbox': (32.7650, -96.8250, 32.7890, -96.7880), 'stations': ('KDAL', 'KDFW')},  # downtown + Trinity River edge
+}
+
+
+def city_of(q):
+    return q if q in CITIES else 'houston'
+
+
+def m_lng(origin):
+    return 111320.0 * math.cos(math.radians(origin[0]))
 OVERPASS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter']
 
 # default heights (m) when OSM has neither height nor building:levels (assumption, documented)
@@ -82,8 +92,8 @@ def fetch(url, data=None, timeout=20, accept='application/json'):
         return json.loads(r.read().decode('utf-8'))
 
 
-def to_xz(lat, lon):
-    return [round((lon - ORIGIN[1]) * M_LNG, 1), round(-(lat - ORIGIN[0]) * M_LAT, 1)]
+def to_xz(lat, lon, origin):
+    return [round((lon - origin[1]) * m_lng(origin), 1), round(-(lat - origin[0]) * M_LAT, 1)]
 
 
 def parse_height(tags):
@@ -124,21 +134,21 @@ def btype(tags):
     return b if b != 'yes' else 'default'
 
 
-def convert(osm):
+def convert(osm, origin):
     """Overpass JSON (out geom) -> the game's compact local-meter format."""
-    out = {'source': 'OpenStreetMap via Overpass (c) OpenStreetMap contributors, ODbL', 'origin': ORIGIN,
+    out = {'source': 'OpenStreetMap via Overpass (c) OpenStreetMap contributors, ODbL', 'origin': origin,
            'buildings': [], 'roads': [], 'water': [], 'parks': []}
     ext = 300.0
     for el in osm.get('elements', []):
         tags = el.get('tags', {})
         ring = None
         if el['type'] == 'way' and 'geometry' in el:
-            ring = [to_xz(p['lat'], p['lon']) for p in el['geometry']]
+            ring = [to_xz(p['lat'], p['lon'], origin) for p in el['geometry']]
         elif el['type'] == 'relation' and 'members' in el:
             outers = [m for m in el['members'] if m.get('role') == 'outer' and 'geometry' in m]
             if outers:
                 g = max(outers, key=lambda m: len(m['geometry']))['geometry']
-                ring = [to_xz(p['lat'], p['lon']) for p in g]
+                ring = [to_xz(p['lat'], p['lon'], origin) for p in g]
         if not ring or len(ring) < 2:
             continue
         if 'building' in tags:
@@ -176,8 +186,8 @@ def convert(osm):
     return out
 
 
-def overpass_query():
-    s, w, n, e = BBOX
+def overpass_query(city):
+    s, w, n, e = CITIES[city]['bbox']
     bb = f'{s},{w},{n},{e}'
     return f"""[out:json][timeout:90];
 (
@@ -206,29 +216,29 @@ def cached(name, ttl, producer):
     return val
 
 
-def houston():
+def load_city(city):
     os.makedirs(CACHE, exist_ok=True)
-    path = os.path.join(CACHE, 'houston_osm_v1.json')
+    path = os.path.join(CACHE, city + '_osm_v1.json')
     if os.path.isfile(path):
         with open(path, encoding='utf-8') as f:
             return json.load(f)
-    body = urllib.parse.urlencode({'data': overpass_query()}).encode()
+    body = urllib.parse.urlencode({'data': overpass_query(city)}).encode()
     last = None
     for url in OVERPASS:
         try:
-            data = convert(fetch(url, data=body, timeout=120))
+            data = convert(fetch(url, data=body, timeout=120), CITIES[city]['origin'])
             with open(path, 'w', encoding='utf-8') as f:
                 json.dump(data, f, separators=(',', ':'))
-            print(f'[houston] cached {len(data["buildings"])} buildings, {len(data["roads"])} roads -> {path}')
+            print(f'[{city}] cached {len(data["buildings"])} buildings, {len(data["roads"])} roads -> {path}')
             return data
         except Exception as ex:  # try the next mirror
-            print(f'[houston] {url} failed: {ex}')
+            print(f'[{city}] {url} failed: {ex}')
             last = ex
     raise RuntimeError(f'Overpass failed: {last}')
 
 
-def alerts():
-    lat, lng = ORIGIN
+def alerts(city):
+    lat, lng = CITIES[city]['origin']
     j = fetch(f'https://api.weather.gov/alerts/active?point={lat},{lng}', accept='application/geo+json')
     out = []
     for f in j.get('features', []):
@@ -241,8 +251,8 @@ def alerts():
     return {'alerts': out, 'fetched': time.time()}
 
 
-def obs():
-    for st in ('KHOU', 'KIAH'):
+def obs(city):
+    for st in CITIES[city]['stations']:
         try:
             p = fetch(f'https://api.weather.gov/stations/{st}/observations/latest', accept='application/geo+json')['properties']
             ws = (p.get('windSpeed') or {}).get('value')  # km/h in current NWS responses
@@ -258,9 +268,10 @@ def obs():
     return {'wind': None, 'desc': 'unavailable'}
 
 
-def quakes():
+def quakes(city):
+    origin = CITIES[city]['origin']
     start = time.strftime('%Y-%m-%dT%H:%M:%S', time.gmtime(time.time() - 86400))
-    q = urllib.parse.urlencode({'format': 'geojson', 'latitude': ORIGIN[0], 'longitude': ORIGIN[1], 'maxradiuskm': 300,
+    q = urllib.parse.urlencode({'format': 'geojson', 'latitude': origin[0], 'longitude': origin[1], 'maxradiuskm': 300,
                                 'starttime': start, 'minmagnitude': 2.5})
     j = fetch('https://earthquake.usgs.gov/fdsnws/event/1/query?' + q)
     return {'quakes': [{'id': f['id'], 'mag': f['properties']['mag'], 'place': f['properties']['place'],
@@ -272,7 +283,7 @@ def quakes():
 # It only narrates what the planner already decided (it does not route). Key stays here, never sent to the browser.
 NV_URL = 'https://integrate.api.nvidia.com/v1/chat/completions'
 _last_dispatch = [0.0]
-SYSTEM = ('/no_think You are a calm, professional emergency dispatch radio operator in a disaster-rescue SIMULATION set in Houston. '
+SYSTEM = ('/no_think You are a calm, professional emergency dispatch radio operator in a disaster-rescue SIMULATION set in a US city named in the data. '
           'Write ONE radio callout to the rescue crew: at most 2 short sentences and 35 words. Use only the facts and numbers given. '
           'Say what is happening and why the next stop comes first (people, distance or ETA, hazard timing). '
           'Call people counts estimates. No markdown, no lists, no quotes, no sign-off codes.')
@@ -347,12 +358,48 @@ def dispatch(situation):
     return {'text': None, 'error': 'no working NVIDIA model (tried %s)' % ', '.join(tried)}
 
 
+# ---------- radio voice: text -> speech WAV using the computer's own voice (macOS `say`, else espeak). The browser then runs it through a radio filter. ----------
+TTS_LOCK = threading.Lock()
+
+
+def tts_engine():
+    if shutil.which('say'):
+        return 'say'
+    return shutil.which('espeak-ng') or shutil.which('espeak')
+
+
+def tts(text):
+    eng = tts_engine()
+    if not eng:
+        raise RuntimeError('no text-to-speech engine (macOS say / espeak) found')
+    text = re.sub(r'\s+', ' ', text or '').strip()[:320]
+    if not text:
+        raise RuntimeError('empty text')
+    voice = re.sub(r'[^A-Za-z0-9 ()_-]', '', find_key('TTS_VOICE') or 'Alex')
+    with TTS_LOCK, tempfile.TemporaryDirectory() as td:
+        out = os.path.join(td, 'v.wav')
+        if eng == 'say':
+            base = ['say', '-r', '185', '-o', out, '--file-format=WAVE', '--data-format=LEI16@22050']
+            for cmd in (base[:1] + ['-v', voice] + base[1:], base):  # fall back to the default voice if that voice is missing
+                p = subprocess.run(cmd + ['-f', '-'], input=text.encode(), capture_output=True, timeout=30)
+                if p.returncode == 0 and os.path.isfile(out):
+                    break
+            else:
+                raise RuntimeError('say failed: ' + p.stderr.decode(errors='ignore')[:120])
+        else:
+            p = subprocess.run([eng, '-v', 'en-us', '-s', '165', '-w', out, text], capture_output=True, timeout=30)
+            if p.returncode != 0 or not os.path.isfile(out):
+                raise RuntimeError('espeak failed')
+        with open(out, 'rb') as f:
+            return f.read()
+
+
 class H(SimpleHTTPRequestHandler):
     def __init__(self, *a, **k):
         super().__init__(*a, directory=HERE, **k)
 
     def log_message(self, fmt, *args):  # keep the console quiet; never log query strings
-        if '/api/' in (args[0] if args else ''):
+        if '/api/' in str(args[0] if args else ''):
             return
         super().log_message(fmt, *args)
 
@@ -373,19 +420,24 @@ class H(SimpleHTTPRequestHandler):
         path = urllib.parse.urlparse(self.path).path
         try:
             if path == '/api/status':
-                return self.send_json({'ok': True, 'google': bool(find_key()), 'nvidia': bool(find_key('NVIDIA_API_KEY'))})
+                return self.send_json({'ok': True, 'google': bool(find_key()), 'nvidia': bool(find_key('NVIDIA_API_KEY')), 'tts': bool(tts_engine())})
             if path == '/api/config':
                 if not self.is_local():
                     return self.send_json({'error': 'local only'}, 403)
                 return self.send_json({'googleKey': find_key()})
-            if path == '/api/houston':
-                return self.send_json(cached('houston', 1e9, houston))
+            q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            c = city_of((q.get('c') or ['houston'])[0])
+            if path in ('/api/city', '/api/houston'):
+                return self.send_json(cached('city_' + c, 1e9, lambda: load_city(c)))
+            if path == '/api/audio':  # which optional recordings exist in audio/ (so the page does not probe for missing files)
+                ad = os.path.join(HERE, 'audio')
+                return self.send_json({'files': sorted(f for f in os.listdir(ad) if f.lower().endswith(('.mp3', '.ogg', '.wav', '.m4a')))} if os.path.isdir(ad) else {'files': []})
             if path == '/api/alerts':
-                return self.send_json(cached('alerts', 60, alerts))
+                return self.send_json(cached('alerts_' + c, 60, lambda: alerts(c)))
             if path == '/api/obs':
-                return self.send_json(cached('obs', 300, obs))
+                return self.send_json(cached('obs_' + c, 300, lambda: obs(c)))
             if path == '/api/quakes':
-                return self.send_json(cached('quakes', 300, quakes))
+                return self.send_json(cached('quakes_' + c, 300, lambda: quakes(c)))
         except Exception as ex:
             print(f'[api] {path} failed: {ex}')
             return self.send_json({'error': str(ex)[:200]}, 502)
@@ -393,10 +445,23 @@ class H(SimpleHTTPRequestHandler):
 
     def do_POST(self):
         path = urllib.parse.urlparse(self.path).path
-        if path != '/api/dispatch':
+        if path not in ('/api/dispatch', '/api/tts'):
             return self.send_json({'error': 'not found'}, 404)
         if not self.is_local():
             return self.send_json({'error': 'local only'}, 403)
+        if path == '/api/tts':
+            try:
+                n = min(int(self.headers.get('Content-Length') or 0), 2000)
+                wav = tts((json.loads(self.rfile.read(n) or b'{}')).get('text', ''))
+                self.send_response(200)
+                self.send_header('Content-Type', 'audio/wav')
+                self.send_header('Content-Length', str(len(wav)))
+                self.end_headers()
+                self.wfile.write(wav)
+                return
+            except Exception as ex:
+                print(f'[tts] failed: {ex}')
+                return self.send_json({'error': str(ex)[:160]}, 502)
         try:
             n = min(int(self.headers.get('Content-Length') or 0), 8000)
             return self.send_json(dispatch(json.loads(self.rfile.read(n) or b'{}')))
@@ -407,6 +472,8 @@ class H(SimpleHTTPRequestHandler):
 
 if __name__ == '__main__':
     print(f'Dragon Flyght: http://localhost:{PORT}   (Google key {"found" if find_key() else "not found, map uses the built-in view"})')
+    print('Radio voice:', ('macOS say' if shutil.which('say') else 'espeak') if tts_engine() else 'no speech engine found (browser voice fallback)')
     print('NVIDIA dispatcher:', 'key found' if find_key('NVIDIA_API_KEY') else 'no NVIDIA_API_KEY in .env (radio stays off)')
-    print('Houston map cache:', 'ready' if os.path.isfile(os.path.join(CACHE, 'houston_osm_v1.json')) else 'not downloaded yet (happens on first Live Houston load, ~30-90 s)')
+    for k in CITIES:
+        print(CITIES[k]['name'], 'map cache:', 'ready' if os.path.isfile(os.path.join(CACHE, k + '_osm_v1.json')) else 'not downloaded yet (first load of that city, ~30-90 s)')
     ThreadingHTTPServer(('127.0.0.1', PORT), H).serve_forever()
