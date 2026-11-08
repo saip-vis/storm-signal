@@ -310,22 +310,39 @@ function fit() {
 // ── Data loading ─────────────────────────────────────────────────────────────
 
 async function loadFootprints() {
-  try {
-    const geojson = await request('/api/data/buildings?format=geojson&limit=250');
-    footprints = withHeight(geojson.features);
-    const source = geojson.metadata.source;
-    // FIX 5f: clearer, consistently prefixed data source label
-    $('#dataMode').textContent =
-      `DATA SOURCE: OVERTURE MAPS · ${geojson.metadata.totalCount} FOOTPRINTS · RELEASE ${source.datasetRelease ?? 'UNKNOWN'}`;
-    $('#mapError').textContent = '';
-  } catch (error) {
-    footprints = [];
-    // FIX 5f: clearer fallback label indicating synthetic mode
-    $('#dataMode').textContent = 'DATA SOURCE: SYNTHETIC FIXTURE (real footprints unavailable)';
-    let detail = error.message;
-    try { detail = JSON.parse(error.message).error ?? detail; } catch {}
-    $('#mapError').textContent = `Real building footprints unavailable: ${detail}`;
+  const attempts = [
+    { locationId: 'richardson-north-central-study', limit: 2000, label: 'north-central study' },
+    { locationId: 'richardson-tx', limit: 250, label: 'central test' }
+  ];
+  let lastError;
+  for (const attempt of attempts) {
+    try {
+      const geojson = await request(
+        `/api/data/buildings?format=geojson&limit=${attempt.limit}&locationId=${attempt.locationId}`
+      );
+      footprints = withHeight(geojson.features);
+      const source = geojson.metadata.source;
+      const region = geojson.metadata.locationId ?? attempt.locationId;
+      $('#dataMode').textContent =
+        `DATA SOURCE: OVERTURE MAPS · ${geojson.metadata.totalCount} FOOTPRINTS · REGION ${region} · RELEASE ${source.datasetRelease ?? 'UNKNOWN'}`;
+      $('#mapError').textContent = '';
+      if (map?.isStyleLoaded()) {
+        refreshMap();
+        fit();
+      } else if (map) {
+        map.once('load', () => { refreshMap(); fit(); });
+      }
+      return;
+    } catch (error) {
+      lastError = error;
+      console.warn(`Building cache ${attempt.label} unavailable:`, error.message);
+    }
   }
+  footprints = [];
+  $('#dataMode').textContent = 'DATA SOURCE: SYNTHETIC FIXTURE (real footprints unavailable)';
+  let detail = lastError?.message ?? 'unknown error';
+  try { detail = JSON.parse(detail).error ?? detail; } catch {}
+  $('#mapError').textContent = `Real building footprints unavailable: ${detail}`;
 }
 
 // Load real OSM POIs from the cache — non-fatal: failure does not block map load.

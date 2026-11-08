@@ -15,6 +15,7 @@
     "data:buildings:fetch": "python3 scripts/fetch-buildings.py",
     "data:buildings:fetch:large": "python3 scripts/fetch-buildings.py --region richardson-north-central-study",
     "data:buildings:validate": "node scripts/buildings-cache.js normalize",
+    "data:buildings:validate:large": "node scripts/buildings-cache.js normalize --region richardson-north-central-study",
     "data:buildings:summary": "node scripts/buildings-cache.js summary",
     "data:pois:fetch": "node --env-file-if-exists=.env scripts/fetch-pois.js",
     "data:census:fetch": "node --env-file-if-exists=.env scripts/fetch-census.js",

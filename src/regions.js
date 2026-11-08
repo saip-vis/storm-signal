@@ -3,4 +3,5 @@ export const REGIONS={
   'richardson-north-central-study':{id:'richardson-north-central-study',name:'North-central Richardson study area',bbox:[-96.755,32.935,-96.705,32.975],source:'Configured bounded study rectangle using City of Richardson vicinity; not a legal city boundary',coverageDescription:'Larger north-central Richardson study rectangle for geographic visualization, deliberately bounded below city scale.'}
 };
 export const DEFAULT_REGION_ID='richardson-central-test';
+export const VISUALIZATION_REGION_ID='richardson-north-central-study';
 export function region(id=DEFAULT_REGION_ID){const value=REGIONS[id];if(!value)throw new Error(`Unknown geographic region: ${id}`);return {...value,crs:'WGS84 / EPSG:4326'};}
