@@ -7,8 +7,9 @@
  * Usage: node scripts/fetch-pois.js
  *        npm run data:pois:fetch
  *
- * On network failure: prints error clearly, leaves any existing cache untouched,
- * and exits with code 1. Never silently swaps in fake data.
+ * On network failure: tries all configured endpoints, prints each error clearly,
+ * leaves any existing cache untouched, and exits with code 1.
+ * Never silently swaps in fake data.
  */
 
 import { mkdir, writeFile } from 'node:fs/promises';
@@ -24,14 +25,18 @@ import { DEFAULT_REGION_ID } from '../src/regions.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
-const ENDPOINT = 'https://overpass-api.de/api/interpreter';
+// Try primary then backup mirror before giving up
+const ENDPOINTS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter'
+];
 
 // Richardson north-central study area bbox: [west, south, east, north]
 const BBOX = [-96.755, 32.935, -96.705, 32.975];
 const [west, south, east, north] = BBOX;
 
-// Exact Overpass query as specified — queries amenity and shop POIs in the bbox.
-const QUERY = `[out:json][timeout:25];
+// Exact Overpass query — [timeout:50] gives the server 50s to execute.
+const QUERY = `[out:json][timeout:50];
 (
   node[amenity~"pharmacy|hospital|clinic|doctors|school|community_centre|library|supermarket"](${south},${west},${north},${east});
   way[amenity~"pharmacy|hospital|clinic|doctors|school|community_centre|library|supermarket"](${south},${west},${north},${east});
@@ -47,37 +52,46 @@ async function main() {
   console.log('══════════════════════════════════════════════');
   console.log('  ResilienceOS — OSM POI Fetch (Richardson TX)');
   console.log('══════════════════════════════════════════════');
-  console.log(`Endpoint : ${ENDPOINT}`);
   console.log(`Bbox     : [${BBOX.join(', ')}]`);
+  console.log(`Endpoints: ${ENDPOINTS.length} configured (primary + mirror)`);
   console.log('Querying Overpass API…\n');
 
-  // ── Fetch ──────────────────────────────────────────────────────────────────
+  // ── Fetch with endpoint fallback ───────────────────────────────────────────
   let rawData;
-  try {
-    const response = await fetch(ENDPOINT, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Accept': 'application/json',
-        'User-Agent': 'ResilienceOS/1.0 (research project; non-commercial)'
-      },
-      body: `data=${encodeURIComponent(QUERY)}`,
-      signal: AbortSignal.timeout(30000)
-    });
-    if (!response.ok) {
-      const text = await response.text().catch(() => '(no body)');
-      throw new Error(`Overpass returned HTTP ${response.status}: ${text}`);
+  let successEndpoint;
+
+  for (const endpoint of ENDPOINTS) {
+    try {
+      console.log(`Trying ${endpoint}…`);
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'User-Agent': 'ResilienceOS/1.0 (research project; non-commercial)'
+        },
+        body: `data=${encodeURIComponent(QUERY)}`,
+        signal: AbortSignal.timeout(60000)
+      });
+      if (!response.ok) {
+        const text = await response.text().catch(() => '(no body)');
+        throw new Error(`HTTP ${response.status}: ${text.slice(0, 200)}`);
+      }
+      rawData = await response.json();
+      successEndpoint = endpoint;
+      console.log(`Success via ${endpoint}`);
+      break;
+    } catch (error) {
+      console.warn(`  Failed (${error.message}) — trying next endpoint…`);
+      if (endpoint === ENDPOINTS.at(-1)) {
+        console.error('\nAll Overpass endpoints failed. Cache unchanged.');
+        process.exit(1);
+      }
     }
-    rawData = await response.json();
-  } catch (error) {
-    console.error(`\nFetch failed: ${error.message}`);
-    console.error('Existing cache (if any) has NOT been modified.');
-    process.exit(1);
   }
 
   const acquiredAt = new Date().toISOString();
   const rawElements = rawData.elements ?? [];
-  console.log(`Received ${rawElements.length} raw elements from Overpass.`);
+  console.log(`\nReceived ${rawElements.length} raw elements from Overpass.`);
 
   // ── Save raw response ──────────────────────────────────────────────────────
   await mkdir(path.dirname(RAW_PATH), { recursive: true });
@@ -88,7 +102,7 @@ async function main() {
   const metadata = {
     provider: 'OpenStreetMap',
     queryBbox: BBOX,
-    overpassEndpoint: ENDPOINT,
+    overpassEndpoint: successEndpoint,
     acquiredAt,
     rawElementCount: rawElements.length
   };
@@ -100,7 +114,7 @@ async function main() {
     provider: 'OpenStreetMap',
     queryBbox: BBOX,
     acquiredAt,
-    overpassEndpoint: ENDPOINT
+    overpassEndpoint: successEndpoint
   };
 
   const features = [];

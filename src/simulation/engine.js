@@ -109,7 +109,9 @@ export async function runSimulation({scenario,attributes,graph,overrides={},pred
 // Load real building footprints for polygon-flood exposure (non-fatal if cache missing)
 const buildingFootprints=await loadBuildingFootprints();
 // Load Census tracts for real community impact (non-fatal if cache missing)
-let censusTracts=[];try{const censusSnap=await loadCensusSnapshot();censusTracts=censusSnap.features;}catch{}
+// Only use tracts with real population data; geometry-only snapshots (populationAvailable:false)
+// fall back to the synthetic calculation so existing test expectations are preserved.
+let censusTracts=[];try{const censusSnap=await loadCensusSnapshot();censusTracts=censusSnap.features.filter(t=>t.population!=null&&t.population>0);}catch{}
 const exposure=calculateExposure(graph,scenario),failures=predictOperationalFailures(graph,exposure,scenario,attributes,overrides);let hybridRiskAssessments=[];let _hybridPredictions=[];if(predictionMode==='hybrid'){
   // Use only exposed building nodes; include synthetic depth from severity
   const exposedNodes=graph.nodes.filter(n=>n.type==='building'&&exposure.some(e=>e.nodeId===n.id&&e.exposureStatus==='exposed'));
