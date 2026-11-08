@@ -13,8 +13,10 @@
     "ml:train": "python3 ml-training/train.py --sample 5000 --offline",
     "ml:evaluate": "python3 ml-training/train.py --sample 5000 --offline",
     "data:buildings:fetch": "python3 scripts/fetch-buildings.py",
+    "data:buildings:fetch:large": "python3 scripts/fetch-buildings.py --region richardson-north-central-study",
     "data:buildings:validate": "node scripts/buildings-cache.js normalize",
-    "data:buildings:summary": "node scripts/buildings-cache.js summary"
+    "data:buildings:summary": "node scripts/buildings-cache.js summary",
+    "data:pois:fetch": "node scripts/fetch-pois.js"
   },
   "dependencies": {
     "cytoscape": "^3.34.4",

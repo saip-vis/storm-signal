@@ -1,1 +1,403 @@
-*{box-sizing:border-box}body{margin:0;background:#07111f;color:#dce8f4;font:14px Inter,ui-sans-serif,system-ui}header{min-height:64px;padding:10px 28px;border-bottom:1px solid #20344b;display:flex;align-items:center;gap:16px;background:#0a1728}header>div:first-child{margin-right:auto}b{font-size:19px;letter-spacing:2px;color:#eef8ff}b span{color:#46e5df}small,.label{display:block;color:#7195b3;font-size:10px;letter-spacing:1.4px;margin-top:3px}button,select,input{border:1px solid #31516e;background:#102238;color:#dce8f4;border-radius:6px;padding:8px 10px}button{cursor:pointer;background:#0f7475;border-color:#40bfc0;font-weight:700}.panel{background:#0c1a2c;border:1px solid #1b3853;border-radius:10px;padding:14px;box-shadow:0 12px 30px #0003}main{display:grid;grid-template-columns:1.65fr 1fr;gap:14px;padding:14px;max-width:1680px;margin:auto}.explorer{min-height:570px}.panelhead{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:10px}.panelhead strong{display:block;margin-top:4px}.mapwrap{height:500px;position:relative;border-radius:7px;overflow:hidden;border:1px solid #25445e}#map{height:100%;width:100%}#layers{position:absolute;z-index:2;top:10px;left:10px;background:#091827e8;border:1px solid #36536b;border-radius:7px;padding:10px;min-width:175px}#layers b{font-size:12px;letter-spacing:0}#layers label{display:block;margin:8px 0;font-size:12px}.notice{color:#ffbf55;margin-top:8px;font-size:12px}.inspector{overflow:auto;max-height:570px}.inspector h2{margin:8px 0 14px}.inspector section{border-top:1px solid #203c55;padding:8px 0}.inspector h3{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#62d9d3;margin:2px 0 8px}.inspector p{line-height:1.5;color:#c0d3e0}.inspector em{color:#d6acff;font-style:normal}dl{display:grid;grid-template-columns:110px 1fr;margin:0;gap:5px}dt{color:#7f9eb6}dd{margin:0;overflow-wrap:anywhere}.graphpanel{min-height:370px}.graphpanel button{font-size:11px;margin-left:5px;background:#122840;border-color:#294760}.graphpanel button:last-child{border-color:#9068e4;color:#d0b3ff}#cy{height:290px;border:1px solid #1d3b55;border-radius:7px;background:#081625}#edgeLegend{font-size:11px;color:#7e9db7;margin-top:7px}.controls{display:flex;flex-direction:column;gap:10px}.controls input{width:100%}#searchResults{max-height:140px;overflow:auto;display:flex;flex-direction:column;gap:4px}#searchResults button{text-align:left;background:#102238;border-color:#284761;font-weight:400}#searchResults small{float:right}.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:7px}.metrics div{padding:9px;background:#102238;border-radius:7px;color:#6ee0d9;font-size:11px}.metrics b{display:block;color:white;font-size:17px;margin-top:4px;letter-spacing:0}details pre{max-height:180px;overflow:auto;white-space:pre-wrap;color:#a9c5db}.agent{grid-column:2}.chat{height:145px;overflow:auto;background:#071321;border-radius:7px;padding:10px;color:#b9d0e0;white-space:pre-wrap}.ask{display:flex;gap:8px;margin-top:9px}.ask input{flex:1}.maplibregl-ctrl-attrib{font-size:9px!important}@media(max-width:950px){main{grid-template-columns:1fr}.agent{grid-column:auto}.explorer{min-height:500px}.mapwrap{height:420px}}@media(max-width:600px){header{padding:10px;flex-wrap:wrap}header>div:first-child{width:100%}main{padding:8px}.mapwrap{height:370px}#layers{opacity:.88}.metrics{grid-template-columns:repeat(2,1fr)}}
+/* ── Reset ─────────────────────────────────────────────── */
+* {
+  box-sizing: border-box;
+}
+
+/* ── Base ──────────────────────────────────────────────── */
+body {
+  margin: 0;
+  background: #07111f;
+  color: #dce8f4;
+  font: 14px Inter, ui-sans-serif, system-ui;
+}
+
+/* ── Header ────────────────────────────────────────────── */
+header {
+  min-height: 64px;
+  padding: 10px 28px;
+  border-bottom: 1px solid #20344b;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: #0a1728;
+}
+
+header > div:first-child {
+  margin-right: auto;
+}
+
+/* ── Typography ────────────────────────────────────────── */
+b {
+  font-size: 19px;
+  letter-spacing: 2px;
+  color: #eef8ff;
+}
+
+b span {
+  color: #46e5df;
+}
+
+small,
+.label {
+  display: block;
+  color: #7195b3;
+  font-size: 10px;
+  letter-spacing: 1.4px;
+  margin-top: 3px;
+}
+
+/* ── Form controls ─────────────────────────────────────── */
+button,
+select,
+input {
+  border: 1px solid #31516e;
+  background: #102238;
+  color: #dce8f4;
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+
+button {
+  cursor: pointer;
+  background: #0f7475;
+  border-color: #40bfc0;
+  font-weight: 700;
+}
+
+/* ── Panel shell ───────────────────────────────────────── */
+.panel {
+  background: #0c1a2c;
+  border: 1px solid #1b3853;
+  border-radius: 10px;
+  padding: 14px;
+  box-shadow: 0 12px 30px #0003;
+}
+
+/* ── Layout grid ───────────────────────────────────────── */
+main {
+  display: grid;
+  grid-template-columns: 1.65fr 1fr;
+  gap: 14px;
+  padding: 14px;
+  max-width: 1680px;
+  margin: auto;
+}
+
+/* ── Explorer panel ────────────────────────────────────── */
+.explorer {
+  min-height: 570px;
+}
+
+.panelhead {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.panelhead strong {
+  display: block;
+  margin-top: 4px;
+}
+
+/* ── Map wrap ──────────────────────────────────────────── */
+.mapwrap {
+  height: 500px;
+  position: relative;
+  border-radius: 7px;
+  overflow: hidden;
+  border: 1px solid #25445e;
+}
+
+#map {
+  height: 100%;
+  width: 100%;
+}
+
+/* ── Layer controls overlay ────────────────────────────── */
+#layers {
+  position: absolute;
+  z-index: 2;
+  top: 10px;
+  left: 10px;
+  background: #091827e8;
+  border: 1px solid #36536b;
+  border-radius: 7px;
+  padding: 10px;
+  min-width: 175px;
+}
+
+#layers b {
+  font-size: 12px;
+  letter-spacing: 0;
+}
+
+#layers label {
+  display: block;
+  margin: 8px 0;
+  font-size: 12px;
+}
+
+/* ── Notice / error banner (FIX 5b) ───────────────────── */
+.notice {
+  color: #ffbf55;
+  margin-top: 8px;
+  font-size: 12px;
+  border-left: 3px solid #ffbf55;
+  padding: 8px 12px;
+  background: #1a1000;
+  border-radius: 4px;
+}
+
+/* Hide the banner entirely when it has no content (FIX 5b) */
+.notice:empty {
+  display: none;
+}
+
+/* OSM facility status line — purple tint to match the map layer color */
+#poisMode {
+  color: #c084fc;
+  margin-top: 4px;
+}
+
+/* ── Inspector panel ───────────────────────────────────── */
+.inspector {
+  overflow: auto;
+  max-height: 570px;
+}
+
+.inspector h2 {
+  margin: 8px 0 14px;
+}
+
+.inspector section {
+  border-top: 1px solid #203c55;
+  padding: 8px 0;
+}
+
+.inspector h3 {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #62d9d3;
+  margin: 2px 0 8px;
+}
+
+.inspector p {
+  line-height: 1.5;
+  color: #c0d3e0;
+}
+
+.inspector em {
+  color: #d6acff;
+  font-style: normal;
+}
+
+dl {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  margin: 0;
+  gap: 5px;
+}
+
+dt {
+  color: #7f9eb6;
+}
+
+dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+/* ── Dependency graph panel (FIX 5c) ───────────────────── */
+.graphpanel {
+  min-height: 370px;
+}
+
+.graphpanel button {
+  font-size: 11px;
+  margin-left: 5px;
+  background: #122840;
+  border-color: #294760;
+}
+
+.graphpanel button:last-child {
+  border-color: #9068e4;
+  color: #d0b3ff;
+}
+
+/* #cy and #edgeLegend are hidden until a node is selected (FIX 5c) */
+#cy {
+  height: 0;
+  overflow: hidden;
+  border: none;
+  border-radius: 7px;
+  background: #081625;
+  transition: height 0.25s ease;
+}
+
+.graphpanel.graph-active #cy {
+  height: 290px;
+  overflow: visible;
+  border: 1px solid #1d3b55;
+}
+
+#edgeLegend {
+  display: none;
+  font-size: 11px;
+  color: #7e9db7;
+  margin-top: 7px;
+}
+
+.graphpanel.graph-active #edgeLegend {
+  display: block;
+}
+
+/* ── Developer controls ────────────────────────────────── */
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.controls input {
+  width: 100%;
+}
+
+#searchResults {
+  max-height: 140px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+#searchResults button {
+  text-align: left;
+  background: #102238;
+  border-color: #284761;
+  font-weight: 400;
+}
+
+#searchResults small {
+  float: right;
+}
+
+/* ── Metrics grid ──────────────────────────────────────── */
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 7px;
+}
+
+.metrics div {
+  padding: 9px;
+  background: #102238;
+  border-radius: 7px;
+  color: #6ee0d9;
+  font-size: 11px;
+}
+
+.metrics b {
+  display: block;
+  color: white;
+  font-size: 17px;
+  margin-top: 4px;
+  letter-spacing: 0;
+}
+
+/* "modeled" label below each metric value (FIX 5d) */
+.metrics small {
+  color: #7195b3;
+  font-size: 9px;
+  letter-spacing: 0.5px;
+  display: block;
+  margin-top: 2px;
+}
+
+details pre {
+  max-height: 180px;
+  overflow: auto;
+  white-space: pre-wrap;
+  color: #a9c5db;
+}
+
+/* ── Agent / Nemotron panel ────────────────────────────── */
+.agent {
+  grid-column: 2;
+}
+
+/* FIX 5e: left accent border on chat response area */
+.chat {
+  height: 145px;
+  overflow: auto;
+  background: #071321;
+  border-radius: 7px;
+  padding: 10px;
+  color: #b9d0e0;
+  white-space: pre-wrap;
+  border-left: 2px solid #40bfc0;
+}
+
+.ask {
+  display: flex;
+  gap: 8px;
+  margin-top: 9px;
+}
+
+.ask input {
+  flex: 1;
+}
+
+/* ── MapLibre attribution tweak ────────────────────────── */
+.maplibregl-ctrl-attrib {
+  font-size: 9px !important;
+}
+
+/* ── Responsive: tablet ────────────────────────────────── */
+@media (max-width: 950px) {
+  main {
+    grid-template-columns: 1fr;
+  }
+
+  .agent {
+    grid-column: auto;
+  }
+
+  .explorer {
+    min-height: 500px;
+  }
+
+  .mapwrap {
+    height: 420px;
+  }
+}
+
+/* ── Responsive: mobile ────────────────────────────────── */
+@media (max-width: 600px) {
+  header {
+    padding: 10px;
+    flex-wrap: wrap;
+  }
+
+  header > div:first-child {
+    width: 100%;
+  }
+
+  main {
+    padding: 8px;
+  }
+
+  .mapwrap {
+    height: 370px;
+  }
+
+  #layers {
+    opacity: .88;
+  }
+
+  .metrics {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
