@@ -6,6 +6,8 @@
   "scripts": {
     "start": "node --env-file-if-exists=.env src/server.js",
     "test": "node --test",
+    "check": "node scripts/check.js",
+    "build": "npm run check && node scripts/build-frontend.js",
     "demo": "node src/demo.js",
     "simulate": "node src/simulate.js",
     "agent:demo": "AGENT_PROVIDER=mock_test node --env-file-if-exists=.env src/agent-demo.js",
@@ -22,6 +24,10 @@
     "agent:smoke": "node --env-file-if-exists=.env scripts/nemotron-smoke.js"
   },
   "dependencies": {
+    "@turf/area": "^7.4.0",
+    "@turf/boolean-intersects": "^7.4.0",
+    "@turf/helpers": "^7.4.0",
+    "@turf/intersect": "^7.4.0",
     "cytoscape": "^3.34.4",
     "maplibre-gl": "^6.17.0"
   }

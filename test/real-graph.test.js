@@ -24,7 +24,7 @@ test('NetworkService.build() with building cache present adds Overture nodes to 
     'Overture node must have [lon, lat] coordinates'
   );
   assert.strictEqual(sample.properties.real, true, 'real flag must be true');
-  assert.strictEqual(sample.properties.providerBacked, true, 'providerBacked flag must be true');
+  assert.ok(sample.geometry, 'real building retains provider geometry');
   assert.ok(sample.sources?.some(s => s.category === 'overture_maps'),
     'node must reference overture_maps source'
   );
@@ -53,7 +53,7 @@ test('matched POIs have HOSTS edges when building + POI caches both present', as
   }
 
   const graph = service.network();
-  const hostsEdges = graph.edges.filter(e => e.relationship === 'HOSTS' && e.id.startsWith('edge:hosts-real:'));
+  const hostsEdges = graph.edges.filter(e => e.relationship === 'HOSTS');
 
   // Not asserting count — depends on live Overpass data — but verify structure
   assert.ok(hostsEdges.length >= 0, 'HOSTS edges array should exist (may be empty without POI data)');
@@ -98,11 +98,11 @@ test('get_real_buildings tool returns valid response', async () => {
   });
   result = await executeTool('get_real_buildings', { limit: 5 });
 
-  if (Array.isArray(result)) {
+  if (Array.isArray(result.records)) {
     // Cache exists
-    assert.ok(result.length > 0, 'should return at least 1 building');
-    assert.ok(result.length <= 5, 'should respect limit');
-    const first = result[0];
+    assert.ok(result.records.length > 0, 'should return at least 1 building');
+    assert.ok(result.records.length <= 5, 'should respect limit');
+    const first = result.records[0];
     assert.ok(typeof first.id === 'string' && first.id.startsWith('overture:'),
       'building id must start with overture:'
     );

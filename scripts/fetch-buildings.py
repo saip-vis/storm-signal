@@ -17,17 +17,15 @@ import multiprocessing as mp
 import pathlib
 import tempfile
 import urllib.request
+import io
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-REGIONS = {
-    "richardson-central-test": [-96.731, 32.950, -96.727, 32.954],
-    "richardson-north-central-study": [-96.755, 32.935, -96.705, 32.975],
-}
+REGIONS = {key:value['bbox'] for key,value in json.loads((ROOT/'config/regions.json').read_text()).items()}
 MAX_FEATURES = {
     "richardson-central-test": 1000,
-    "richardson-north-central-study": 10000,
+    "richardson-north-central-study": 50000,
 }
-HARD_TIMEOUT_SECONDS = 90
+HARD_TIMEOUT_SECONDS = 300
 
 
 def latest_release() -> str:
@@ -79,6 +77,16 @@ def extract_latest_ddb(bbox, limit):
 
 def extract_geoparquet(bbox, limit, release):
     import duckdb
+    import pyarrow.parquet as pq
+    with urllib.request.urlopen(f'https://stac.overturemaps.org/{release}/collections.parquet',timeout=30) as response:
+        index=pq.read_table(io.BytesIO(response.read()))
+    w,s,e,n=bbox
+    assets=[]
+    for row in index.to_pylist():
+        b=row.get('bbox') or {}
+        if row.get('collection')=='building' and row.get('type')=='Feature' and b.get('xmin',180)<e and b.get('xmax',-180)>w and b.get('ymin',90)<n and b.get('ymax',-90)>s:
+            assets.append(row['assets']['aws']['href'])
+    if not assets: return [],'Overture STAC indexed GeoParquet (empty geographic index)'
     con = duckdb.connect()
     con.execute("INSTALL spatial")
     con.execute("LOAD spatial")
@@ -86,15 +94,12 @@ def extract_geoparquet(bbox, limit, release):
     con.execute("LOAD httpfs")
     con.execute("SET s3_region='us-west-2'")
     w, s, e, n = bbox
-    sources = [
-        f"s3://overturemaps-us-west-2/release/{release}/theme=buildings/type=building/*",
-        f"https://overturemaps-us-west-2.s3.us-west-2.amazonaws.com/release/{release}/theme=buildings/type=building/*",
-    ]
+    sources = [assets]
     last_error = None
     for parquet in sources:
         sql = f"""
           SELECT id, names.primary AS name, class, height, num_floors, ST_AsGeoJSON(geometry) AS geometry
-          FROM read_parquet('{parquet}', hive_partitioning=1)
+          FROM read_parquet({parquet!r}, hive_partitioning=1)
           WHERE bbox.xmin < {e} AND bbox.xmax > {w} AND bbox.ymin < {n} AND bbox.ymax > {s}
           LIMIT {limit + 1}
         """
@@ -174,15 +179,15 @@ def main():
     features = None
     method_used = None
     try:
-        print("Attempt 1: DuckDB latest.ddb …")
-        features, method_used = run_with_timeout("latest.ddb", bbox, limit, release)
+        print("Attempt 1: release-pinned GeoParquet …")
+        features, method_used = run_with_timeout("geoparquet", bbox, limit, release)
         print(f"  succeeded via {method_used}")
     except Exception as error:  # noqa: BLE001
         errors.append(f"latest.ddb: {error}")
         print(f"  failed: {error}")
-        print("Attempt 2 (only retry): release-pinned GeoParquet …")
+        print("Provider request failed; preserving prior extract.")
         try:
-            features, method_used = run_with_timeout("geoparquet", bbox, limit, release)
+            raise RuntimeError('No automatic unpinned retry; release provenance must remain exact')
             print(f"  succeeded via {method_used}")
         except Exception as retry_error:  # noqa: BLE001
             errors.append(f"geoparquet: {retry_error}")
@@ -195,9 +200,7 @@ def main():
 
     truncated = False
     if len(features) > limit:
-        print(f"  bbox contains more than {limit} buildings; writing the first {limit} (not unbounded)")
-        features = features[:limit]
-        truncated = True
+        raise SystemExit(f'Region exceeds safety limit {limit}; prior complete snapshot preserved. Refine bounds or explicitly raise the configured limit.')
 
     payload = {"type": "FeatureCollection", "features": features}
     json.loads(json.dumps(payload))
@@ -212,6 +215,7 @@ def main():
         "extractionMethod": method_used,
         "rawRecordCount": len(features),
         "truncatedToLimit": truncated,
+        "coverageComplete": True,
         "schemaVersion": 2,
     }
 

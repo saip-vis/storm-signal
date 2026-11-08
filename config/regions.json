@@ -1,0 +1,16 @@
+{
+  "richardson-central-test": {
+    "id": "richardson-central-test",
+    "name": "Central Richardson regression test area",
+    "bbox": [-96.731, 32.950, -96.727, 32.954],
+    "source": "Configured study rectangle; not a municipal boundary",
+    "coverageDescription": "Small central Richardson test area for acquisition regression tests."
+  },
+  "richardson-north-central-study": {
+    "id": "richardson-north-central-study",
+    "name": "North-central Richardson study area",
+    "bbox": [-96.755, 32.935, -96.705, 32.975],
+    "source": "Configured study rectangle; not a legal city boundary",
+    "coverageDescription": "A bounded part of Richardson. Census acquisition queries Dallas and Collin Counties and retains intersecting tracts; this rectangle intersects Dallas County tracts."
+  }
+}

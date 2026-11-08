@@ -2,13 +2,14 @@ import path from 'node:path'; import { fileURLToPath } from 'node:url';
 import { Graph } from './graph.js'; import { loadCsv } from './ingest.js'; import { matchRecords } from './matching.js'; import { discoverGeography } from './osm.js'; import { richardson, source } from './types.js';
 import { loadPoiSnapshot, poiCachePath } from './pois.js';
 import { loadSnapshot, buildingPathsFor } from './buildings.js';
-import { DEFAULT_REGION_ID } from './regions.js';
+import { DEFAULT_REGION_ID, VISUALIZATION_REGION_ID, region } from './regions.js';
 import { matchPoisToBuildings, matchSummary } from './matcher.js';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export class NetworkService {
   constructor({ dataDir = path.join(root, 'data/richardson'), fetchImpl } = {}) { this.dataDir = dataDir; this.fetchImpl = fetchImpl; this.graph = null; this.matches = []; this.geography = null; this.poiMatches = null; this.realBuildingCount = 0; }
-  locations() { return [richardson]; }
-  async build(locationId = 'richardson-tx', { liveGeography = false } = {}) {
+  locations() { const r=region(VISUALIZATION_REGION_ID);return [{id:r.id,aliases:['richardson-tx'],displayName:r.name,bbox:r.bbox,center:[(r.bbox[0]+r.bbox[2])/2,(r.bbox[1]+r.bbox[3])/2],source:r.source}]; }
+  async build(locationId = 'richardson-tx', { liveGeography = false, mode = 'production' } = {}) {
+    if(mode!=='demo')return this.buildReal(locationId);
     if (locationId !== richardson.id) throw new Error('Unsupported location');
     const [properties, maintenance, businesses, resources] = await Promise.all([
       loadCsv(path.join(this.dataDir, 'properties.csv'), ['property_id','property_name','latitude','longitude']), loadCsv(path.join(this.dataDir, 'maintenance.csv'), ['work_order_id','site_ref','asset_code']), loadCsv(path.join(this.dataDir, 'businesses.csv'), ['business_id','facility_ref','business_name','service_type']), loadCsv(path.join(this.dataDir, 'community_resources.csv'), ['resource_id','location_reference','service_area'])
@@ -96,7 +97,26 @@ export class NetworkService {
 
     return { summary: this.summary(), geographicSource: this.geography.source, fallbackReason: this.geography.fallbackReason };
   }
-  network() { if (!this.graph) throw new Error('Build a network first'); const snap=this.graph.snapshot(); if(this.poiMatches)snap.poiMatchSummary=matchSummary(this.poiMatches); snap.realBuildingCount=this.realBuildingCount??0; return snap; }
+  async buildReal(locationId) {
+    const selected=region(VISUALIZATION_REGION_ID);
+    if(!['richardson-tx',selected.id].includes(locationId))throw new Error('Unsupported location');
+    const snapshot=await loadSnapshot(buildingPathsFor(selected.id).cache);
+    const g=this.graph=new Graph(selected.id);this.matches=[];this.warnings=[];this.poiMatches=[];
+    for(const b of snapshot.features)g.addNode({id:b.id,type:'building',name:b.properties.name||`${b.properties.buildingClass||'Building'} footprint`,coordinates:b.representativePoint,geometry:b.geometry,properties:{...b.properties,real:true},sources:[{category:'overture_maps',reference:b.source,acquiredAt:b.source.acquiredAt}]});
+    this.realBuildingCount=snapshot.features.length;
+    try {
+      const pois=await loadPoiSnapshot(poiCachePath(selected.id));
+      this.poiMatches=matchPoisToBuildings(pois.features,snapshot.features);
+      for(const poi of pois.features){
+        const id=`real-poi:${poi.id}`,match=this.poiMatches.find(m=>m.poiId===poi.id);
+        g.addNode({id,type:'business',name:poi.name,coordinates:poi.coordinates,properties:{...poi,real:true,buildingRelationship:match?.buildingId?'spatially_inferred':'unknown'},sources:[{category:'openstreetmap',reference:poi.source}]});
+        if(match?.buildingId)g.addEdge({id:`hosts:${poi.id}`,sourceId:match.buildingId,targetId:id,relationship:'HOSTS',evidenceLevel:'inferred',evidenceSources:[{category:'spatial_matching',reference:match.matchMethod}],explanation:`Spatial association via ${match.matchMethod}; occupancy and operational dependency are unverified.`});
+      }
+    }catch(error){this.warnings.push(error.message);}
+    this.geography={source:'overture_maps',coverage:selected,completeness:snapshot.source.coverageComplete??'unknown'};
+    return {summary:this.summary(),geographicSource:'overture_maps',region:selected,warnings:this.warnings};
+  }
+  network() { if (!this.graph) throw new Error('Build a network first'); const snap=this.graph.snapshot(); if(this.poiMatches)snap.poiMatchSummary=matchSummary(this.poiMatches); snap.realBuildingCount=this.realBuildingCount??0;snap.warnings=this.warnings??[];snap.coverage=this.geography; return snap; }
   node(id) { if (!this.graph) throw new Error('Build a network first'); return { node: this.graph.getNode(id), incoming: this.graph.incoming(id), outgoing: this.graph.outgoing(id) }; }
   trace(id, options) { if (!this.graph) throw new Error('Build a network first'); return this.graph.trace(id, options); }
   summary() { const graph = this.network(), count = key => Object.fromEntries([...new Set(graph[key].map(x => key === 'nodes' ? x.type : x.relationship))].map(k => [k, graph[key].filter(x => (key === 'nodes' ? x.type : x.relationship) === k).length])); return { nodeCount:graph.nodes.length, edgeCount:graph.edges.length, byNodeType:count('nodes'), byRelationship:count('edges'), byEvidence:Object.fromEntries([...new Set(graph.edges.map(x=>x.evidenceLevel))].map(k=>[k,graph.edges.filter(x=>x.evidenceLevel===k).length])) }; }

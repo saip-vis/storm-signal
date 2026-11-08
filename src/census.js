@@ -10,18 +10,20 @@
 import { access, mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { VISUALIZATION_REGION_ID, region } from './regions.js';
+import { validBbox, intersectsBbox } from './buildings.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 export const CENSUS_SCHEMA_VERSION = 1;
 
 // Richardson vicinity bounding box used to filter tracts after fetching
-export const RICHARDSON_VICINITY_BBOX = [-96.80, 32.90, -96.65, 33.00];
+export const RICHARDSON_VICINITY_BBOX = region(VISUALIZATION_REGION_ID).bbox;
 
 // ── Path helpers ─────────────────────────────────────────────────────────────
 
 export function censusCachePath() {
-  return path.join(root, 'data', 'census', 'cache', 'collin-county-tracts.json');
+  return path.join(root, 'data', 'census', 'cache', 'richardson-study-tracts.json');
 }
 
 // ── Bbox helpers ─────────────────────────────────────────────────────────────
@@ -50,17 +52,18 @@ function geometryBboxOverlaps(geometry, [west, south, east, north]) {
 
 // Normalize a TIGER GeoJSON feature joined with an ACS data row.
 // acsRow may be null if no matching population data was found.
-export function normalizeTract(tigerFeature, acsRow, acquiredAt) {
+export function normalizeTract(tigerFeature, acsRow, acquiredAt, dataYear=2022) {
   const props = tigerFeature.properties ?? {};
   const geoid = props.GEOID ?? props.geoid ?? null;
   const name = props.NAME ?? props.name ?? (geoid ? `Census Tract ${geoid.slice(5)}` : 'Unknown');
-  const population = acsRow ? (Number(acsRow[0]) || null) : null;
-  const housingUnits = acsRow ? (Number(acsRow[1]) || null) : null;
+  const numeric=value=>value!=null&&Number.isFinite(Number(value))&&Number(value)>=0?Number(value):null;
+  const population = acsRow ? numeric(acsRow[0]) : null;
+  const housingUnits = acsRow ? numeric(acsRow[1]) : null;
 
   const sourceInfo = {
     provider: 'US Census Bureau',
     geometrySource: 'TIGER/Line',
-    populationSource: 'ACS 5-Year Estimates 2022',
+    populationSource: `ACS 5-Year Estimates ${dataYear}`,
     acquiredAt
   };
 
@@ -70,7 +73,7 @@ export function normalizeTract(tigerFeature, acsRow, acquiredAt) {
     geometry: tigerFeature.geometry,
     population,
     housingUnits,
-    dataYear: 2022,
+    dataYear,
     source: sourceInfo
   };
 }
@@ -123,16 +126,16 @@ export async function censusResponse({ format, bbox, cachePath } = {}) {
     const parsed = Array.isArray(bbox)
       ? bbox.map(Number)
       : String(bbox).split(',').map(Number);
-    if (parsed.length === 4 && parsed.every(Number.isFinite)) {
-      features = features.filter(t => geometryBboxOverlaps(t.geometry, parsed));
-    }
+    if(!validBbox(parsed))throw new Error('Invalid Census bbox; expected west,south,east,north');
+    features = features.filter(t => intersectsBbox(t.geometry, parsed));
   }
 
   const summary = {
+    locationId: snapshot.locationId??VISUALIZATION_REGION_ID,
     county: snapshot.county,
     fips: snapshot.fips,
     tractCount: features.length,
-    dataYear: 2022,
+    dataYear: snapshot.dataYear??2022,
     source: snapshot.source
   };
 

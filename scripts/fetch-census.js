@@ -15,6 +15,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { VISUALIZATION_REGION_ID } from '../src/regions.js';
 import {
   CENSUS_SCHEMA_VERSION,
   RICHARDSON_VICINITY_BBOX,
@@ -34,7 +35,7 @@ const KEY_SUFFIX = API_KEY ? `&key=${encodeURIComponent(API_KEY)}` : '';
 
 const TIGER_URL =
   'https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/Tracts_Blocks/MapServer/0/query' +
-  "?where=STATE%3D'48'+AND+COUNTY%3D'085'" +
+  "?where=STATE%3D'48'+AND+COUNTY+IN+('085','113')" +
   '&outFields=GEOID,NAME' +
   '&f=geojson' +
   '&outSR=4326';
@@ -47,7 +48,7 @@ function acsUrl(year) {
     `https://api.census.gov/data/${year}/acs/acs5` +
     '?get=B01003_001E,B25001_001E,NAME' +
     '&for=tract:*' +
-    `&in=state:48%20county:085${KEY_SUFFIX}`
+    `&in=state:48%20county:*${KEY_SUFFIX}`
   );
 }
 
@@ -126,6 +127,7 @@ async function main() {
   let geoData;
   try {
     geoData = await fetchJson(TIGER_URL, 'TIGER/Line');
+    if(geoData.error||geoData.exceededTransferLimit||!Array.isArray(geoData.features))throw new Error('Census returned an error or truncated geometry response; cache preserved.');
   } catch (error) {
     console.error(`\nFetch failed (TIGER): ${error.message}`);
     console.error('Existing cache (if any) has NOT been modified.');
@@ -202,7 +204,7 @@ async function main() {
     if (!geometryBboxOverlaps(feature.geometry, RICHARDSON_VICINITY_BBOX)) continue;
     const geoid = feature.properties?.GEOID ?? feature.properties?.geoid ?? null;
     const acsRow = geoid ? (acsMap.get(geoid) ?? null) : null;
-    features.push(normalizeTract(feature, acsRow, acquiredAt));
+    features.push(normalizeTract(feature, acsRow, acquiredAt, acsYear??2022));
   }
 
   // ── Warn if GEOID join coverage is low ───────────────────────────────────
@@ -220,8 +222,10 @@ async function main() {
   // ── Build and write snapshot ──────────────────────────────────────────────
   const snapshot = {
     schemaVersion: CENSUS_SCHEMA_VERSION,
-    county: 'Collin County, TX',
-    fips: '48085',
+    county: 'Dallas and Collin Counties, TX (study-region intersections)',
+    fips: '48113,48085',
+    locationId: VISUALIZATION_REGION_ID,
+    bbox: RICHARDSON_VICINITY_BBOX,
     tractCount: features.length,
     acquiredAt,
     populationAvailable,

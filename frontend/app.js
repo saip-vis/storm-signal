@@ -1,817 +1,89 @@
 import * as maplibregl from '/vendor/maplibre-gl.mjs';
-import { inheritedPoint, networkToPoints, scenarioToFeatureCollection } from '/adapter.js';
-
-const api = window.RESILIENCE_API_URL || window.location.origin;
-const $ = selector => document.querySelector(selector);
-const esc = value =>
-  String(value ?? '—').replace(/[&<>]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[char]));
-
-let graph, result, map, cy, scenario, selectedId, selectedFootprintId, footprints = [], realPois = [], censusTracts = [];
-let cascadeAnimationId = null;
-
-// ── HTTP helper ─────────────────────────────────────────────────────────────
-
-async function request(path, options) {
-  const response = await fetch(api + path, options);
-  if (!response.ok) throw Error(await response.text());
-  return response.json();
+const $=selector=>document.querySelector(selector),esc=value=>String(value??'Unknown').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let map,graph,region,scenario,result,selected,buildings=[],metadata,sourceWarnings=[],running=false;
+const empty=()=>({type:'FeatureCollection',features:[]});
+async function request(url,body){const response=await fetch(url,body?{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)}:undefined);const data=await response.json();if(!response.ok)throw new Error(data.error||`HTTP ${response.status}`);return data;}
+function state(message){$('#status').textContent=message;}
+function show(view){document.querySelectorAll('.view').forEach(el=>el.hidden=el.id!==`view-${view}`);document.querySelectorAll('[data-view]').forEach(el=>view===el.dataset.view?el.setAttribute('aria-current','page'):el.removeAttribute('aria-current'));$('#navigation').hidden=true;$('#menu').setAttribute('aria-expanded','false');if(view==='map')requestAnimationFrame(()=>map?.resize());}
+$('#menu').onclick=()=>{const open=$('#navigation').hidden;$('#navigation').hidden=!open;$('#menu').setAttribute('aria-expanded',String(open));};
+document.querySelectorAll('[data-view]').forEach(button=>button.onclick=()=>show(button.dataset.view));
+document.addEventListener('keydown',event=>{if(event.key==='Escape'){$('#navigation').hidden=true;$('#menu').setAttribute('aria-expanded','false');}});
+function fit(){if(region&&map)map.fitBounds([[region.bbox[0],region.bbox[1]],[region.bbox[2],region.bbox[3]]],{padding:55,pitch:0,bearing:0,duration:500});}
+$('#fit').onclick=fit;
+function source(name,features){map.getSource(name)?.setData({type:'FeatureCollection',features});}
+async function setup(){
+  try{
+    region=await request('/api/region');
+    map=new maplibregl.Map({container:'map',center:[(region.bbox[0]+region.bbox[2])/2,(region.bbox[1]+region.bbox[3])/2],zoom:13,style:'https://tiles.openfreemap.org/styles/dark',attributionControl:true});
+    map.addControl(new maplibregl.NavigationControl(),'bottom-left');
+    await new Promise((resolve,reject)=>{map.once('load',resolve);map.on('error',event=>{if(!map.isStyleLoaded()){$('#coverage').textContent=`Basemap unavailable: ${event.error.message}`;}});setTimeout(()=>{if(!map.isStyleLoaded())reject(new Error('Basemap did not load. Check internet connectivity.'));},30000);});
+    for(const id of ['buildings','facilities','flood','exposure','tracts','selected','dependencies'])map.addSource(id,{type:'geojson',data:empty()});
+    map.addLayer({id:'tracts',source:'tracts',type:'line',layout:{visibility:'none'},paint:{'line-color':'#6e879d','line-width':1,'line-dasharray':[3,3]}});
+    map.addLayer({id:'flood',source:'flood',type:'fill',paint:{'fill-color':'#258cca','fill-opacity':.18}});
+    map.addLayer({id:'flood-outline',source:'flood',type:'line',paint:{'line-color':'#469cd0','line-width':1.5,'line-dasharray':[3,2]}});
+    map.addLayer({id:'buildings',source:'buildings',type:'fill',paint:{'fill-color':'#5c8da8','fill-opacity':.65}});
+    map.addLayer({id:'building-outlines',source:'buildings',type:'line',paint:{'line-color':'#8cb7cc','line-width':.7}});
+    map.addLayer({id:'exposure',source:'exposure',type:'fill',paint:{'fill-color':'#e98373','fill-opacity':.8}});
+    map.addLayer({id:'selected',source:'selected',type:'line',paint:{'line-color':'#8af8e3','line-width':3}});
+    map.addLayer({id:'dependencies',source:'dependencies',type:'line',paint:{'line-color':'#6ed6cb','line-width':2,'line-dasharray':[3,2]}});
+    map.addLayer({id:'facilities',source:'facilities',type:'circle',paint:{'circle-color':'#c59afb','circle-radius':6,'circle-stroke-color':'#14212f','circle-stroke-width':2}});
+    map.on('click',event=>{const hit=map.queryRenderedFeatures(event.point,{layers:['facilities','buildings','exposure']})[0];if(hit)select(hit.properties.nodeId||hit.properties.id);});
+    for(const name of ['facilities','buildings']){map.on('mouseenter',name,()=>map.getCanvas().style.cursor='pointer');map.on('mouseleave',name,()=>map.getCanvas().style.cursor='');}
+    fit();await loadData();
+  }catch(error){state('Unavailable');$('#coverage').textContent=error.message;}
 }
-
-// ── Graph helpers ────────────────────────────────────────────────────────────
-
-const status = id =>
-  result?.failures?.find(failure => failure.nodeId === id)?.riskLevel ?? 'unknown';
-
-const nodeFeatures = () =>
-  graph ? networkToPoints(graph, status) : [];
-
-// ── Inspector HTML builders ──────────────────────────────────────────────────
-
-function section(title, body) {
-  return `<section><h3>${title}</h3>${body}</section>`;
+async function loadData(){
+  state('Loading Richardson…');
+  try{
+    await request('/api/network/build',{locationId:region.id});
+    [graph,scenario]=await Promise.all([request('/api/network'),request('/api/simulations/scenarios/richardson-flood-demo')]);
+    if(graph.locationId!==region.id)throw new Error('Network and map region do not match');
+    buildings=[];let offset=0;
+    do{const page=await request(`/api/data/buildings?format=geojson&locationId=${region.id}&limit=2000&offset=${offset}`);metadata=page.metadata;buildings.push(...page.features);source('buildings',buildings);state(`Loading buildings ${buildings.length.toLocaleString()}…`);if(page.metadata.nextOffset===null)break;if(!page.features.length)throw new Error('Incomplete building pagination');offset=page.metadata.nextOffset;}while(true);
+    source('facilities',graph.nodes.filter(n=>n.type==='business').map(n=>({type:'Feature',geometry:{type:'Point',coordinates:n.coordinates},properties:{id:n.id,nodeId:n.id,name:n.name,category:n.properties.category}})));
+    source('flood',[{type:'Feature',geometry:scenario.footprint,properties:{}}]);
+    try{const census=await request('/api/data/census?format=geojson');source('tracts',census.features);}catch(error){sourceWarnings.push(error.message);}
+    $('#coverage').textContent=`${buildings.length.toLocaleString()} cached buildings · ${metadata.coverageComplete===true?'Complete extract':metadata.coverageComplete===false?'Partial geographic coverage':'Coverage completeness unknown'}`;
+    sourceWarnings.push(...(graph.warnings??[]));renderSources();$('#run').disabled=false;$('#run-results').disabled=false;state('Richardson ready');
+  }catch(error){state('Data unavailable');$('#coverage').textContent=error.message;}
 }
-
-function rows(object) {
-  return `<dl>${
-    Object.entries(object).map(([key, value]) =>
-      `<dt>${esc(key)}</dt><dd>${esc(
-        Array.isArray(value)
-          ? value.join(', ')
-          : typeof value === 'object' && value !== null
-            ? JSON.stringify(value)
-            : value
-      )}</dd>`
-    ).join('')
-  }</dl>`;
+function renderSources(){
+  $('#source-details').innerHTML=`<p>${esc(region.name)}. ${esc(region.coverageDescription)}</p><dl><dt>Buildings</dt><dd>Overture Maps · cached</dd><dt>Release</dt><dd>${esc(metadata?.source.datasetRelease)}</dd><dt>Acquired</dt><dd>${esc(metadata?.source.acquiredAt)}</dd><dt>Coverage</dt><dd>${metadata?.coverageComplete===true?'Complete bounded extract':'Incomplete or unverified coverage'}</dd><dt>Facilities</dt><dd>OpenStreetMap / Overpass</dd><dt>Population</dt><dd>US Census TIGER/Line + ACS 2022; study-area tract intersections; Dallas and Collin Counties queried</dd></dl><p>Building footprints establish geometry. Spatially matched facilities are inferred associations. Operational condition, utility connections, revenue and shelter capacities remain unknown.</p><p>Flood footprints and depth are hypothetical. Damage fractions are estimated from historical NFIP claims and do not represent calibrated closure probabilities.</p>${sourceWarnings.map(w=>`<p class="error">${esc(w)}</p>`).join('')}${result?`<h3>Scenario assumptions</h3>${result.assumptions.map(a=>`<p>${esc(a)}</p>`).join('')}`:''}`;
 }
-
-// ── Map setup ────────────────────────────────────────────────────────────────
-
-function setupMap() {
-  map = new maplibregl.Map({
-    container: 'map',
-    center: [-96.729, 32.952],
-    zoom: 14,
-    pitch: 45,
-    bearing: -15,
-    style: 'https://tiles.openfreemap.org/styles/dark'
-  });
-
-  map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
-
-  map.on('load', () => {
-    for (const name of ['nodes', 'footprints', 'flood', 'selected-footprint', 'real-pois', 'exposed-footprints', 'census-tracts', 'cascade-lines']) {
-      map.addSource(name, { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
-    }
-
-    // Census tract boundaries — rendered first (bottom) as a faint background grid
-    map.addLayer({
-      id: 'census-tract-fill',
-      type: 'fill',
-      source: 'census-tracts',
-      paint: { 'fill-color': '#1a3a5c', 'fill-opacity': 0.25 }
-    });
-    map.addLayer({
-      id: 'census-tract-line',
-      type: 'line',
-      source: 'census-tracts',
-      paint: { 'line-color': '#2d6a9f', 'line-width': 0.8, 'line-dasharray': [3, 2] }
-    });
-
-    try {
-      map.setFog({ color: '#07111f', 'horizon-blend': 0.1 });
-    } catch { /* fog is optional if the style does not support it */ }
-
-    // 3D building extrusions — placed before flood fill and node circles
-    map.addLayer({
-      id: 'buildings-3d',
-      type: 'fill-extrusion',
-      source: 'footprints',
-      paint: {
-        'fill-extrusion-color': [
-          'match', ['get', 'buildingClass'],
-          'government', '#4a90d9',
-          'commercial', '#7eb8c9',
-          'residential', '#6ec87a',
-          'apartments', '#89d48a',
-          'church', '#c084fc',
-          'roof', '#94a3b8',
-          '#5a9abf'
-        ],
-        'fill-extrusion-height': ['coalesce', ['get', 'heightMeters'], 4],
-        'fill-extrusion-base': 0,
-        'fill-extrusion-opacity': 0.82
-      }
-    });
-    map.addLayer({
-      id: 'buildings-3d-selected',
-      type: 'fill-extrusion',
-      source: 'selected-footprint',
-      paint: {
-        'fill-extrusion-color': '#48e2dc',
-        'fill-extrusion-height': ['coalesce', ['get', 'heightMeters'], 4],
-        'fill-extrusion-base': 0,
-        'fill-extrusion-opacity': 0.95
-      }
-    });
-    map.addLayer({
-      id: 'buildings-3d-exposed',
-      type: 'fill-extrusion',
-      source: 'exposed-footprints',
-      paint: {
-        'fill-extrusion-color': '#ff625f',
-        'fill-extrusion-height': ['coalesce', ['get', 'heightMeters'], 4],
-        'fill-extrusion-base': 0,
-        'fill-extrusion-opacity': 0.9
-      }
-    });
-
-    map.addLayer({ id: 'flood-fill', type: 'fill', source: 'flood',
-      paint: { 'fill-color': '#278fdb', 'fill-opacity': .22 } });
-    map.addLayer({ id: 'flood-line', type: 'line', source: 'flood',
-      paint: { 'line-color': '#47c4ff', 'line-width': 2, 'line-dasharray': [2, 2] } });
-
-    map.addLayer({
-      id: 'cascade-flow',
-      type: 'line',
-      source: 'cascade-lines',
-      paint: {
-        'line-color': [
-          'match', ['get', 'impactType'],
-          'business_interruption', '#ffbd55',
-          'service_capacity_reduction', '#ff9b55',
-          'service_access_gap', '#ff625f',
-          '#7eb8c9'
-        ],
-        'line-width': 1.5,
-        'line-opacity': 0.7,
-        'line-dasharray': [2, 2]
-      }
-    });
-
-    // Real OSM POI layer — rendered BEFORE synthetic nodes so nodes appear on top
-    map.addLayer({
-      id: 'real-pois-layer',
-      type: 'circle',
-      source: 'real-pois',
-      paint: {
-        'circle-radius': 8,
-        'circle-color': '#a855f7',
-        'circle-stroke-color': '#fff',
-        'circle-stroke-width': 1.5,
-        'circle-opacity': 0.9
-      }
-    });
-
-    for (const category of ['building', 'business', 'equipment', 'road', 'other']) {
-      map.addLayer({
-        id: `node-${category}`,
-        type: 'circle',
-        source: 'nodes',
-        filter: ['==', ['get', 'category'], category],
-        paint: {
-          'circle-radius': ['case', ['==', ['get', 'id'], selectedId ?? ''], 11, 7],
-          'circle-color': ['match', ['get', 'risk'],
-            'high', '#ff625f',
-            'elevated', '#ffbd55',
-            'low', '#39dda0',
-            '#9aacbd'
-          ],
-          'circle-stroke-color': '#fff',
-          'circle-stroke-width': 1.5
-        }
-      });
-    }
-
-    map.on('click', 'buildings-3d', event => {
-      const feature = event.features?.[0];
-      if (feature?.properties?.id) selectFootprint(feature.properties.id);
-    });
-    map.on('click', 'buildings-3d-exposed', event => {
-      const feature = event.features?.[0];
-      if (feature?.properties?.id) selectFootprint(feature.properties.id);
-    });
-
-    map.on('click', 'real-pois-layer', event => {
-      const feature = event.features?.[0];
-      if (feature) selectRealPoi(feature);
-    });
-
-    map.on('click', event => {
-      const feature = map.queryRenderedFeatures(event.point, {
-        layers: ['node-building', 'node-business', 'node-equipment', 'node-road', 'node-other']
-      })[0];
-      if (feature?.properties?.id) selectNode(feature.properties.id);
-    });
-
-    refreshMap();
-  });
+$('#source-button').onclick=()=>$('#sources').showModal();$('#close-sources').onclick=()=>$('#sources').close();
+const human=value=>String(value??'Unknown').replaceAll('_',' ');
+function select(id){
+  const n=graph.nodes.find(n=>n.id===id);if(!n)return;selected=n;$('#selection').hidden=false;$('#selection-type').textContent=n.type==='building'?'OVERTURE BUILDING':'OPENSTREETMAP FACILITY';$('#selection-name').textContent=n.name;
+  const failure=result?.failures.find(f=>f.nodeId===id)??result?.cascadingImpacts.impacts.find(f=>f.nodeId===id),exposure=result?.exposure.find(e=>e.nodeId===id),edges=graph.edges.filter(e=>e.sourceId===id||e.targetId===id);
+  $('#selection-body').innerHTML=`<dl><dt>Category</dt><dd>${esc(human(n.properties.category??n.properties.buildingClass))}</dd><dt>Height</dt><dd>${n.properties.heightMeters!=null?esc(n.properties.heightMeters.toFixed(1))+' m':'Unknown'}</dd><dt>Floors</dt><dd>${esc(n.properties.floors)}</dd><dt>Scenario exposure</dt><dd>${exposure?esc(human(exposure.exposureStatus)):'Run scenario'}</dd><dt>Modeled availability</dt><dd>${failure?esc(human(failure.predictedStatus)):'Unknown'}</dd>${failure?.estimatedDamageFraction!=null?`<dt>Damage severity</dt><dd>${Math.round(failure.estimatedDamageFraction*100)}% estimated physical loss</dd>`:''}</dl><h3>Relationships</h3>${edges.length?edges.map(e=>{const other=graph.nodes.find(x=>x.id===(e.sourceId===id?e.targetId:e.sourceId));return `<button class="relationship" data-node="${esc(other.id)}">${esc(other.name)}<small>${e.sourceId===id?'Downstream':'Upstream'} · ${esc(e.relationship)} · ${esc(e.evidenceLevel)}</small></button>`;}).join(''):'<p class="note">No sourced dependencies are currently known.</p>'}<p class="note">${failure?'Modeled under the hypothetical flood. Actual operating status is unknown.':'Source-backed geography. Actual operating status is unknown.'}</p><details><summary>Source details</summary><pre>${esc(JSON.stringify(n.sources,null,2))}</pre></details>`;
+  $('#selection-body').querySelectorAll('[data-node]').forEach(button=>button.onclick=()=>select(button.dataset.node));
+  source('selected',n.geometry?[{type:'Feature',geometry:n.geometry,properties:{}}]:[]);
+  source('dependencies',edges.map(e=>{const a=graph.nodes.find(n=>n.id===e.sourceId),b=graph.nodes.find(n=>n.id===e.targetId);return {type:'Feature',geometry:{type:'LineString',coordinates:[a.coordinates,b.coordinates]},properties:{relationship:e.relationship,evidence:e.evidenceLevel}};}));
+  $('#assistant-context').textContent=`Selected: ${n.name} · ${region.name}`;
 }
-
-// ── Map refresh ──────────────────────────────────────────────────────────────
-
-function refreshMap() {
-  if (!map?.isStyleLoaded() || !graph) return;
-
-  map.getSource('nodes').setData({ type: 'FeatureCollection', features: nodeFeatures() });
-  map.getSource('footprints').setData({ type: 'FeatureCollection', features: withHeight(footprints) });
-  map.getSource('flood').setData(scenarioToFeatureCollection(scenario));
-  map.getSource('real-pois').setData({ type: 'FeatureCollection', features: realPois });
-  // exposed-footprints source is updated by simulate() — no recalculation needed here
-
-  const chosen = withHeight(footprints.filter(feature => feature.properties.id === selectedFootprintId));
-  map.getSource('selected-footprint').setData({ type: 'FeatureCollection', features: chosen });
-
-  for (const category of ['building', 'business', 'equipment', 'road', 'other']) {
-    map.setLayoutProperty(
-      `node-${category}`, 'visibility',
-      $(`[data-layer="${category}"]`).checked ? 'visible' : 'none'
-    );
-  }
-
-  for (const layer of ['buildings-3d', 'buildings-3d-selected']) {
-    map.setLayoutProperty(layer, 'visibility', $('#real-buildings').checked ? 'visible' : 'none');
-  }
-
-  for (const layer of ['flood-fill', 'flood-line']) {
-    map.setLayoutProperty(layer, 'visibility', $('#flood').checked ? 'visible' : 'none');
-  }
-
-  // Real OSM POI layer toggle
-  map.setLayoutProperty(
-    'real-pois-layer', 'visibility',
-    $('#real-pois-toggle').checked ? 'visible' : 'none'
-  );
-
-  // Census tract boundary toggle
-  for (const layer of ['census-tract-fill', 'census-tract-line']) {
-    map.setLayoutProperty(layer, 'visibility', $('#census-toggle').checked ? 'visible' : 'none');
-  }
-
-  // Flood-exposed 3D buildings + cascade flow lines
-  map.setLayoutProperty('buildings-3d-exposed', 'visibility', $('#exposed-toggle').checked ? 'visible' : 'none');
-  if (map.getLayer('cascade-flow')) {
-    map.setLayoutProperty('cascade-flow', 'visibility', $('#exposed-toggle').checked ? 'visible' : 'none');
-  }
+$('#close-selection').onclick=()=>{$('#selection').hidden=true;selected=null;$('#assistant-context').textContent='Richardson study region · hybrid simulation';source('selected',[]);source('dependencies',[]);};
+$('#ask-selected').onclick=()=>{show('assistant');$('#question').value=`Explain the flood exposure and known dependencies for ${selected.name}.`;$('#question').focus();};
+document.querySelectorAll('[data-layer]').forEach(input=>input.onchange=()=>{const names={buildings:['buildings','building-outlines'],facilities:['facilities'],flood:['flood','flood-outline'],exposure:['exposure'],tracts:['tracts'],dependencies:['dependencies']};for(const id of names[input.dataset.layer])if(map?.getLayer(id))map.setLayoutProperty(id,'visibility',input.checked?'visible':'none');});
+async function simulate(){
+  if(running||!graph)return;running=true;result=null;source('exposure',[]);if(selected)select(selected.id);$('#depth').disabled=true;$('#results').innerHTML='<p class="empty">Intersecting flood geometry and running Python/XGBoost inference…</p>';$('#simulation-error').hidden=true;$('#run').disabled=true;$('#run-results').disabled=true;state('Running hybrid assessment…');
+  try{
+    result=await request('/api/simulations/run',{scenarioId:scenario.id,overrides:{floodDepthFeet:Number($('#depth').value)}});
+    if(result.locationId!==region.id||result.predictionModeUsed!=='hybrid')throw new Error('Simulation returned an incompatible region or assessment');
+    const ids=new Set(result.exposedBuildingFootprints.map(b=>b.buildingId));source('exposure',buildings.filter(b=>ids.has(b.id)));
+    const population=result.directCommunityImpact.totalPopulationExposed;
+    $('#results').innerHTML=`<div class="cards"><div class="card"><span>Buildings exposed</span><strong>${ids.size.toLocaleString()}</strong><small>Actual polygon intersection</small></div><div class="card"><span>Facilities potentially affected</span><strong>${result.businessImpact.totalAffectedBusinesses}</strong><small>Direct exposure or inferred occupancy path</small></div><div class="card"><span>Population exposure estimate</span><strong>${population==null?'Unavailable':population.toLocaleString()}</strong><small>Census polygon area weighting</small></div></div><p class="note">Hypothetical flood. Revenue, downtime, displacement and shelter capacity estimates are unavailable without sourced inputs. Actual closures are unknown. Counts use source records; duplicate OSM representations may occur.</p><h2>Potentially affected facilities</h2>${result.businessImpact.affectedBusinesses.map(b=>`<div class="result-row"><span>${esc(b.name)}</span><button data-result="${esc(b.businessId)}">View on map →</button></div>`).join('')||'<p>No facilities intersect this scenario or its inferred occupancy paths.</p>'}<details><summary>Model assumptions & limitations</summary>${[...result.assumptions,...result.limitations].map(a=>`<p>${esc(a)}</p>`).join('')}</details>`;
+    document.querySelectorAll('[data-result]').forEach(b=>b.onclick=()=>{show('map');select(b.dataset.result);map.flyTo({center:selected.coordinates,zoom:16});});
+    if(selected)select(selected.id);renderSources();state('Hybrid assessment ready');
+  }catch(error){result=null;$('#results').innerHTML='';$('#simulation-error').hidden=false;$('#simulation-error').textContent=error.message;state('Assessment unavailable');}
+  finally{running=false;$('#run').disabled=false;$('#run-results').disabled=false;$('#depth').disabled=false;}
 }
-
-// Ensure extrusion height is always a number (MapLibre fill-extrusion requires it)
-function withHeight(features) {
-  return features.map(f => ({
-    ...f,
-    properties: { ...f.properties, heightMeters: f.properties.heightMeters ?? 4 }
-  }));
-}
-
-function startCascadeAnimation() {
-  if (cascadeAnimationId) cancelAnimationFrame(cascadeAnimationId);
-  function animate() {
-    const t = (Date.now() % 2000) / 2000;
-    const opacity = 0.55 + 0.4 * Math.abs(Math.sin(t * Math.PI));
-    if (map.getLayer('buildings-3d-exposed')) {
-      map.setPaintProperty('buildings-3d-exposed', 'fill-extrusion-opacity', opacity);
-    }
-    if (map.getLayer('cascade-flow')) {
-      map.setPaintProperty('cascade-flow', 'line-opacity', 0.5 + 0.4 * Math.abs(Math.sin(t * Math.PI)));
-    }
-    cascadeAnimationId = requestAnimationFrame(animate);
-  }
-  cascadeAnimationId = requestAnimationFrame(animate);
-}
-
-function stopCascadeAnimation() {
-  if (cascadeAnimationId) {
-    cancelAnimationFrame(cascadeAnimationId);
-    cascadeAnimationId = null;
-  }
-  if (map?.getLayer?.('buildings-3d-exposed')) {
-    map.setPaintProperty('buildings-3d-exposed', 'fill-extrusion-opacity', 0.9);
-  }
-}
-
-// ── Bounds helpers ───────────────────────────────────────────────────────────
-
-function coordinateBounds(featureCollection) {
-  const bounds = new maplibregl.LngLatBounds();
-  let count = 0;
-  const add = coordinates =>
-    Array.isArray(coordinates?.[0])
-      ? coordinates.forEach(add)
-      : (bounds.extend(coordinates), count++);
-  featureCollection.forEach(feature => add(feature.geometry.coordinates));
-  return count ? bounds : null;
-}
-
-function fit() {
-  const bounds = coordinateBounds(footprints.length ? footprints : nodeFeatures());
-  if (bounds) map.fitBounds(bounds, { padding: 60, maxZoom: 16 });
-}
-
-// ── Data loading ─────────────────────────────────────────────────────────────
-
-async function loadFootprints() {
-  const attempts = [
-    { locationId: 'richardson-north-central-study', limit: 2000, label: 'north-central study' },
-    { locationId: 'richardson-tx', limit: 250, label: 'central test' }
-  ];
-  let lastError;
-  for (const attempt of attempts) {
-    try {
-      const geojson = await request(
-        `/api/data/buildings?format=geojson&limit=${attempt.limit}&locationId=${attempt.locationId}`
-      );
-      footprints = withHeight(geojson.features);
-      const source = geojson.metadata.source;
-      const region = geojson.metadata.locationId ?? attempt.locationId;
-      $('#dataMode').textContent =
-        `DATA SOURCE: OVERTURE MAPS · ${geojson.metadata.totalCount} FOOTPRINTS · REGION ${region} · RELEASE ${source.datasetRelease ?? 'UNKNOWN'}`;
-      $('#mapError').textContent = '';
-      if (map?.isStyleLoaded()) {
-        refreshMap();
-        fit();
-      } else if (map) {
-        map.once('load', () => { refreshMap(); fit(); });
-      }
-      return;
-    } catch (error) {
-      lastError = error;
-      console.warn(`Building cache ${attempt.label} unavailable:`, error.message);
-    }
-  }
-  footprints = [];
-  $('#dataMode').textContent = 'DATA SOURCE: SYNTHETIC FIXTURE (real footprints unavailable)';
-  let detail = lastError?.message ?? 'unknown error';
-  try { detail = JSON.parse(detail).error ?? detail; } catch {}
-  $('#mapError').textContent = `Real building footprints unavailable: ${detail}`;
-}
-
-// Load real OSM POIs from the cache — non-fatal: failure does not block map load.
-async function loadRealPois() {
-  try {
-    const geojson = await request('/api/data/businesses?format=geojson&limit=200');
-    realPois = geojson.features;
-    if (map?.isStyleLoaded()) {
-      map.getSource('real-pois').setData({ type: 'FeatureCollection', features: realPois });
-    }
-    const src = geojson.metadata.source;
-    const dateStr = src.acquiredAt ? src.acquiredAt.slice(0, 10) : 'unknown date';
-    $('#poisMode').textContent = `OSM FACILITIES · ${geojson.metadata.totalCount} REAL · ${dateStr}`;
-  } catch (error) {
-    realPois = [];
-    console.warn('Real OSM POIs unavailable (non-fatal):', error.message);
-    $('#poisMode').textContent = `OSM FACILITIES: unavailable (${error.message})`;
-  }
-}
-
-// Load Census tract boundaries from cache — non-fatal.
-async function loadCensusTracts() {
-  try {
-    const geojson = await request('/api/data/census?format=geojson');
-    censusTracts = geojson.features;
-    if (map?.isStyleLoaded()) {
-      map.getSource('census-tracts').setData({ type: 'FeatureCollection', features: censusTracts });
-    }
-    $('#censusMode').textContent =
-      `CENSUS TRACTS · ${geojson.metadata.tractCount} · ACS 2022`;
-  } catch (error) {
-    censusTracts = [];
-    console.warn('Census tract data unavailable (non-fatal):', error.message);
-    $('#censusMode').textContent = `CENSUS: unavailable`;
-  }
-}
-
-async function load() {
-  // FIX 5a: show loading state before data arrives; loadFootprints() clears it on success
-  $('#mapError').textContent = 'Loading Richardson infrastructure…';
-
-  try {
-    await request('/api/network/build', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ locationId: 'richardson-tx' })
-    });
-
-    [graph, scenario] = await Promise.all([
-      request('/api/network'),
-      request('/api/simulations/scenarios/richardson-flood-demo')
-    ]);
-
-    await loadFootprints();
-    await loadRealPois();
-    await loadCensusTracts();
-
-    $('#status').textContent = `NETWORK READY · ${graph.locationId}`;
-
-    // FIX 2: removed "synthetic" and "real" — context already distinguishes the two layers
-    $('#layerStats').textContent =
-      `${graph.nodes.length} graph nodes · ${graph.edges.length} edges · ` +
-      `${nodeFeatures().length} mappable points · ${footprints.length} footprint polygons · ` +
-      `${realPois.length} real OSM facilities`;
-
-    search();
-    await simulate();
-  } catch (error) {
-    $('#status').textContent = 'API ERROR';
-    $('#mapError').textContent = error.message;
-  }
-}
-
-// ── Simulation ───────────────────────────────────────────────────────────────
-
-async function simulate() {
-  $('#run').textContent = 'Running…';
-  stopCascadeAnimation();
-  try {
-    result = await request('/api/simulations/run', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        scenarioId: 'richardson-flood-demo',
-        predictionMode: $('#mode').value,
-        overrides: { durationHours: Number($('#duration').value) }
-      })
-    });
-    renderMetrics();
-
-    // Highlight flood-exposed Overture building polygons as 3D extrusions
-    if (result.exposedBuildingFootprints?.length > 0) {
-      const exposedIds = new Set(result.exposedBuildingFootprints.map(e => e.providerId));
-      const exposedFeatures = withHeight(footprints.filter(f => exposedIds.has(f.properties.providerId)));
-      map.getSource('exposed-footprints')?.setData({ type: 'FeatureCollection', features: exposedFeatures });
-    }
-
-    // Cascade connection lines from upstream causes (cascading impacts, not direct failures)
-    const cascadeItems = result.cascadingImpacts?.impacts ?? result.failures ?? [];
-    const lines = cascadeItems
-      .filter(f => f.upstreamCause)
-      .map(f => {
-        const src = graph.nodes.find(n => n.id === f.upstreamCause);
-        const tgt = graph.nodes.find(n => n.id === f.nodeId);
-        if (!src?.coordinates || !tgt?.coordinates) return null;
-        return {
-          type: 'Feature',
-          geometry: { type: 'LineString', coordinates: [src.coordinates, tgt.coordinates] },
-          properties: { impactType: f.impactType }
-        };
-      })
-      .filter(Boolean);
-    map.getSource('cascade-lines')?.setData({ type: 'FeatureCollection', features: lines });
-
-    refreshMap();
-    if (selectedId) selectNode(selectedId);
-    if (result.exposedBuildingFootprints?.length > 0 && $('#cascade-anim-toggle').checked) {
-      startCascadeAnimation();
-    }
-  } catch (error) {
-    $('#mapError').textContent = error.message;
-  } finally {
-    $('#run').textContent = 'Run simulation';
-  }
-}
-
-// ── Metrics ──────────────────────────────────────────────────────────────────
-
-function renderMetrics() {
-  const business = result.businessImpact;
-  const community = result.directCommunityImpact;
-  const shelter = result.shelterNeeds;
-
-  // Each metric card includes a data-source label; displaced residents shows Census vs Synthetic
-  const isCensusBacked = community.dataSource === 'census_acs_2022_area_weighted';
-  const displacedLabel = isCensusBacked
-    ? '<small class="census-label">Census-backed</small>'
-    : '<small class="synthetic-label">Synthetic</small>';
-
-  $('#metrics').innerHTML = `
-    <div>Businesses
-      <b>${business.totalAffectedBusinesses}</b>
-      <small>modeled</small>
-    </div>
-    <div>Revenue exposure
-      <b>$${business.totalEstimatedRevenueAtRiskUSD.toLocaleString()}</b>
-      <small>modeled</small>
-    </div>
-    <div>Displaced residents
-      <b>${Math.round(community.estimatedDisplacedResidents)}</b>
-      ${displacedLabel}
-    </div>
-    <div>Shelter shortfall
-      <b>${Math.round(shelter.unmetShelterDemand)}</b>
-      <small>modeled</small>
-    </div>
-  `;
-}
-
-// ── Feature selection: footprint ─────────────────────────────────────────────
-
-function selectFootprint(id) {
-  const feature = footprints.find(candidate => candidate.properties.id === id);
-  if (!feature) return;
-
-  selectedId = undefined;
-  selectedFootprintId = id;
-
-  const properties = feature.properties;
-  const source = typeof properties.source === 'string' ? JSON.parse(properties.source) : (properties.source ?? {});
-  const exposed = result?.exposedBuildingFootprints?.find(e => e.providerId === properties.providerId);
-
-  $('#title').textContent = properties.name || properties.providerId || 'Overture building footprint';
-
-  $('#inspector').innerHTML = `
-    <div class="card-badge badge-${properties.buildingClass ?? 'unknown'}">
-      ${(properties.buildingClass ?? 'Building').toUpperCase()}
-    </div>
-    ${properties.name ? `<p class="card-name">${esc(properties.name)}</p>` : ''}
-    <div class="card-stats">
-      <div><span>Height</span><b>${properties.heightMeters ? Number(properties.heightMeters).toFixed(1) + ' m' : '—'}</b></div>
-      <div><span>Source</span><b>Overture Maps</b></div>
-      <div><span>Release</span><b>${esc(source.datasetRelease ?? 'unknown')}</b></div>
-      <div><span>Flood exposure</span><b style="color:${exposed ? '#ff625f' : '#39dda0'}">
-        ${exposed ? '⚠ Exposed (' + esc(exposed.exposureMethod) + ')' : '✓ Not exposed'}</b></div>
-    </div>
-    <p class="card-note">Provider-backed Overture footprint · Entity matching active when POI cache is populated.</p>
-  `;
-
-  $('#raw').textContent = JSON.stringify(feature, null, 2);
-  $('#graphTitle').textContent = 'Provider-backed footprint · no graph links asserted';
-
-  // FIX 5c: collapse the graph panel when a footprint (not a node) is selected
-  $('.graphpanel').classList.remove('graph-active');
-
-  cy?.destroy();
-  cy = undefined;
-  refreshMap();
-
-  const bounds = coordinateBounds([feature]);
-  if (bounds) map.fitBounds(bounds, { padding: 90, maxZoom: 18 });
-}
-
-// ── Feature selection: real OSM POI ─────────────────────────────────────────
-
-function selectRealPoi(feature) {
-  const p = feature.properties;
-  const address = typeof p.address === 'string' ? JSON.parse(p.address) : (p.address ?? {});
-  const dq = typeof p.dataQuality === 'string' ? JSON.parse(p.dataQuality) : (p.dataQuality ?? {});
-  const src = typeof p.source === 'string' ? JSON.parse(p.source) : (p.source ?? {});
-
-  // Do not modify synthetic graph state — this is an independent real OSM record
-  selectedId = undefined;
-  selectedFootprintId = undefined;
-  $('.graphpanel').classList.remove('graph-active');
-  cy?.destroy();
-  cy = undefined;
-
-  $('#title').textContent = p.name || 'Real OSM Facility';
-
-  $('#inspector').innerHTML =
-    section('Identity', rows({
-      id: p.id,
-      category: p.category,
-      osmId: p.osmId,
-      osmType: p.osmType
-    })) +
-    section('Location', rows({
-      coordinates: feature.geometry.coordinates.join(', ')
-    })) +
-    section('Address', rows({
-      street: address.street,
-      city: address.city,
-      state: address.state,
-      postcode: address.postcode
-    })) +
-    section('Provenance', rows({
-      provider: src.provider ?? 'OpenStreetMap',
-      acquiredAt: src.acquiredAt
-    })) +
-    section('Data quality', rows({
-      hasName: dq.hasName,
-      coordinatesSource: dq.coordinatesSource,
-      missingFields: dq.missingFields
-    })) +
-    section('Note',
-      '<p>This is a real OpenStreetMap record. It is not yet linked to the dependency graph. ' +
-      'Entity matching will associate it with a building in a future update.</p>'
-    );
-
-  $('#raw').textContent = JSON.stringify(feature, null, 2);
-  $('#graphTitle').textContent = `Real OSM: ${p.name ?? p.id} · ${p.category}`;
-
-  if (feature.geometry?.coordinates) {
-    map.flyTo({ center: feature.geometry.coordinates, zoom: 17 });
-  }
-}
-
-// ── Feature selection: graph node ────────────────────────────────────────────
-
-function selectNode(id) {
-  const node = graph.nodes.find(candidate => candidate.id === id);
-  if (!node) return;
-
-  selectedFootprintId = undefined;
-  selectedId = id;
-
-  const loc = inheritedPoint(graph, node);
-  const incoming = graph.edges.filter(edge => edge.targetId === id);
-  const outgoing = graph.edges.filter(edge => edge.sourceId === id);
-  const failure = result?.failures?.find(item => item.nodeId === id);
-  const sources = node.sources.map(source => `${source.category}: ${source.reference}`).join(' · ');
-
-  $('#title').textContent = node.name;
-
-  const riskLevel = failure?.riskLevel ?? 'unknown';
-  $('#inspector').innerHTML =
-    `<div class="card-badge badge-risk-${riskLevel}">${riskLevel.toUpperCase()} RISK</div>` +
-    section('Identity', rows({
-      id: node.id,
-      type: node.type,
-      coordinates: loc?.coordinates?.join(', '),
-      location: loc?.locationMethod
-    })) +
-    section('Provenance', `<p>${esc(sources || 'No source records')}</p>`) +
-    section('Attributes', rows(node.properties)) +
-    section('Data quality', rows({
-      geometry: 'synthetic graph point or missing geometry',
-      risk: failure?.riskLevel ?? 'not simulated',
-      status: failure?.predictedStatus ?? 'not simulated'
-    })) +
-    section('Dependencies',
-      `<p>${
-        [...incoming, ...outgoing]
-          .map(edge => `${esc(edge.relationship)} <em>${esc(edge.evidenceLevel)}</em>`)
-          .join(' · ') || 'No direct edges'
-      }</p>`
-    );
-
-  $('#raw').textContent = JSON.stringify({ node, incoming, outgoing, failure }, null, 2);
-  $('#graphTitle').textContent = `${node.name} · ${incoming.length + outgoing.length} direct relationships`;
-
-  drawGraph([id, ...incoming.map(edge => edge.sourceId), ...outgoing.map(edge => edge.targetId)]);
-
-  // FIX 5c: reveal the graph panel when a node is selected
-  $('.graphpanel').classList.add('graph-active');
-
-  refreshMap();
-
-  if (loc?.coordinates) map.flyTo({ center: loc.coordinates, zoom: 16 });
-}
-
-// ── Cytoscape graph rendering ────────────────────────────────────────────────
-
-function drawGraph(ids) {
-  const keep = new Set(ids);
-  const nodes = graph.nodes
-    .filter(node => keep.has(node.id))
-    .map(node => ({ data: { id: node.id, label: node.name, type: node.type } }));
-  const edges = graph.edges
-    .filter(edge => keep.has(edge.sourceId) && keep.has(edge.targetId))
-    .map(edge => ({
-      data: {
-        id: edge.id,
-        source: edge.sourceId,
-        target: edge.targetId,
-        label: `${edge.relationship}\n${edge.evidenceLevel}`,
-        evidence: edge.evidenceLevel
-      }
-    }));
-
-  cy?.destroy();
-  cy = cytoscape({
-    container: $('#cy'),
-    elements: { nodes, edges },
-    style: [
-      {
-        selector: 'node',
-        style: {
-          label: 'data(label)',
-          'font-size': 10,
-          'background-color': '#30bfc0',
-          'color': '#dce8f4',
-          'text-wrap': 'wrap',
-          'text-max-width': 100,
-          'text-valign': 'bottom',
-          'text-margin-y': 8
-        }
-      },
-      {
-        selector: 'edge',
-        style: {
-          label: 'data(label)',
-          'font-size': 8,
-          'color': '#dce8f4',
-          'line-color': '#5a86a7',
-          'target-arrow-color': '#5a86a7',
-          'target-arrow-shape': 'triangle',
-          'curve-style': 'bezier'
-        }
-      },
-      {
-        selector: 'edge[evidence = "hypothetical"]',
-        style: { 'line-style': 'dashed', 'line-color': '#bd8cff' }
-      },
-      {
-        selector: 'edge[evidence = "inferred"]',
-        style: { 'line-style': 'dotted', 'line-color': '#ffbd55' }
-      }
-    ],
-    layout: { name: 'cose', animate: false }
-  });
-
-  cy.on('tap', 'node', event => selectNode(event.target.id()));
-}
-
-// ── Downstream trace ─────────────────────────────────────────────────────────
-
-async function downstream() {
-  if (!selectedId) return;
-  const trace = await request(`/api/network/nodes/${encodeURIComponent(selectedId)}/dependencies?maxDepth=4`);
-  drawGraph([selectedId, ...trace.affectedNodeIds]);
-}
-
-// ── Node search ──────────────────────────────────────────────────────────────
-
-function search() {
-  const query = $('#search').value.toLowerCase();
-  const found = graph?.nodes
-    .filter(node =>
-      node.name.toLowerCase().includes(query) ||
-      node.id.toLowerCase().includes(query)
-    )
-    .slice(0, 12) ?? [];
-
-  $('#searchResults').innerHTML = found
-    .map(node => `<button data-node="${esc(node.id)}">${esc(node.name)} <small>${esc(node.type)}</small></button>`)
-    .join('');
-
-  document.querySelectorAll('[data-node]').forEach(button => {
-    button.onclick = () => selectNode(button.dataset.node);
-  });
-}
-
-// ── Event wiring ─────────────────────────────────────────────────────────────
-
-$('#run').onclick = simulate;
-$('#mode').onchange = simulate;
-$('#fit').onclick = fit;
-$('#direct').onclick = () => selectedId && selectNode(selectedId);
-$('#downstream').onclick = downstream;
-$('#search').oninput = search;
-
-document.querySelectorAll('[data-layer]').forEach(input => input.onchange = refreshMap);
-$('#real-buildings').onchange = refreshMap;
-$('#flood').onchange = refreshMap;
-$('#real-pois-toggle').onchange = refreshMap;
-$('#exposed-toggle').onchange = refreshMap;
-$('#census-toggle').onchange = refreshMap;
-$('#cascade-anim-toggle').onchange = () => {
-  if ($('#cascade-anim-toggle').checked && result?.exposedBuildingFootprints?.length) startCascadeAnimation();
-  else stopCascadeAnimation();
+$('#run').onclick=()=>{show('results');simulate();};$('#run-results').onclick=simulate;
+$('#depth').onchange=()=>{if(result){result=null;source('exposure',[]);$('#results').innerHTML='<p class="empty">Depth changed. Run the scenario again to update results.</p>';if(selected)select(selected.id);}};
+$('#ask-form').onsubmit=async event=>{
+  event.preventDefault();if($('#ask').disabled)return;const message=$('#question').value.trim();if(!message)return;
+  const conversation=$('#conversation');conversation.querySelector('.empty')?.remove();conversation.insertAdjacentHTML('beforeend',`<article class="message user"><span class="eyebrow">YOU</span>${esc(message)}</article>`);$('#ask').disabled=true;$('#ask').textContent='Investigating…';
+  try{const response=await request('/api/agent/chat',{sessionId:'richardson-production',message,context:{locationId:region.id,scenarioId:scenario.id,selectedNodeId:selected?.id,scenarioOverrides:{floodDepthFeet:Number($('#depth').value)}}});
+    conversation.insertAdjacentHTML('beforeend',`<article class="message"><span class="eyebrow">${response.provider==='nvidia'?'NVIDIA NEMOTRON':'OFFLINE TEST'}</span>${esc(response.answer||response.warnings?.join('\n')||'Provider returned no answer.')}<details><summary>Evidence & tool trace · ${esc(response.status)}</summary>${response.toolTrace.map(t=>`<p>${esc(t.toolName)} · ${esc(t.status)} · ${esc(t.summary)}</p>`).join('')}${response.warnings.map(w=>`<p>${esc(w)}</p>`).join('')}</details></article>`);
+  }catch(error){conversation.insertAdjacentHTML('beforeend',`<p class="error">${esc(error.message)}</p>`);}finally{$('#ask').disabled=false;$('#ask').textContent='Investigate →';}
 };
-$('#duration').oninput = () => { $('#durationLabel').textContent = $('#duration').value + 'h'; };
-$('#duration').onchange = simulate;
-
-// FIX 5e: disable button during agent call and restore on completion
-$('#ask').onclick = async () => {
-  const chat = $('#chat');
-  const ask = $('#ask');
-
-  chat.textContent = 'Nemotron is investigating…';
-  ask.textContent = 'Investigating…';
-  ask.disabled = true;
-
-  try {
-    const response = await request('/api/agent/chat', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        sessionId: 'resilience-ui',
-        message: $('#question').value,
-        context: {
-          locationId: 'richardson-tx',
-          scenarioId: 'richardson-flood-demo',
-          selectedNodeId: selectedId
-        }
-      })
-    });
-    chat.textContent =
-      response.answer + '\n\nTools: ' +
-      response.toolTrace.map(item => `${item.toolName} (${item.status})`).join(', ');
-  } catch (error) {
-    const raw = String(error.message ?? '');
-    const lower = raw.toLowerCase();
-    if (lower.includes('nvidia_api_key') || lower.includes('api key') || lower.includes('api_key')) {
-      chat.textContent = 'NVIDIA API key is not configured on the server.';
-    } else if (lower.includes('timeout') || lower.includes('aborted') || lower.includes('timed out')) {
-      chat.textContent = `Agent request timed out. ${raw}`;
-    } else {
-      chat.textContent = `Agent error: ${raw}`;
-    }
-  } finally {
-    ask.textContent = 'Investigate with Nemotron';
-    ask.disabled = false;
-  }
-};
-
-// ── Bootstrap ────────────────────────────────────────────────────────────────
-
-setupMap();
-load();
+setup();

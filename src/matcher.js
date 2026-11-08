@@ -27,11 +27,12 @@ function pointInRing([x, y], ring) {
 // Check if a [lon, lat] point falls inside a GeoJSON Polygon or MultiPolygon.
 // Only checks exterior rings — building polygons have no meaningful holes.
 function pointInGeometry(point, geometry) {
+  const insidePolygon=poly=>pointInRing(point,poly[0])&&!poly.slice(1).some(hole=>pointInRing(point,hole));
   if (geometry.type === 'Polygon') {
-    return pointInRing(point, geometry.coordinates[0]);
+    return insidePolygon(geometry.coordinates);
   }
   if (geometry.type === 'MultiPolygon') {
-    return geometry.coordinates.some(poly => pointInRing(point, poly[0]));
+    return geometry.coordinates.some(insidePolygon);
   }
   return false;
 }

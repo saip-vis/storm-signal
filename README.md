@@ -1,78 +1,75 @@
-# Component 1 — Geographic Data & Dependency Network Engine
+# ResilienceOS — Richardson
 
-An offline-first, reusable Node MVP for the Richardson, Texas pilot. It turns fragmented **synthetic** organizational CSVs into a typed dependency graph while retaining source provenance and evidence level. It supports CBRE's data-unification challenge without claiming public map data verifies private utility or continuity relationships.
+Three connected components: source-backed Richardson geography and an evidence-labeled graph; hypothetical flood exposure with XGBoost damage severity and operational screening rules; NVIDIA Nemotron investigation through allowlisted backend tools. The Node application serves the MapLibre frontend and APIs together.
 
-## Run
+## Run locally
+
+Requires Node 22+ and Python with XGBoost/Pandas installed. The existing trained model artifacts are included; retraining is unnecessary.
 
 ```sh
-cd /Users/aakashganesh/component1-network-engine
+npm install
+python3 -m pip install -r ml-training/requirements.txt
+PORT=3050 npm start
+```
+
+Open http://localhost:3050. `npm start` without `PORT` uses 3030. Production data is loaded from local caches; ordinary requests do not contact geographic providers.
+
+If the geographic caches are absent, acquire them once:
+
+```sh
+python3 -m pip install -r scripts/requirements-geography.txt
+npm run data:buildings:fetch:large
+npm run data:buildings:validate:large
+npm run data:pois:fetch
+npm run data:census:fetch
+```
+
+Copy `.env.example` to `.env` and configure `NVIDIA_API_KEY` for live investigations. Never commit `.env`. A Census API key may be supplied as `CENSUS_API_KEY`; requests otherwise attempt public access. Missing provider/model configuration is reported explicitly.
+
+## Data and coverage
+
+`config/regions.json` is shared by acquisition and runtime. Production uses `richardson-north-central-study`, bbox `[-96.755,32.935,-96.705,32.975]`; this is a study rectangle covering part of Richardson, not a municipal boundary. `richardson-central-test` is the smaller regression area. Legacy `richardson-tx` input remains accepted where documented.
+
+- Buildings: Overture GeoParquet, pinned to the STAC-advertised release. The extractor reads only intersecting STAC partition URLs and filters geographic row groups. It fails on timeout or the 50,000-building safety limit instead of saving a truncated extract. Raw geometry is preserved; normalization rejects invalid/out-of-region records and duplicate IDs. Cache updates are atomic. An in-memory cache is invalidated when the file changes.
+- Facilities: observed OSM point records and way centers, acquired through Overpass for the same region. All facilities enter the graph, including unmatched records. `HOSTS` edges are spatially inferred; no private equipment or utility dependencies are asserted. OSM records with the same name remain distinct unless evidence supports reconciliation.
+- Population: Census TIGER/Line tract geometry joined to ACS 2022 population and housing counts. Acquisition queries Dallas and Collin Counties, then filters to the study rectangle. This rectangle currently intersects 10 Dallas County tracts and no Collin County tracts. Population exposure uses actual polygon intersection and geodesic area weighting with an explicit uniform-distribution assumption. Full tract populations are not counts of residents inside the study rectangle.
+
+Latest verified local acquisition: 10,973 raw Overture records, 10,971 accepted and 2 rejected outside the study bounds; release `2026-10-21.0`. OSM: 47 facilities. Census: 10 joined tracts. Counts are measured outputs, not application constants. Providers may update them.
+
+Acquired datasets and normalized caches are local artifacts. `.gitignore` excludes new raw/cache files. Some legacy OSM/Census files were already tracked before this work; review their disposition before a future commit. No Git history changes are performed by the application.
+
+## API contracts
+
+- `GET /api/region`: canonical production study area.
+- `POST /api/network/build` with `{ "locationId": "richardson-north-central-study" }`, then `GET /api/network`, `/summary`, `/nodes/:id`, `/nodes/:id/dependencies`.
+- `GET /api/data/buildings?format=geojson&locationId=richardson-north-central-study&offset=0&limit=2000`: bounded pages with `totalCount`, `returnedCount`, `nextOffset`, provenance and completeness. Continue until `nextOffset` is null. Optional `bbox=west,south,east,north` filters actual polygon intersection. Invalid parameters return HTTP 400. The frontend loads every page.
+- `GET /api/data/businesses?format=geojson&locationId=richardson-north-central-study` and `/api/data/census?format=geojson`.
+- `POST /api/simulations/run` with `{ "scenarioId":"richardson-flood-demo", "overrides":{"floodDepthFeet":4.5} }`.
+- `POST /api/simulations/compare` with a `modification` such as `{ "facilityStatus": { "overture:<actual-id>":"operational" } }`. Both runs use the same production hybrid pipeline. Unsupported economics remain null in comparisons.
+- `GET /api/ml/health` verifies Python execution rather than only artifact presence.
+- `GET /api/agent/health`, `/tools`; `POST /api/agent/chat`; session and trace routes. Health reports configuration and ML execution; it does not claim live NVIDIA verification. `npm run agent:smoke` performs an actual paid provider/tool investigation.
+
+## Hybrid assessment
+
+Production exposes footprints using Polygon/MultiPolygon intersection, including holes and crossing edges. Facilities use their source coordinates. The model receives the NFIP training feature names: assumed interior `waterDepth` in feet relative to the lowest floor, observed floors when available, and unknown occupancy/foundation/year covariates. Missing numeric values use the training sentinel `-1`; missing Boolean indicators use false, matching training. Height is never substituted for floor count. Python execution has a 30-second bound and output validation.
+
+The trained target is physical damage fraction conditional on historical NFIP insurance claims, not closure probability. For exposed buildings, a damage fraction ≥0.45 yields high operational screening risk, ≥0.18 yields elevated risk, and lower values retain unknown operating status. These thresholds are scenario assumptions, not validated closure thresholds. High/elevated screening can propagate potential interruption through inferred occupancy edges, which remain labeled inferred. Counterfactual preservation overrides the screening status. Python/model failure makes the hybrid run unavailable rather than claiming a rules-only success.
+
+Revenue, recovery duration, shelter capacities, displacement, private equipment and service-demand quantities are unknown in production, so those calculations remain unavailable. The flood polygon and depth are hypothetical. None of the results establish actual closure, safety, or a forecast.
+
+## Explicit fixture demos and verification
+
+Synthetic CSVs and the original deterministic example remain available through `npm run demo` and `npm run simulate`. They use explicit `mode:'demo'`; the normal application and live tools use production. `AGENT_PROVIDER=mock_test` is labeled offline, never live NVIDIA.
+
+```sh
 npm test
-npm run demo
-npm start
-curl -X POST http://localhost:3030/api/network/build -H 'content-type: application/json' -d '{"locationId":"richardson-tx"}'
-curl 'http://localhost:3030/api/network/nodes/building%3ARCH-BLDG-012/dependencies?maxDepth=4'
+npm run check
+npm run build
+npm run agent:smoke
 ```
 
-No environment variables or package installation are required. Set `PORT` to change the API port. Build before using network read endpoints.
+`check` validates all JavaScript syntax and the frontend entrypoint. `build` packages the static frontend/MapLibre assets in ignored `dist/`; the application uses the same source files directly. This repository is JavaScript, with no TypeScript compilation configured. Tests cover the original fixture regression, production graph exclusion of synthetic records, complete pagination, polygon exposure, population weighting, actual Python inference, hybrid contribution/failure and counterfactual consistency.
 
-## Integration contract
+## Attribution
 
-Component 2 should consume `DependencyGraph` from `GET /api/network`, inspect coordinates/properties, then use `GET /api/network/nodes/:id/dependencies` for downstream propagation. Component 3 can use `/summary`, `/matches`, node lookup, edge evidence and explanations.
-
-Edge direction is semantic and propagation-directed: `building → HOSTS → business → PROVIDES_SERVICE → service → SERVES_AREA → neighborhood`. `road → ACCESSIBLE_VIA → building` is intentionally not reversed. Traversal only follows outgoing edges.
-
-## API
-
-- `GET /api/health`, `GET /api/locations`
-- `POST /api/network/build` accepts `{ locationId, options: { liveGeography } }`
-- `GET /api/network`, `/api/network/summary`, `/api/network/matches`
-- `GET /api/network/nodes/:id`
-- `GET /api/network/nodes/:id/dependencies?maxDepth=4&relationshipTypes=HOSTS,PROVIDES_SERVICE`
-
-The bundled geographic fixture is marked `synthetic_fixture`; live Overpass discovery is opt-in and has a timeout/fallback. The property, business, maintenance, resource records and service areas are synthetic. OSM, when available, supplies map features only—not verified equipment, utility, capacity, shelter, or business-continuity information.
-
-## Design limits
-
-CSV parsing is deliberately lightweight (no quoted-comma support), data is in memory, Richardson is the only configured location, and upload/multipart import is intentionally deferred. `src/types.js` exports stable node/edge enums, validation, location, and provenance helpers.
-
-## Component 2 — Disaster simulation
-
-Run the deterministic Richardson flood exercise with `npm run simulate`. The hypothetical polygon is in `data/simulations/richardson-flood.json`; community population, revenue, facility vulnerability, service demand, alternatives, and shelters are independently configured in `richardson-attributes.json` and are all explicitly synthetic. It consumes the Component 1 graph via the compatible offline provider—no external data is required.
-
-Simulation API routes (after `npm start`):
-
-- `GET /api/simulations/health`, `/api/simulations/scenarios`
-- `POST /api/simulations/run` with `{"scenarioId":"richardson-flood-demo"}`
-- `POST /api/simulations/compare` with `{"scenarioId":"richardson-flood-demo","modification":{"facilityStatus":{"building:RCH-BLDG-012":"operational"}}}`
-- `GET /api/simulations/results/richardson-flood-demo`, `/impact`, `/timeline`
-- `GET /api/simulations/results/richardson-flood-demo/nodes/building%3ARCH-BLDG-012`
-
-The only fully implemented hazard is a flood. The model uses point-in-polygon exposure, transparent severity/vulnerability rules, relationship-specific propagation (`HOSTS`, `PROVIDES_SERVICE`, `SERVES_AREA`), illustrative revenue-at-risk, separate population displacement/shelter demand, and a four-step timeline. It is scenario analysis—not a forecast, damage model, official shelter directory, or verified business-continuity assessment.
-
-## Component 3 — NVIDIA Nemotron investigation agent
-
-The agent uses an allowlisted tool registry over the real Component 1 and Component 2 functions. It supports compact network inspection, node lookup, dependency tracing, simulation runs, impact reports, node explanations, and counterfactual comparisons. Tool execution IDs, arguments, status, duration, and summaries are retained per bounded in-memory session.
-
-Copy `.env.example` to `.env` and set `NVIDIA_API_KEY` to use live NVIDIA. The default provider is `nvidia`; it fails clearly when a key is absent and does not claim live connectivity. The provider calls NVIDIA's OpenAI-compatible `chat/completions` endpoint using configured `NVIDIA_BASE_URL` and `NVIDIA_MODEL`. `AGENT_PROVIDER=mock_test` is only an explicitly labeled offline/test mode:
-
-```sh
-npm run agent:demo
-```
-
-Agent API: `GET /api/agent/health`, `GET /api/agent/tools`, `POST /api/agent/chat`, `GET /api/agent/sessions/:id`, `GET /api/agent/sessions/:id/trace`, and `POST /api/agent/sessions/:id/reset`.
-
-## Feature 1 — real building footprints (Richardson pilot)
-
-`src/buildings.js` is isolated from the dependency graph and simulator. It defines the small `richardson-tx` WGS84 rectangular study area (`[-96.731, 32.950, -96.727, 32.954]`), normalizes Overture `building` polygons/multipolygons, rejects malformed/duplicate/out-of-bound records, produces a representative footprint point, and writes versioned snapshots atomically. It does **not** create graph nodes or dependency relationships.
-
-```sh
-npm run data:buildings:fetch
-npm run data:buildings:validate
-npm run data:buildings:summary
-curl 'http://localhost:3050/api/data/buildings?locationId=richardson-tx&limit=100'
-curl 'http://localhost:3050/api/data/buildings?format=geojson&limit=100'
-```
-
-The fetch command uses the official Overture Maps client and caches only a complete GeoJSON response. It records the STAC-advertised release and acquisition time beside the raw extract, then validation creates `data/buildings/cache/richardson-tx-buildings.json` atomically. A failed refresh never replaces a valid snapshot. Overture's public buildings theme combines open sources and preserves original footprints; it should be attributed under its documented terms. If Overture or its S3 backend is unavailable and there is no valid cache, the endpoint fails explicitly rather than serving synthetic substitute footprints. The acquired raw file and snapshot are deliberately ignored from source control.
-
-`GET /api/data/buildings?format=geojson&limit=100` returns provider-backed Polygon/MultiPolygon features. Optional `bbox=west,south,east,north`, `offset`, and `limit` constrain the response. The map renders these as a separate real-footprint layer; it does not infer graph dependencies from them.
+Overture buildings combine sources under the [Overture licensing terms](https://docs.overturemaps.org/attribution/). OSM data © OpenStreetMap contributors (ODbL). Map attribution is preserved. Census data comes from the US Census Bureau; the map basemap uses OpenFreeMap/OpenMapTiles/OpenStreetMap. Acquisition follows [Overture's documented GeoParquet workflow](https://docs.overturemaps.org/getting-data/duckdb/).

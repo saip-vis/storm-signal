@@ -21,7 +21,7 @@ import {
   poiCachePath,
   POI_SCHEMA_VERSION
 } from '../src/pois.js';
-import { DEFAULT_REGION_ID } from '../src/regions.js';
+import { VISUALIZATION_REGION_ID as DEFAULT_REGION_ID, region } from '../src/regions.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -32,7 +32,7 @@ const ENDPOINTS = [
 ];
 
 // Richardson north-central study area bbox: [west, south, east, north]
-const BBOX = [-96.755, 32.935, -96.705, 32.975];
+const BBOX = region(DEFAULT_REGION_ID).bbox;
 const [west, south, east, north] = BBOX;
 
 // Exact Overpass query — [timeout:50] gives the server 50s to execute.
@@ -77,6 +77,7 @@ async function main() {
         throw new Error(`HTTP ${response.status}: ${text.slice(0, 200)}`);
       }
       rawData = await response.json();
+      if(rawData.remark||!Array.isArray(rawData.elements))throw new Error(`Incomplete Overpass response: ${rawData.remark??'missing elements'}`);
       successEndpoint = endpoint;
       console.log(`Success via ${endpoint}`);
       break;

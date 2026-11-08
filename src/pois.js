@@ -1,7 +1,7 @@
 import { access, mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { DEFAULT_REGION_ID, region as configuredRegion } from './regions.js';
+import { VISUALIZATION_REGION_ID as DEFAULT_REGION_ID, region as configuredRegion } from './regions.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 

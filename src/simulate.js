@@ -1,3 +1,3 @@
 import { runSimulation, compareScenarios } from './simulation/engine.js';
-const result=await runSimulation(); const whatIf=await compareScenarios({facilityStatus:{'building:RCH-BLDG-012':'operational'}});
+const result=await runSimulation({mode:'demo'}); const whatIf=await compareScenarios({facilityStatus:{'building:RCH-BLDG-012':'operational'}},{mode:'demo'});
 console.log(JSON.stringify({summary:{evaluatedNodes:result.exposure.length,exposedAssets:result.exposedAssetIds,failures:result.failures.filter(x=>x.predictedStatus!=='operational').map(x=>x.nodeId),cascadingImpacts:result.cascadingImpacts.impacts.length,revenueAtRisk:result.businessImpact.totalEstimatedRevenueAtRiskUSD,displacedResidents:result.directCommunityImpact.estimatedDisplacedResidents,shelterDemand:result.shelterNeeds.shelterDemand,shelterShortfall:result.shelterNeeds.unmetShelterDemand,serviceGaps:result.serviceGaps.gaps.length},whatIf:whatIf.differences},null,2));
