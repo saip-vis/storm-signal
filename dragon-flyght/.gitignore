@@ -1,0 +1,13 @@
+.venv/
+node_modules/
+frontend/dist/
+__pycache__/
+.pytest_cache/
+.env
+data/*.sqlite*
+*.log
+data/cache/
+.env.*
+!.env.example
+.DS_Store
+*.tsbuildinfo

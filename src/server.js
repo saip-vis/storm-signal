@@ -7,11 +7,13 @@ import { productionScenario } from './production-simulation.js';
 import { supportedScenarios, getScenario, analyzeHazard } from './hazards/index.js';
 import { frontendConfig } from './frontend-config.js';
 import { agentHealth } from './agent/health.js';
+import { dragonfly } from './dragonfly.js';
 const service = new NetworkService(); const port = Number(process.env.PORT || 3030);
 const projectRoot=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const send = (res, status, value) => { res.writeHead(status, {'content-type':'application/json','access-control-allow-origin':'*'}); res.end(JSON.stringify(value, null, 2)); };
 function query(url) { return Object.fromEntries(url.searchParams); }
 const server = http.createServer(async (req,res) => { const url = new URL(req.url, `http://${req.headers.host}`); try {
+  if(url.pathname==='/dragonfly'||url.pathname.startsWith('/dragonfly/'))return await dragonfly(req,res,url);
   if(req.method==='GET'&&url.pathname==='/api/frontend-config')return send(res,200,frontendConfig());
   if(req.method==='GET'&&url.pathname==='/api/hazards')return send(res,200,await supportedScenarios());
   const hazardScenario=url.pathname.match(/^\/api\/simulations\/scenarios\/(noaa-dat(?::|%3A)[0-9]+)$/i);if(req.method==='GET'&&hazardScenario)return send(res,200,await getScenario(decodeURIComponent(hazardScenario[1])));

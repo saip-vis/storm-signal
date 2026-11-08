@@ -1,0 +1,146 @@
+{
+  "version": "noaa-logistic-20261108T014908595603",
+  "source": "trained-historical",
+  "target": "Reported event property damage \u2265 $100,000",
+  "threshold": 100000,
+  "family": "Logistic regression",
+  "calibrated": false,
+  "features": [
+    "EVENT_TYPE",
+    "MAGNITUDE",
+    "month",
+    "BEGIN_LAT",
+    "BEGIN_LON"
+  ],
+  "rows": 17500,
+  "excludedMissingDamage": 3597,
+  "missingness": {
+    "EVENT_ID": 0.0,
+    "EPISODE_ID": 0.0,
+    "YEAR": 0.0,
+    "MONTH_NAME": 0.0,
+    "BEGIN_DATE_TIME": 0.0,
+    "CZ_TIMEZONE": 0.0,
+    "EVENT_TYPE": 0.0,
+    "STATE": 0.0,
+    "CZ_NAME": 0.0,
+    "BEGIN_LAT": 0.0,
+    "BEGIN_LON": 0.0,
+    "MAGNITUDE": 0.1841,
+    "DAMAGE_PROPERTY": 0.1705
+  },
+  "splits": {
+    "train": 6743,
+    "validation": 5545,
+    "test": 5212
+  },
+  "periods": {
+    "train": "2021\u20132022",
+    "validation": "2023",
+    "test": "2024"
+  },
+  "classDistribution": {
+    "0": 16665,
+    "1": 835
+  },
+  "metrics": {
+    "accuracy": 0.9495395241749808,
+    "precision": 0.6666666666666666,
+    "recall": 0.007575757575757576,
+    "f1": 0.0149812734082397,
+    "rocAuc": 0.8011650712868377,
+    "prAuc": 0.21504438089516528,
+    "brier": 0.04359580173619958,
+    "confusionMatrix": [
+      [
+        4947,
+        1
+      ],
+      [
+        262,
+        2
+      ]
+    ]
+  },
+  "validationMetrics": {
+    "accuracy": 0.951127141568981,
+    "precision": 0.0,
+    "recall": 0.0,
+    "f1": 0.0,
+    "rocAuc": 0.7621447198345962,
+    "prAuc": 0.16615807020423903,
+    "brier": 0.04308415250585098,
+    "confusionMatrix": [
+      [
+        5274,
+        3
+      ],
+      [
+        268,
+        0
+      ]
+    ]
+  },
+  "baseline": {
+    "accuracy": 0.9493476592478894,
+    "precision": 0.0,
+    "recall": 0.0,
+    "f1": 0.0,
+    "rocAuc": 0.5,
+    "prAuc": 0.05065234075211052,
+    "brier": 0.04811936352634397,
+    "confusionMatrix": [
+      [
+        4948,
+        0
+      ],
+      [
+        264,
+        0
+      ]
+    ]
+  },
+  "featureContributions": [
+    {
+      "name": "category__EVENT_TYPE_Thunderstorm Wind",
+      "coefficient": -3.508934196136651
+    },
+    {
+      "name": "numeric__MAGNITUDE",
+      "coefficient": 2.6863085689239106
+    },
+    {
+      "name": "category__EVENT_TYPE_Hail",
+      "coefficient": 2.6722100711638044
+    },
+    {
+      "name": "category__EVENT_TYPE_Flash Flood",
+      "coefficient": -1.5904756014969665
+    },
+    {
+      "name": "category__EVENT_TYPE_Tornado",
+      "coefficient": 0.45006762203040757
+    },
+    {
+      "name": "numeric__BEGIN_LAT",
+      "coefficient": -0.2580453693704475
+    },
+    {
+      "name": "numeric__month",
+      "coefficient": -0.07035225174017036
+    },
+    {
+      "name": "numeric__BEGIN_LON",
+      "coefficient": -0.03318885171174661
+    }
+  ],
+  "limitations": [
+    "Experimental retrospective event-level impact classification, not operational forecasting.",
+    "Recorded magnitude is post-event information; scenario magnitude is a user assumption.",
+    "Reported zero damage is a reporting value, not verified absence of damage. Missing damage is excluded.",
+    "Building vulnerability, loss, displacement and failure sampling are transparent scenario assumptions, not validated property predictions.",
+    "Uncalibrated model scores; coarse event data cannot resolve individual tornado paths."
+  ],
+  "trainedAt": "2026-11-08T01:49:08.636149+00:00",
+  "trainingSeconds": 0.138
+}
