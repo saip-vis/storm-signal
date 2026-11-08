@@ -1,0 +1,867 @@
+{
+  "version": 0.6,
+  "generator": "Overpass API 0.7.62.11 87bfad18",
+  "osm3s": {
+    "timestamp_osm_base": "2026-11-08T10:48:59Z",
+    "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
+  },
+  "elements": [
+    {
+      "type": "node",
+      "id": 356707107,
+      "lat": 32.945679,
+      "lon": -96.7327763,
+      "tags": {
+        "amenity": "school",
+        "education": "school",
+        "ele": "189",
+        "gnis:feature_id": "1336982",
+        "name": "Greenville Avenue School"
+      }
+    },
+    {
+      "type": "node",
+      "id": 356794393,
+      "lat": 32.963899,
+      "lon": -96.710937,
+      "tags": {
+        "amenity": "school",
+        "ele": "195",
+        "gnis:feature_id": "2004190",
+        "name": "Richardson Alternative Learning Center"
+      }
+    },
+    {
+      "type": "node",
+      "id": 356858941,
+      "lat": 32.9387,
+      "lon": -96.734,
+      "tags": {
+        "amenity": "school",
+        "ele": "185",
+        "gnis:feature_id": "2428794",
+        "name": "Christa McAuliffe Learning Center"
+      }
+    },
+    {
+      "type": "node",
+      "id": 356858959,
+      "lat": 32.9356983,
+      "lon": -96.7420556,
+      "tags": {
+        "amenity": "school",
+        "ele": "182",
+        "gnis:feature_id": "2428802",
+        "name": "Evolution Academy Charter School"
+      }
+    },
+    {
+      "type": "node",
+      "id": 2078416437,
+      "lat": 32.9404336,
+      "lon": -96.7470183,
+      "tags": {
+        "addr:city": "Richardson",
+        "addr:housenumber": "818",
+        "addr:postcode": "75080",
+        "addr:state": "TX",
+        "addr:street": "South Central Expressway",
+        "addr:unit": "21",
+        "name": "EZ Mart",
+        "shop": "convenience"
+      }
+    },
+    {
+      "type": "node",
+      "id": 3960878650,
+      "lat": 32.9637238,
+      "lon": -96.7428762,
+      "tags": {
+        "addr:city": "Richardson",
+        "addr:country": "US",
+        "addr:housenumber": "1112",
+        "addr:postcode": "75080",
+        "addr:state": "TX",
+        "addr:street": "North Floyd Road",
+        "addr:unit": "9",
+        "amenity": "pharmacy",
+        "contact:email": "aebrumfi1@theaepharmacy.com",
+        "fax": "+1 972 2348501",
+        "healthcare": "pharmacy",
+        "name": "Heights Community Pharmacy",
+        "opening_hours": "Mo-Fr 08:30-18:00; Sa 08:30-14:00; Su off",
+        "phone": "+1 972 2348500",
+        "website": "http://Heightsrx.com"
+      }
+    },
+    {
+      "type": "node",
+      "id": 5691465797,
+      "lat": 32.9748769,
+      "lon": -96.7087667,
+      "tags": {
+        "amenity": "clinic",
+        "healthcare": "clinic",
+        "name": "USA Vein Clinics"
+      }
+    },
+    {
+      "type": "node",
+      "id": 6914010769,
+      "lat": 32.961786,
+      "lon": -96.7506594,
+      "tags": {
+        "addr:housenumber": "819",
+        "addr:state": "TX",
+        "addr:street": "West Arapaho Road",
+        "amenity": "pharmacy",
+        "check_date": "2026-05-09",
+        "dispensing": "yes",
+        "drive_through": "no",
+        "healthcare": "pharmacy",
+        "internet_access": "no",
+        "name": "Arapaho Pharmacy",
+        "opening_hours": "Mo-Fr 09:00-18:00; Sa 09:00-16:00; Su off",
+        "payment:apple_pay": "yes",
+        "payment:cash": "yes",
+        "payment:credit_cards": "yes",
+        "payment:debit_cards": "yes",
+        "payment:google_pay": "yes",
+        "phone": "+1-972-235-7133"
+      }
+    },
+    {
+      "type": "node",
+      "id": 9197475055,
+      "lat": 32.9378331,
+      "lon": -96.7198,
+      "tags": {
+        "addr:city": "Richardson",
+        "addr:housenumber": "540",
+        "addr:postcode": "75081",
+        "addr:state": "TX",
+        "addr:street": "Centennial Boulevard",
+        "name": "Chilly Mart",
+        "shop": "convenience"
+      }
+    },
+    {
+      "type": "node",
+      "id": 9921283075,
+      "lat": 32.9528885,
+      "lon": -96.7278181,
+      "tags": {
+        "addr:city": "Dallas",
+        "addr:housenumber": "400",
+        "addr:postcode": "75081",
+        "addr:state": "TX",
+        "addr:street": "North Greenville Avenue",
+        "contact:facebook": "61560940657181",
+        "contact:instagram": "goodfortunedallas",
+        "email": "goodfortunesupermarkettx@gmail.com",
+        "name": "GOOD FORTUNE Supermarket",
+        "name:zh-Hans": "好运来超级市场",
+        "phone": "+1-972-798-1168",
+        "shop": "supermarket",
+        "website": "https://dfwchinatown.com/store-directory/good-fortune-supermarket/"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12438012753,
+      "lat": 32.9472498,
+      "lon": -96.7121032,
+      "tags": {
+        "addr:city": "Richardson",
+        "addr:housenumber": "940",
+        "addr:postcode": "75081",
+        "addr:state": "TX",
+        "addr:street": "East Belt Line Road",
+        "amenity": "dancing_school",
+        "dance:style": "ballroom",
+        "name": "PJ's Dancetique"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12650556320,
+      "lat": 32.9441491,
+      "lon": -96.7270142,
+      "tags": {
+        "amenity": "school",
+        "name": "math science technology magnet"
+      }
+    },
+    {
+      "type": "node",
+      "id": 12650556321,
+      "lat": 32.944311,
+      "lon": -96.7267576,
+      "tags": {
+        "addr:city": "Richardson",
+        "addr:housenumber": "450",
+        "addr:postcode": "75081",
+        "addr:state": "TX",
+        "addr:street": "Abrams Road",
+        "amenity": "school",
+        "grades": "1-6",
+        "name": "math science technology magnet",
+        "operator": "Lauren Bolack",
+        "religion": "none",
+        "website": "https.risd.org"
+      }
+    },
+    {
+      "type": "node",
+      "id": 13203296303,
+      "lat": 32.9638007,
+      "lon": -96.74304,
+      "tags": {
+        "addr:city": "Richardson",
+        "addr:housenumber": "1112",
+        "addr:postcode": "75080",
+        "addr:state": "TX",
+        "addr:street": "North Floyd Road",
+        "addr:unit": "10",
+        "amenity": "doctors",
+        "fax": "+1-972-235-3285",
+        "healthcare": "doctor",
+        "healthcare:speciality": "paediatrics",
+        "name": "John R. Porter, MD Pediatric & Adolescent Medicine",
+        "opening_hours": "Mo-Fr 09:00-16:30",
+        "phone": "+1-972-235-6911",
+        "website": "https://johnportermd.com/"
+      }
+    },
+    {
+      "type": "node",
+      "id": 13733226973,
+      "lat": 32.9396234,
+      "lon": -96.7476165,
+      "tags": {
+        "check_date": "2026-04-15",
+        "name": "Happy's Market",
+        "shop": "convenience"
+      }
+    },
+    {
+      "type": "node",
+      "id": 13859761521,
+      "lat": 32.9612374,
+      "lon": -96.7361539,
+      "tags": {
+        "amenity": "driving_school",
+        "education": "driving_school",
+        "name": "Quick Driving School"
+      }
+    },
+    {
+      "type": "node",
+      "id": 13963507963,
+      "lat": 32.9487245,
+      "lon": -96.7380942,
+      "tags": {
+        "addr:city": "Richardson",
+        "addr:housenumber": "100",
+        "addr:postcode": "75080",
+        "addr:state": "TX",
+        "addr:street": "South Central Expressway",
+        "addr:unit": "Suite 26C",
+        "name": "Desi Brothers",
+        "shop": "grocery",
+        "source": "local knowledge"
+      }
+    },
+    {
+      "type": "node",
+      "id": 13991133201,
+      "lat": 32.951711,
+      "lon": -96.7278383,
+      "tags": {
+        "addr:housenumber": "300 #309",
+        "addr:postcode": "75081",
+        "addr:street": "Terrace Drive",
+        "contact:facebook": "100088512152951",
+        "email": "goldenstarhalalmarket@gmail.com",
+        "name": "Golden Star - Afghan Market, Bakery, & Cafe",
+        "opening_hours": "Mo-Su 09:00-21:00",
+        "phone": "+1-214-954-7667",
+        "shop": "convenience"
+      }
+    },
+    {
+      "type": "node",
+      "id": 13991133801,
+      "lat": 32.951711,
+      "lon": -96.7278383,
+      "tags": {
+        "addr:housenumber": "300 #309",
+        "addr:postcode": "75081",
+        "addr:street": "Terrace Drive",
+        "name": "Golden Star Halal Market - Afghan Market, Bakery, & Cafe",
+        "shop": "convenience"
+      }
+    },
+    {
+      "type": "node",
+      "id": 14095823932,
+      "lat": 32.9377154,
+      "lon": -96.7399518,
+      "tags": {
+        "amenity": "clinic",
+        "check_date": "2026-08-14",
+        "healthcare": "clinic",
+        "name": "Green Crescent Clinic"
+      }
+    },
+    {
+      "type": "node",
+      "id": 14152800101,
+      "lat": 32.970073,
+      "lon": -96.7166592,
+      "tags": {
+        "addr:city": "Richardson",
+        "addr:housenumber": "1750",
+        "addr:postcode": "75081",
+        "addr:state": "TX",
+        "addr:street": "Alma Road",
+        "addr:unit": "100",
+        "name": "Afghan Asian Halal Market",
+        "shop": "convenience"
+      }
+    },
+    {
+      "type": "node",
+      "id": 14272178672,
+      "lat": 32.953554,
+      "lon": -96.7276607,
+      "tags": {
+        "amenity": "community_centre",
+        "name": "Dallas Chinese Community Center"
+      }
+    },
+    {
+      "type": "node",
+      "id": 14316939527,
+      "lat": 32.9396839,
+      "lon": -96.7307307,
+      "tags": {
+        "addr:city": "Richardson",
+        "addr:housenumber": "840",
+        "addr:postcode": "75081",
+        "addr:state": "TX",
+        "addr:street": "Abrams Road",
+        "amenity": "school",
+        "contact:facebook": "https://www.facebook.com/471936852866709",
+        "name": "IANT Quranic Academy",
+        "phone": "+19722318451",
+        "website": "http://www.myiqa.org/"
+      }
+    },
+    {
+      "type": "node",
+      "id": 14324145501,
+      "lat": 32.9746164,
+      "lon": -96.725243,
+      "tags": {
+        "addr:housenumber": "399",
+        "addr:postcode": "75080",
+        "addr:street": "West Campbell Road",
+        "amenity": "doctors",
+        "check_date": "2026-10-27",
+        "check_date:opening_hours": "2026-10-27",
+        "contact:facebook": "MethodistHealthSystem",
+        "contact:instagram": "methodisthealthdfw",
+        "contact:twitter": "mhshospitals",
+        "healthcare": "doctor",
+        "level": "0",
+        "name": "Methodist Richardson Family Medical Group",
+        "opening_hours": "Mo-Fr 08:00-17:00",
+        "phone": "+1-972-238-1848",
+        "website": "https://www.methodisthealthsystem.org/location/methodist-richardson-family-medical-group"
+      }
+    },
+    {
+      "type": "way",
+      "id": 131171041,
+      "center": {
+        "lat": 32.9613886,
+        "lon": -96.7497583
+      },
+      "tags": {
+        "addr:housenumber": "39",
+        "addr:postcode": "75080",
+        "addr:street": "Arapaho Village Road",
+        "branch": "2526",
+        "brand": "Tom Thumb",
+        "brand:wikidata": "Q7817826",
+        "building": "commercial",
+        "building:levels": "1",
+        "designation": "Safeway 2526",
+        "height": "9.8",
+        "name": "Tom Thumb",
+        "opening_hours": "Mo-Su 06:00-23:00",
+        "shop": "supermarket",
+        "website": "https://local.tomthumb.com/tx/richardson/819-arapaho-rd.html"
+      }
+    },
+    {
+      "type": "way",
+      "id": 220367122,
+      "center": {
+        "lat": 32.9395182,
+        "lon": -96.740764
+      },
+      "tags": {
+        "addr:city": "Richardson",
+        "addr:housenumber": "325",
+        "addr:postcode": "75081",
+        "addr:state": "TX",
+        "addr:street": "West Spring Valley Road",
+        "brand": "Dollar General Market",
+        "brand:wikidata": "Q145168",
+        "building": "yes",
+        "height": "6.1",
+        "name": "Dollar General Market",
+        "old_name": "CVS",
+        "opening_hours": "08:00-22:00",
+        "phone": "+1-615-855-4000",
+        "shop": "supermarket",
+        "website": "https://www.dollargeneral.com/store-directory/tx/richardson/25807"
+      }
+    },
+    {
+      "type": "way",
+      "id": 220533008,
+      "center": {
+        "lat": 32.9396194,
+        "lon": -96.7524142
+      },
+      "tags": {
+        "addr:city": "Dallas",
+        "addr:housenumber": "8702",
+        "addr:postcode": "75240",
+        "addr:state": "TX",
+        "addr:street": "Spring Valley Road",
+        "brand": "La Michoacana Meat Market",
+        "brand:en": "La Michoacana Meat Market",
+        "brand:es": "La Michoacana",
+        "brand:wikidata": "Q6463872",
+        "building": "yes",
+        "cuisine": "latin_american",
+        "name": "La Michoacana Meat Market",
+        "name:en": "La Michoacana Meat Market",
+        "name:es": "La Michoacana",
+        "shop": "supermarket",
+        "short_name": "La Michoacana"
+      }
+    },
+    {
+      "type": "way",
+      "id": 279669330,
+      "center": {
+        "lat": 32.9517876,
+        "lon": -96.7453982
+      },
+      "tags": {
+        "addr:city": "Richardson",
+        "addr:housenumber": "101",
+        "addr:postcode": "75080",
+        "addr:state": "TX",
+        "addr:street": "North Floyd Road",
+        "amenity": "school",
+        "capacity": "481",
+        "mascot": "Wildcats",
+        "name": "Richardson Heights Elementary School",
+        "operator": "Richardson Independent School District",
+        "website": "https://schools.risd.org/RichardsonHeightsES"
+      }
+    },
+    {
+      "type": "way",
+      "id": 280623417,
+      "center": {
+        "lat": 32.9678416,
+        "lon": -96.7352164
+      },
+      "tags": {
+        "addr:city": "Richardson",
+        "addr:housenumber": "1301",
+        "addr:postcode": "75080",
+        "addr:state": "TX",
+        "addr:street": "Custer Road",
+        "amenity": "school",
+        "name": "Northrich Elementary School"
+      }
+    },
+    {
+      "type": "way",
+      "id": 280623418,
+      "center": {
+        "lat": 32.9751539,
+        "lon": -96.74217
+      },
+      "tags": {
+        "addr:city": "Richardson",
+        "addr:housenumber": "1820",
+        "addr:postcode": "75080",
+        "addr:state": "TX",
+        "addr:street": "North Floyd Road",
+        "amenity": "school",
+        "education": "school",
+        "ele": "200",
+        "gnis:feature_id": "2428833",
+        "isced:level": "2",
+        "mascot": "Vikings",
+        "name": "Richardson North Junior High School",
+        "operator": "Richardson Independent School District",
+        "website": "https://schools.risd.org/RichardsonNorthJH/"
+      }
+    },
+    {
+      "type": "way",
+      "id": 280623454,
+      "center": {
+        "lat": 32.968518,
+        "lon": -96.7494735
+      },
+      "tags": {
+        "addr:city": "Richardson",
+        "addr:housenumber": "1313",
+        "addr:postcode": "75080",
+        "addr:state": "TX",
+        "addr:street": "West Shore Drive",
+        "amenity": "school",
+        "ele": "191",
+        "gnis:feature_id": "2004461",
+        "name": "Greenwood Hills Elementary School"
+      }
+    },
+    {
+      "type": "way",
+      "id": 346072752,
+      "center": {
+        "lat": 32.9443369,
+        "lon": -96.7267312
+      },
+      "tags": {
+        "addr:city": "Richardson",
+        "addr:housenumber": "450",
+        "addr:postcode": "75081",
+        "addr:state": "TX",
+        "addr:street": "Abrams Road",
+        "amenity": "school",
+        "ele": "191",
+        "gnis:feature_id": "2004519",
+        "name": "Classical Magnet School",
+        "operator": "Richardson ISD"
+      }
+    },
+    {
+      "type": "way",
+      "id": 376177516,
+      "center": {
+        "lat": 32.9601785,
+        "lon": -96.7320938
+      },
+      "tags": {
+        "addr:housenumber": "421",
+        "addr:postcode": "75080",
+        "addr:street": "West Arapaho Road",
+        "amenity": "library",
+        "building": "public",
+        "building:levels": "4",
+        "check_date": "2026-11-07",
+        "contact:facebook": "RichardsonLibrary",
+        "contact:instagram": "richardsonlibrary",
+        "email": "AskRichardsonLibrary@cor.gov",
+        "height": "17.1",
+        "internet_access": "wlan",
+        "name": "Richardson Public Library",
+        "opening_hours": "Mo-Th 09:00-21:00; Fr,Sa 10:00-18:00; Su 14:00-18:00",
+        "phone": "+1-972-744-4350",
+        "website": "https://www.cor.net/departments/public-library"
+      }
+    },
+    {
+      "type": "way",
+      "id": 421715507,
+      "center": {
+        "lat": 32.9599057,
+        "lon": -96.7240331
+      },
+      "tags": {
+        "addr:housenumber": "102",
+        "building": "commercial",
+        "height": "6.1",
+        "name": "Circle K",
+        "shop": "convenience"
+      }
+    },
+    {
+      "type": "way",
+      "id": 449037441,
+      "center": {
+        "lat": 32.9395519,
+        "lon": -96.7057454
+      },
+      "tags": {
+        "addr:city": "Richardson",
+        "addr:housenumber": "600",
+        "addr:postcode": "75081",
+        "addr:state": "TX",
+        "addr:street": "South Glenville Drive",
+        "amenity": "school",
+        "education": "school",
+        "ele": "192",
+        "gnis:feature_id": "2004403",
+        "name": "Jess Harben Elementary School",
+        "operator": "Richardson Independent School District",
+        "operator:short": "Richardson ISD",
+        "operator:type": "public",
+        "operator:wikidata": "Q7330336"
+      }
+    },
+    {
+      "type": "way",
+      "id": 449037451,
+      "center": {
+        "lat": 32.9516927,
+        "lon": -96.7218523
+      },
+      "tags": {
+        "addr:city": "Richardson",
+        "addr:housenumber": "300",
+        "addr:postcode": "75081",
+        "addr:state": "TX",
+        "addr:street": "North Dorothy Drive",
+        "amenity": "school",
+        "ele": "199",
+        "gnis:feature_id": "2004195",
+        "name": "Richardson Terrace Elementary School",
+        "operator": "Richardson Independent School District",
+        "operator:type": "public"
+      }
+    },
+    {
+      "type": "way",
+      "id": 563509845,
+      "center": {
+        "lat": 32.9396486,
+        "lon": -96.7339665
+      },
+      "tags": {
+        "addr:city": "Richardson",
+        "addr:housenumber": "236",
+        "addr:postcode": "75081",
+        "addr:state": "TX",
+        "addr:street": "East Spring Valley Road",
+        "brand": "Valero",
+        "brand:wikidata": "Q1283291",
+        "building": "retail",
+        "height": "6.1",
+        "name": "Valero",
+        "shop": "convenience"
+      }
+    },
+    {
+      "type": "way",
+      "id": 563509847,
+      "center": {
+        "lat": 32.9482011,
+        "lon": -96.7304898
+      },
+      "tags": {
+        "addr:city": "Richardson",
+        "addr:housenumber": "100",
+        "addr:postcode": "75081",
+        "addr:state": "TX",
+        "addr:street": "South Greenville Avenue",
+        "brand": "Circle K",
+        "brand:wikidata": "Q3268010",
+        "building": "retail",
+        "name": "Circle K",
+        "shop": "convenience"
+      }
+    },
+    {
+      "type": "way",
+      "id": 569687114,
+      "center": {
+        "lat": 32.9741577,
+        "lon": -96.7268542
+      },
+      "tags": {
+        "addr:city": "Richardson",
+        "addr:housenumber": "401",
+        "addr:postcode": "75080",
+        "addr:street": "West Campbell Road",
+        "amenity": "hospital",
+        "beds": "200",
+        "emergency": "yes",
+        "gnis:feature_id": "2015559",
+        "healthcare": "hospital",
+        "name": "Methodist Campus for Continuing Care",
+        "note": "emergency room info at https://www.methodisthealthsystem.org/methodist-richardson-medical-center/medical-services/emergency-trauma-services/",
+        "old_name": "Methodist - Richardson Medical Center",
+        "opening_hours": "24/7",
+        "operator": "Methodist Health System",
+        "phone": "+1 469 204 1000",
+        "website": "https://www.methodisthealthsystem.org/our-locations/methodist-campus-for-continuing-care/"
+      }
+    },
+    {
+      "type": "way",
+      "id": 570535998,
+      "center": {
+        "lat": 32.9599655,
+        "lon": -96.7144112
+      },
+      "tags": {
+        "brand": "RaceTrac",
+        "brand:wikidata": "Q735942",
+        "building": "commercial",
+        "building:levels": "1",
+        "height": "3.4",
+        "name": "RaceTrac",
+        "shop": "convenience"
+      }
+    },
+    {
+      "type": "way",
+      "id": 597907004,
+      "center": {
+        "lat": 32.936421,
+        "lon": -96.7206697
+      },
+      "tags": {
+        "addr:city": "Richardson",
+        "addr:housenumber": "536",
+        "addr:postcode": "75081",
+        "addr:state": "TX",
+        "addr:street": "Centennial Boulevard",
+        "branch": "Buckingham",
+        "brand": "Kroger",
+        "brand:wikidata": "Q153417",
+        "building": "retail",
+        "height": "7.6",
+        "name": "Kroger",
+        "opening_hours": "Mo-Fr 09:00-20:00; Sa 09:00-18:00; Su 11:00-18:00",
+        "phone": "+1 972-437-2478",
+        "ref": "03500526",
+        "shop": "supermarket",
+        "website": "https://www.kroger.com/stores/grocery/tx/richardson/buckingham/035/00526"
+      }
+    },
+    {
+      "type": "way",
+      "id": 597920498,
+      "center": {
+        "lat": 32.9397406,
+        "lon": -96.7356293
+      },
+      "tags": {
+        "building": "commercial",
+        "height": "4.6",
+        "shop": "convenience"
+      }
+    },
+    {
+      "type": "way",
+      "id": 598172782,
+      "center": {
+        "lat": 32.9630692,
+        "lon": -96.749747
+      },
+      "tags": {
+        "addr:city": "Richardson",
+        "addr:housenumber": "820",
+        "addr:postcode": "75080",
+        "addr:state": "TX",
+        "addr:street": "West Arapaho Road",
+        "amenity": "community_centre",
+        "building": "public",
+        "height": "6.1",
+        "name": "Senior Center",
+        "website": "https://www.cor.net/departments/parks-recreation/senior-center"
+      }
+    },
+    {
+      "type": "way",
+      "id": 598172806,
+      "center": {
+        "lat": 32.9627536,
+        "lon": -96.7379457
+      },
+      "tags": {
+        "addr:housenumber": "555",
+        "addr:street": "West Arapaho Road",
+        "building": "retail",
+        "height": "6.1",
+        "shop": "convenience"
+      }
+    },
+    {
+      "type": "way",
+      "id": 598172839,
+      "center": {
+        "lat": 32.9515256,
+        "lon": -96.7365298
+      },
+      "tags": {
+        "addr:city": "Richardson",
+        "addr:housenumber": "522",
+        "addr:postcode": "75080",
+        "addr:state": "TX",
+        "addr:street": "West Belt Line Road",
+        "brand": "QuikTrip",
+        "brand:wikidata": "Q7271953",
+        "building": "retail",
+        "building:levels": "1",
+        "height": "7.6",
+        "name": "QuikTrip",
+        "opening_hours": "Mo-Su 00:00-24:00+",
+        "shop": "convenience",
+        "short_name": "QT"
+      }
+    },
+    {
+      "type": "way",
+      "id": 695195007,
+      "center": {
+        "lat": 32.9433977,
+        "lon": -96.746037
+      },
+      "tags": {
+        "addr:city": "Richardson",
+        "addr:housenumber": "720",
+        "addr:postcode": "75080",
+        "addr:street": "South Floyd Road",
+        "amenity": "school",
+        "name": "Saint Paul The Apostle Catholic School",
+        "phone": "+1 972-235-3263",
+        "website": "https://www.spsdfw.org/pages/Saint_Paul_the_Apostle_School"
+      }
+    },
+    {
+      "type": "way",
+      "id": 829940270,
+      "center": {
+        "lat": 32.9368921,
+        "lon": -96.7485743
+      },
+      "tags": {
+        "addr:city": "Dallas",
+        "addr:housenumber": "13910",
+        "addr:postcode": "75243",
+        "addr:state": "TX",
+        "addr:street": "North Central Expressway",
+        "brand": "Shell",
+        "brand:wikidata": "Q110716465",
+        "building": "yes",
+        "name": "Shell",
+        "shop": "convenience"
+      }
+    }
+  ]
+}

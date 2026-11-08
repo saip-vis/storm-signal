@@ -1,0 +1,3 @@
+resource_id,location_reference,resource_type,service_area,reported_capacity,accessibility_features,verification_status
+RES-1,Richardson Care Pharmacy,service,Central Richardson,synthetic,step_free,synthetic_fixture
+RES-2,Northside Grocers,service,North Richardson,synthetic,step_free,synthetic_fixture

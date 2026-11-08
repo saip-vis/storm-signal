@@ -1,0 +1,6 @@
+pandas==2.3.3
+scikit-learn==1.6.1
+xgboost==2.1.4
+requests==2.32.5
+xgboost
+duckdb>=1.2.0

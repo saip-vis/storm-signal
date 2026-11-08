@@ -1,0 +1,35 @@
+{
+  "name": "disaster-network-component-1",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node --env-file-if-exists=.env src/server.js",
+    "test": "node --test",
+    "check": "node scripts/check.js",
+    "build": "npm run check && node scripts/build-frontend.js",
+    "demo": "node src/demo.js",
+    "simulate": "node src/simulate.js",
+    "agent:demo": "AGENT_PROVIDER=mock_test node --env-file-if-exists=.env src/agent-demo.js",
+    "ml:data": "python3 ml-training/train.py --sample 5000",
+    "ml:train": "python3 ml-training/train.py --sample 5000 --offline",
+    "ml:evaluate": "python3 ml-training/train.py --sample 5000 --offline",
+    "data:buildings:fetch": "python3 scripts/fetch-buildings.py",
+    "data:buildings:fetch:large": "python3 scripts/fetch-buildings.py --region richardson-north-central-study",
+    "data:buildings:validate": "node scripts/buildings-cache.js normalize",
+    "data:buildings:validate:large": "node scripts/buildings-cache.js normalize --region richardson-north-central-study",
+    "data:buildings:summary": "node scripts/buildings-cache.js summary",
+    "data:pois:fetch": "node --env-file-if-exists=.env scripts/fetch-pois.js",
+    "data:census:fetch": "node --env-file-if-exists=.env scripts/fetch-census.js",
+    "data:tornadoes:fetch": "node scripts/fetch-tornadoes.js",
+    "agent:smoke": "node --env-file-if-exists=.env scripts/nemotron-smoke.js"
+  },
+  "dependencies": {
+    "@turf/area": "^7.4.0",
+    "@turf/boolean-intersects": "^7.4.0",
+    "@turf/helpers": "^7.4.0",
+    "@turf/intersect": "^7.4.0",
+    "cytoscape": "^3.34.4",
+    "maplibre-gl": "^6.17.0"
+  }
+}

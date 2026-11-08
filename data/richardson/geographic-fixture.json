@@ -1,0 +1,9 @@
+{
+  "source": "synthetic_fixture",
+  "retrievedAt": "2026-11-07T12:00:00.000Z",
+  "features": [
+    {"id":"osm:way:fixture-health","type":"building","name":"Richardson Community Health Center","coordinates":[-96.7299,32.9489],"tags":{"building":"clinic","source_note":"Offline fixture; not live OSM"}},
+    {"id":"osm:way:fixture-market","type":"building","name":"Northside Market Building","coordinates":[-96.7282,32.9562],"tags":{"building":"retail","source_note":"Offline fixture; not live OSM"}},
+    {"id":"osm:way:fixture-road","type":"road","name":"North Central Expressway access","coordinates":[-96.7285,32.954],"tags":{"highway":"primary","source_note":"Offline fixture; not live OSM"}}
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "modelName": "XGBoost NFIP claim damage fraction estimator",
+  "modelVersion": "nfip-claims-xgb-v1",
+  "predictionTarget": "buildingDamageAmount / buildingPropertyValue, conditional on historical NFIP claims",
+  "trainingDataSource": "https://www.fema.gov/api/open/v3/NfipClaims",
+  "trainingSampleCount": 2477,
+  "evaluationSampleCount": 1080,
+  "evaluationMethod": "GroupShuffleSplit by floodEvent; unknown events remain grouped together",
+  "metrics": {
+    "mae": 0.15598568153993542,
+    "rmse": 0.21450570470512112,
+    "baseline_mae": 0.17539037539902755,
+    "baseline_rmse": 0.25575737444398833
+  },
+  "trainingTimestamp": "2026-11-08T06:26:49.777634+00:00",
+  "randomSeed": 42,
+  "limitations": [
+    "NFIP claims are not a random sample of flood-exposed buildings; outputs are conditional historical severity estimates, not damage probability.",
+    "Claims records may have missing/administrative values; missing numeric features use -1.",
+    "Richardson model inputs are synthetic scenario attributes."
+  ]
+}

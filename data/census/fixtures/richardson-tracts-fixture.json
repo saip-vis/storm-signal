@@ -1,0 +1,129 @@
+{
+  "schemaVersion": 1,
+  "county": "Collin County, TX",
+  "fips": "48085",
+  "tractCount": 5,
+  "acquiredAt": "2026-11-08T10:00:00.000Z",
+  "source": {
+    "provider": "US Census Bureau",
+    "geometrySource": "TIGER/Line (fixture — not from live API)",
+    "populationSource": "ACS 5-Year Estimates 2022 (fixture — not from live API)"
+  },
+  "features": [
+    {
+      "geoid": "48085021300",
+      "name": "Census Tract 213",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-96.740, 32.945],
+          [-96.725, 32.945],
+          [-96.725, 32.960],
+          [-96.740, 32.960],
+          [-96.740, 32.945]
+        ]]
+      },
+      "population": 3500,
+      "housingUnits": 1400,
+      "dataYear": 2022,
+      "source": {
+        "provider": "US Census Bureau",
+        "geometrySource": "TIGER/Line (fixture)",
+        "populationSource": "ACS 5-Year Estimates 2022 (fixture)",
+        "acquiredAt": "2026-11-08T10:00:00.000Z"
+      }
+    },
+    {
+      "geoid": "48085021400",
+      "name": "Census Tract 214",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-96.740, 32.960],
+          [-96.725, 32.960],
+          [-96.725, 32.975],
+          [-96.740, 32.975],
+          [-96.740, 32.960]
+        ]]
+      },
+      "population": 4200,
+      "housingUnits": 1800,
+      "dataYear": 2022,
+      "source": {
+        "provider": "US Census Bureau",
+        "geometrySource": "TIGER/Line (fixture)",
+        "populationSource": "ACS 5-Year Estimates 2022 (fixture)",
+        "acquiredAt": "2026-11-08T10:00:00.000Z"
+      }
+    },
+    {
+      "geoid": "48085021500",
+      "name": "Census Tract 215",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-96.725, 32.945],
+          [-96.710, 32.945],
+          [-96.710, 32.960],
+          [-96.725, 32.960],
+          [-96.725, 32.945]
+        ]]
+      },
+      "population": 2800,
+      "housingUnits": 1100,
+      "dataYear": 2022,
+      "source": {
+        "provider": "US Census Bureau",
+        "geometrySource": "TIGER/Line (fixture)",
+        "populationSource": "ACS 5-Year Estimates 2022 (fixture)",
+        "acquiredAt": "2026-11-08T10:00:00.000Z"
+      }
+    },
+    {
+      "geoid": "48085021600",
+      "name": "Census Tract 216",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-96.755, 32.945],
+          [-96.740, 32.945],
+          [-96.740, 32.960],
+          [-96.755, 32.960],
+          [-96.755, 32.945]
+        ]]
+      },
+      "population": 5100,
+      "housingUnits": 2200,
+      "dataYear": 2022,
+      "source": {
+        "provider": "US Census Bureau",
+        "geometrySource": "TIGER/Line (fixture)",
+        "populationSource": "ACS 5-Year Estimates 2022 (fixture)",
+        "acquiredAt": "2026-11-08T10:00:00.000Z"
+      }
+    },
+    {
+      "geoid": "48085021700",
+      "name": "Census Tract 217",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-96.740, 32.930],
+          [-96.725, 32.930],
+          [-96.725, 32.945],
+          [-96.740, 32.945],
+          [-96.740, 32.930]
+        ]]
+      },
+      "population": 3900,
+      "housingUnits": 1600,
+      "dataYear": 2022,
+      "source": {
+        "provider": "US Census Bureau",
+        "geometrySource": "TIGER/Line (fixture)",
+        "populationSource": "ACS 5-Year Estimates 2022 (fixture)",
+        "acquiredAt": "2026-11-08T10:00:00.000Z"
+      }
+    }
+  ]
+}

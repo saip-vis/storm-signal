@@ -1,0 +1,16 @@
+.env
+node_modules/
+dist/
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.DS_Store
+*.tmp
+ml-training/cache/
+data/buildings/raw/
+data/buildings/cache/
+data/businesses/raw/
+data/businesses/cache/
+data/census/raw/
+data/census/cache/

@@ -1,0 +1,4 @@
+property_id,property_name,street_address,city,latitude,longitude,property_type,operating_status
+RCH-BLDG-012,Richardson Community Health Center,1200 Civic Plaza,Richardson,32.9489,-96.7299,medical,operational
+RCH-BLDG-021,Northside Market Building,801 North Central Expressway,Richardson,32.9562,-96.7282,retail,operational
+RCH-BLDG-031,City Learning Annex,411 West Arapaho Road,Richardson,32.9611,-96.7365,education,operational

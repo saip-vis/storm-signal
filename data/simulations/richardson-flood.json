@@ -1,0 +1,5 @@
+{
+  "id": "richardson-flood-demo", "name": "Hypothetical Richardson flood exercise", "disasterType": "flood", "locationId": "richardson-tx", "severity": 3, "durationHours": 24, "sourceType": "hypothetical", "simulated": true,
+  "footprint": {"type":"Polygon","coordinates":[[[-96.742,32.940],[-96.720,32.940],[-96.720,32.958],[-96.742,32.958],[-96.742,32.940]]]},
+  "assumptions": ["Hypothetical point-based flood footprint; not a FEMA map or forecast.","Exposed facilities may have reduced availability for 24 modeled hours.","Road access effects are only modeled through explicitly configured dependencies.","Population, revenue, demand, vulnerability, and shelter figures are synthetic simulation inputs."]
+}

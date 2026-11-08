@@ -1,0 +1,12 @@
+{
+  "provider": "OpenStreetMap",
+  "queryBbox": [
+    -96.755,
+    32.935,
+    -96.705,
+    32.975
+  ],
+  "overpassEndpoint": "https://overpass-api.de/api/interpreter",
+  "acquiredAt": "2026-11-08T10:50:32.095Z",
+  "rawElementCount": 47
+}

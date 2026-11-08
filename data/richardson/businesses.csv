@@ -1,0 +1,4 @@
+business_id,facility_ref,business_name,business_category,service_type,operating_hours
+BUS-901,Richardson Facility 12,Richardson Care Pharmacy,pharmacy,medication access,08:00-20:00
+BUS-902,Northside Market Bldg,Northside Grocers,grocery,food access,07:00-22:00
+BUS-903,Learning Annex,Richardson Community Clinic,healthcare,primary care,09:00-17:00

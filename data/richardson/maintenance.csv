@@ -1,0 +1,5 @@
+work_order_id,site_ref,asset_code,equipment_type,maintenance_status,last_inspection_date
+WO-4401,SITE_12,HVAC-12-A,HVAC,inspected,2026-10-28
+WO-4402,SITE_21,REFRIG-21-A,refrigeration,service_due,2026-10-12
+WO-4403,SITE_31,GEN-31-A,backup_generator,inspected,2026-10-20
+WO-4499,UNKNOWN_SITE,PUMP-X,water_pump,open,2026-10-01

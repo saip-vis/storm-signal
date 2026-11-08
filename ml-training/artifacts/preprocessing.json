@@ -1,0 +1,13 @@
+{
+  "features": [
+    "waterDepth",
+    "numberOfFloorsInTheInsuredBuilding",
+    "occupancyType",
+    "foundationType",
+    "elevatedBuildingIndicator",
+    "postFIRMConstructionIndicator",
+    "yearOfLoss"
+  ],
+  "missingNumericValue": -1,
+  "target": "buildingDamageAmount / buildingPropertyValue; valid range [0,1]"
+}
