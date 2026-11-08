@@ -22,8 +22,10 @@ export function combineAssessment(rule,prediction,override){
   const riskLevel=severity>=.45?'high':severity>=.18?'elevated':'low';
   return {...rule,riskLevel,predictedStatus:override??(riskLevel==='low'?'exposed_status_unknown':'potentially_unavailable'),estimatedDowntimeHours:null,estimatedDamageFraction:severity,reasonCodes:['FLOOD_POLYGON_INTERSECTION',`PHYSICAL_DAMAGE_${riskLevel.toUpperCase()}`],assumptions:['Damage fraction estimates physical loss conditional on historical insurance claims; it is not a closure probability. Availability is a conservative scenario screening rule, not an observed closure.']};
 }
-export async function runProductionSimulation({scenario,overrides={}}={}){
-  const service=new NetworkService();await service.build();const graph=service.network();
+export async function runProductionSimulation({scenario,overrides={},graph,signal}={}){
+  signal?.throwIfAborted();
+  if(!graph){const service=new NetworkService();await service.build();graph=service.network();}
+  signal?.throwIfAborted();
   const configured=await productionScenario();scenario={...configured,...scenario,assumptions:configured.assumptions,locationId:VISUALIZATION_REGION_ID};
   scenario={...scenario,durationHours:overrides.durationHours??scenario.durationHours};
   if(scenario.disasterType!=='flood'||scenario.footprint?.type!=='Polygon')throw new Error('A hypothetical flood Polygon is required');
@@ -35,7 +37,8 @@ export async function runProductionSimulation({scenario,overrides={}}={}){
   const exposedIds=new Set(exposure.filter(e=>e.exposureStatus==='exposed').map(e=>e.nodeId));
   const buildings=graph.nodes.filter(n=>n.type==='building');
   const requests=buildings.filter(n=>exposedIds.has(n.id)).map(n=>({nodeId:n.id,buildingAttributes:{waterDepth:floodDepthFeet,numberOfFloorsInTheInsuredBuilding:n.properties.floors??null,occupancyType:null,foundationType:null,elevatedBuildingIndicator:null,postFIRMConstructionIndicator:null,yearOfLoss:null}}));
-  const predictions=requests.length?await predictBuildingDamageBatch(requests):[];
+  const predictions=requests.length?await predictBuildingDamageBatch(requests,{signal}):[];
+  signal?.throwIfAborted();
   const byId=new Map(predictions.map(p=>[p.nodeId,p]));
   const failures=buildings.map(n=>combineAssessment({nodeId:n.id,exposed:exposedIds.has(n.id)},byId.get(n.id),overrides.facilityStatus?.[n.id]));
   const disrupted=new Set(failures.filter(f=>f.predictedStatus==='potentially_unavailable').map(f=>f.nodeId));
