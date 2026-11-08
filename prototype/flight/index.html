@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Dragonfly Flight Prototype</title>
+<title>Dragon Flyght</title>
 <style>
 :root{--ink:#e9f1ee;--dim:#8fa6a3;--hot:#ffb347;--red:#ff5a4a;--bg:#0d1a1f}
 html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;font-family:"Avenir Next","Trebuchet MS",sans-serif;color:var(--ink)}
@@ -17,13 +17,15 @@ canvas{display:block}
 #badge b{color:var(--ink);font-size:15px}
 #vig{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 50%,#000 135%);opacity:0}
 #fl{position:fixed;inset:0;background:#cfe6ff;opacity:0;pointer-events:none}
-#sim{left:20px;top:20px;max-width:46vw}
+#sim{left:14px;top:14px;max-width:46vw;background:#0b1418b8;padding:8px 12px;border-radius:10px;text-shadow:none;color:#dfe9e7}
+#sim .k{color:#a9bdb9}
 #sim .k{color:var(--dim)}
+#fsbtn{position:fixed;right:20px;top:72px;z-index:4;cursor:pointer;font-size:12px;padding:5px 10px;border:1px solid #ffffff44;border-radius:8px;background:#0b1418b8;color:var(--ink);user-select:none}#fsbtn:hover{border-color:var(--hot)}
 #fps{right:12px;top:4px;font:12px ui-monospace,monospace;color:#9fe;display:none}
 #warn{position:fixed;width:0;height:0;pointer-events:none;display:none;border-left:16px solid transparent;border-right:16px solid transparent;border-bottom:30px solid var(--red);filter:drop-shadow(0 0 8px var(--red))}
 #map{position:fixed;inset:0;z-index:5;display:none;align-items:center;justify-content:center;background:#0d1a1fe8}
-#map canvas{border:1px solid #ffffff33;background:#101f24;max-width:92vw;max-height:78vh}
-#maptxt{position:absolute;bottom:14px;font-size:13px;color:var(--dim);text-align:center;padding:0 16px}
+#mc{border:1px solid #ffffff33;background:#101f24;max-width:92vw;max-height:78vh}
+#maptxt{position:absolute;bottom:10px;font-size:14px;color:#dfe9e7;background:#0b1418d9;padding:6px 12px;border-radius:8px;text-align:center;padding:0 16px}
 .lb{position:fixed;transform:translate(-50%,-100%);font-size:13px;font-weight:700;color:#e9f1ee;text-shadow:0 1px 5px #000,0 0 2px #000;pointer-events:none;white-space:nowrap;display:none;text-align:center}
 .lb i{display:block;font-style:normal;color:#ff7a6a;font-size:11px}
 #menu{position:fixed;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;background:#0d1a1fd9;overflow:auto}
@@ -36,24 +38,48 @@ p{margin:6px 0;color:var(--dim)}b{color:var(--ink)}
 .opt.on{border-color:var(--hot);color:var(--ink);background:#ffb34722}
 .btn{display:inline-block;margin-top:14px;padding:11px 28px;border-radius:9px;background:var(--hot);color:#1a1206;font-weight:700;cursor:pointer;user-select:none}
 .keys p{font-size:14px}
+#radio{position:fixed;left:50%;bottom:64px;transform:translateX(-50%);max-width:min(680px,90vw);background:#0b1418e0;border:1px solid #ffb34766;border-radius:10px;padding:9px 14px;font-size:14px;line-height:1.45;color:#e9f1ee;display:none;opacity:0;transition:opacity .6s;pointer-events:none;z-index:3}
+#radio b{color:var(--hot);letter-spacing:.5px}#radio .k{color:#8fa6a3;font-size:11px}
+#mapbar span{padding:6px 12px;border:1px solid #ffffff44;border-radius:8px;cursor:pointer;color:var(--dim);font-size:13px;background:#0d1a1f;user-select:none}
+#mapbar span.on{border-color:var(--hot);color:var(--ink)}
+#wp{position:fixed;pointer-events:none;transform:translate(-50%,-50%);text-align:center;display:none;z-index:2}
+#wp .wpa{width:0;height:0;margin:0 auto;border-left:11px solid transparent;border-right:11px solid transparent;border-top:18px solid var(--hot);filter:drop-shadow(0 0 6px #ffb347aa)}
+#wp .wpt{font-size:12px;font-weight:700;color:var(--hot);text-shadow:0 1px 4px #000;margin-top:2px}
+#heatkey{position:absolute;left:16px;top:14px;font-size:12px;color:var(--dim)}
+#menu .card{max-width:640px}
+.apps{display:flex;gap:12px;flex-wrap:wrap;margin:14px 0}
+.appcard{flex:1 1 240px;border:1px solid #ffffff2e;border-radius:12px;padding:12px 14px;cursor:pointer}
+.appcard.on{border-color:var(--hot);background:#ffb34714}
+.appcard b{font-size:16px}.appcard p{font-size:13px;margin:4px 0 0}
+#livePanel,#scenPanel{border-left:2px solid #ffffff22;padding-left:12px}
+#livePanel p{font-size:13px}code{background:#ffffff14;padding:1px 5px;border-radius:4px}
+#liveStatus{font-size:12px;color:var(--dim);margin-top:4px}
+#gmap{width:min(94vw,84vh);height:min(84vh,94vw);border-radius:10px;display:none;border:1px solid #ffffff33}
+#mapbar{position:absolute;top:14px;right:16px;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;max-width:70vw}
 </style></head><body>
 <div id="hud" class="ui"><div id="spd">0<small>m/s</small></div><div>alt <b id="alt">0</b> m &middot; <span id="st">cruise</span></div><div class="bar"><i id="bat" style="width:100%"></i></div></div>
 <div id="wind" class="ui">wind <b id="w">0</b> m/s<br><span id="wd">calm</span></div>
-<div id="badge" class="ui"></div>
+<div id="badge" class="ui"></div><div id="fsbtn" title="Full screen (G)">&#x26F6; Full screen</div>
 <div id="vig"></div><div id="fl"></div><div id="sim" class="ui"></div><div id="fps" class="ui"></div><div id="warn"></div>
-<div id="map"><canvas id="mc" width="760" height="760"></canvas><div id="maptxt">Amber: rescue-priority route. Grey dashed: nearest-first. Red dots: people waiting (hollow = can't reach by road). Blue: river and flood. M closes the map.</div></div>
-<div id="msg"></div>
+<div id="map"><canvas id="mc" width="760" height="760"></canvas><div id="gmap"></div><div id="mapbar"><span data-layer="radar">Weather radar</span><span data-layer="heat">Hazard heat map</span><span data-layer="alerts">Alert areas</span><span id="clearRoute">Clear my route</span></div>
+<div id="maptxt">Autopilot plans the amber route. Click red dots to set your own order instead (blue numbers), Clear to go back. Radar = live NEXRAD (Live Houston map). Grey dashed: nearest-first. Hollow = not reachable by road. Blue: water. M closes.</div></div>
+<div id="msg"></div><div id="radio"></div><div id="wp"><div class="wpa"></div><div class="wpt"></div></div>
 <div id="menu"><div class="card">
-<h1>Fly through the storm.</h1>
-<p>Dragonfly rescue sim. Every number is a modeled estimate under stated assumptions, not a real rescue prediction.</p>
-<div class="row"><span class="lab">Disaster</span><span class="opt" data-k="disaster" data-v="tornado">Tornado</span><span class="opt" data-k="disaster" data-v="hurricane">Hurricane</span></div>
-<div class="row"><span class="lab">Mode</span><span class="opt" data-k="mode" data-v="air">Aerial: dragonfly</span><span class="opt" data-k="mode" data-v="ground">Earth: rescue truck</span></div>
+<h1>Dragon Flyght</h1>
+<p>Disaster rescue simulator. Every number is a modeled estimate under stated assumptions, not a real rescue prediction.</p>
+<div class="apps">
+ <div class="appcard" data-app="live"><b>Live Houston</b><p>Real downtown Houston (OpenStreetMap), live NWS alerts and wind, people estimated for the current Houston time. Serious mode.</p><div id="liveStatus">Checking for the local server...</div></div>
+ <div class="appcard" data-app="scenario"><b>Scenario simulator</b><p>Pick a disaster. Autopilot finds the route that saves the most lives, or click reports on the map (M) to pick the order yourself.</p></div>
+</div>
+<div id="livePanel"></div>
+<div id="scenPanel">
+<div class="row"><span class="lab">Disaster</span><span class="opt" data-k="disaster" data-v="tornado">Tornado</span><span class="opt" data-k="disaster" data-v="hurricane">Hurricane</span><span class="opt" data-k="disaster" data-v="flood">Flood</span><span class="opt" data-k="disaster" data-v="wildfire">Wildfire</span><span class="opt" data-k="disaster" data-v="earthquake">Earthquake</span></div>
+</div>
+<div class="row"><span class="lab">Mode</span><span class="opt" data-k="mode" data-v="air">Aerial: dragonfly</span><span class="opt" data-k="mode" data-v="ground">Earth: fire truck</span></div>
 <div class="row"><span class="lab">Quality</span><span class="opt" data-k="quality" data-v="low">Low</span><span class="opt" data-k="quality" data-v="medium">Medium</span><span class="opt" data-k="quality" data-v="high">High</span></div>
 <div class="keys">
-<p><b>Mouse</b> steer. <b>W / S</b> speed up, slow down. <b>Shift</b> dash (truck: siren boost).</p>
-<p><b>Space</b> Aerial: hold near a building to swing, release while rising for a big boost. Earth: handbrake.</p>
-<p><b>A</b> autopilot. <b>M</b> map. <b>E</b> swap Aerial and Earth. <b>Q</b> quality. <b>F</b> fps. <b>H</b> this menu.</p>
-<p>Red beams are people who need help. Aerial picks them up on the roof, Earth at the building entrance. Red arrow = debris incoming, dodge it for a boost.</p>
+<p><b>Mouse</b> steer. <b>W / S</b> speed. <b>Shift</b> dash (truck: nitro boost). <b>Space</b> swing near a building (truck: handbrake).</p>
+<p><b>Arrows</b> orbit the camera, <b>scroll</b> zoom, <b>C</b> reset camera. <b>A</b> autopilot. <b>M</b> map. <b>E</b> Aerial / Earth. <b>Q</b> quality. <b>F</b> fps. <b>H</b> menu. <b>G</b> full screen. <b>N</b> sound. <b>V</b> dispatcher voice.</p>
 </div>
 <div id="start" class="btn">Start</div></div></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -63,710 +89,12 @@ p{margin:6px 0;color:var(--dim)}b{color:var(--ink)}
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
-<script>
-'use strict';
-// =====================================================================
-// 0. small helpers
-// =====================================================================
-const $=id=>document.getElementById(id),V=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
-const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),wrap=a=>Math.atan2(Math.sin(a),Math.cos(a)),ease=u=>u*u*(3-2*u);
-const URLQ=new URLSearchParams(location.search);
-// Test hook: ?rseed=N makes Math.random repeatable so autopilot runs can be compared.
-if(URLQ.get('rseed')){let s=+URLQ.get('rseed')||1;Math.random=()=>{s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
-const store={get(k,d){try{return localStorage.getItem(k)||d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
-
-// =====================================================================
-// 1. config: every tuning number lives here, with what it means
-// =====================================================================
-const CFG={
-  S:56,G:13,         // city layout: one block every 56 m, blocks from -13..13 each way (27 x 27, about 1.5 km across)
-  road:14,           // street width, m
-  river:{z:210,amp:70,len:230,half:26}, // bayou-like river: center z = z + amp*sin(x/len), half width m (invented layout, not real Houston)
-  air:{cruise:46,fast:52,slow:14,max:120,ceiling:360,coupling:{tornado:1,hurricane:.5}}, // coupling: how much wind moves the dragonfly (game tuning)
-  truck:{cruise:20,max:30,boost:34,accel:9,brake:14,lane:3.5,avg:14}, // avg: average road speed the planner assumes incl. corners, m/s
-  plan:{tau:60,service:5,near:110,nearRoad:160,life:150,maxOpen:9,spawnEvery:18},
-  // tau: value of reaching people decays as exp(-t/tau). service: s per stop. near: "right next to you" radius (air, m),
-  // nearRoad: same for the truck (road meters). life: reports expire after this many s. All modeled assumptions.
-  learn:{perMiss:.18,perReach:.04,speed:.3,board:.4,approach:40,age:1.5},
-  // Adaptive urgency (rule-based, NOT machine learning). Each miss adds perMiss (scaled by people missed), each reach removes perReach.
-  // At full urgency: +30% cruise speed, 40% faster boarding, approach starts 40 m earlier, older reports weighted up to 2.5x.
-  tornado:{pull:150,danger:160,avoid:190,block:100},
-  // hurricane, game-scaled: real eyewalls are tens of km wide, here the radius of max wind is 900 m so you can see the storm structure.
-  hurricane:{vmax:42,rmax:900,eye0:[-2600,-1400],eyeSpeed:4,floodTime:240,floodMax:220,lit:.12},
-};
-const S=CFG.S,G=CFG.G,E=(G+.5)*S; // E: half size of the street grid
-
-// =====================================================================
-// 2. renderer, scene, sky, lights
-// =====================================================================
-const R=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});R.setSize(innerWidth,innerHeight);document.body.prepend(R.domElement);
-const SC=new THREE.Scene();
-const C=new THREE.PerspectiveCamera(62,innerWidth/innerHeight,.5,5000);
-const skyU={top:{value:new THREE.Color(0x1b2c33)},bot:{value:new THREE.Color(0x3d545b)},flash:{value:0}};
-const sky=new THREE.Mesh(new THREE.SphereGeometry(3500,24,12),new THREE.ShaderMaterial({uniforms:skyU,side:THREE.BackSide,depthWrite:false,fog:false,
-  vertexShader:'varying vec3 vP;void main(){vP=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-  fragmentShader:'uniform vec3 top,bot;uniform float flash;varying vec3 vP;void main(){float h=clamp(normalize(vP).y*1.7+.08,0.,1.);vec3 c=mix(bot,top,h);c+=flash*vec3(.5,.58,.72)*(1.-h*.5);gl_FragColor=vec4(c,1.);}'}));
-sky.renderOrder=-1;SC.add(sky);
-SC.fog=new THREE.Fog(0x3d545b,160,1600);
-const hemi=new THREE.HemisphereLight(0xb7d4d8,0x1d2a27,1.1);SC.add(hemi);
-const sun=new THREE.DirectionalLight(0xffc98a,1.3);sun.position.set(-300,260,150);SC.add(sun);
-const ground=new THREE.Mesh(new THREE.PlaneGeometry(8000,8000),new THREE.MeshLambertMaterial({color:0x2a3631}));ground.rotation.x=-Math.PI/2;SC.add(ground);
-
-// =====================================================================
-// 3. city: blocks, river, parks, buildings (procedural, Houston-flavored, NOT real footprints)
-// =====================================================================
-const riverZ=x=>CFG.river.z+CFG.river.amp*Math.sin(x/CFG.river.len);
-const riverDist=(x,z)=>Math.abs(z-riverZ(x))-CFG.river.half; // < 0 means inside the channel (vertical-distance approximation)
-const B=[],PARKS=[],cellMap=new Map(),ckey=(i,j)=>(i+100)*1000+(j+100);
-let seed=7;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
-for(let gx=-G;gx<=G;gx++)for(let gz=-G;gz<=G;gz++){
-  const cx=gx*S,cz=gz*S,r1=rnd(),r2=rnd(),r3=rnd(),r4=rnd(),r5=rnd(),r6=rnd(),j1=rnd(),j2=rnd();
-  if(riverDist(cx,cz)<22)continue;                     // river channel and banks stay open
-  if(r1<.06||Math.hypot(cx,cz-560)<40){PARKS.push({x:cx,z:cz});continue} // parks (and an open plaza at the spawn point)
-  const d=Math.hypot(cx,cz),down=Math.exp(-((d/300)**2)); // downtown factor: tall towers near the center
-  const hx=9+r2*8.5,hz=9+r3*8.5,h=Math.round(10+r4*r4*36+down*(30+Math.pow(r5,1.6)*200));
-  const b={x:cx+(j1-.5)*4,z:cz+(j2-.5)*4,hx,hz,h,gx,gz,side:Math.floor(r6*4),i:B.length};
-  B.push(b);cellMap.set(ckey(gx,gz),b);
-}
-// run fn(b) on buildings in the 3x3 cells around (x,z); safe for margins up to ~40 m. Return true from fn to stop early.
-function forNear(x,z,fn){const gx=Math.round(x/S),gz=Math.round(z/S);for(let i=gx-1;i<=gx+1;i++)for(let j=gz-1;j<=gz+1;j++){const b=cellMap.get(ckey(i,j));if(b&&fn(b))return true}return false}
-// horizontal distance from a point to a building footprint (0 if inside)
-const boxDist=(b,x,z)=>Math.hypot(Math.max(Math.abs(x-b.x)-b.hx,0),Math.max(Math.abs(z-b.z)-b.hz,0));
-
-// Modeled population: Houston city, 2020 Census (2,304,580), spread over buildings by volume.
-// Each box stands in for a district, so per-building numbers are exaggerated on purpose. Estimates, not building data.
-const CITY={name:'Houston',pop:2304580};let vsum=0;for(const b of B)vsum+=b.hx*b.hz*4*b.h;
-let POPMAX=1;for(const b of B){b.pop=Math.round(CITY.pop*(b.hx*b.hz*4*b.h)/vsum);POPMAX=Math.max(POPMAX,b.pop)}
-
-// building material: Lambert + procedural windows from world position (lit windows glow, bloom picks them up)
-const winU={uLit:{value:.24}};
-const bMat=new THREE.MeshLambertMaterial({color:0xffffff});
-bMat.onBeforeCompile=sh=>{sh.uniforms.uLit=winU.uLit;
-  sh.vertexShader='varying vec3 vWP;varying vec3 vWN;\n'+sh.vertexShader.replace('#include <worldpos_vertex>',`#include <worldpos_vertex>
-  vec4 dfW=vec4(transformed,1.);
-  #ifdef USE_INSTANCING
-  dfW=instanceMatrix*dfW;
-  #endif
-  dfW=modelMatrix*dfW;vWP=dfW.xyz;vec3 dfN=objectNormal;
-  #ifdef USE_INSTANCING
-  dfN=mat3(instanceMatrix)*dfN;
-  #endif
-  vWN=normalize(mat3(modelMatrix)*dfN);`);
-  sh.fragmentShader='uniform float uLit;varying vec3 vWP;varying vec3 vWN;\n'+sh.fragmentShader.replace('#include <emissivemap_fragment>',`#include <emissivemap_fragment>
-  float wall=1.-step(.5,abs(vWN.y));float u=abs(vWN.x)>.5?vWP.z:vWP.x;
-  vec2 g=vec2(u/3.4,vWP.y/3.8),f=fract(g),id=floor(g);
-  float win=step(.2,f.x)*step(f.x,.8)*step(.28,f.y)*step(f.y,.78)*wall*step(4.,vWP.y);
-  float hs=fract(sin(dot(id+floor((vWP.xz+28.)/56.)*17.,vec2(12.9898,78.233)))*43758.5453);
-  diffuseColor.rgb*=mix(1.,.5,win)*(.68+.32*clamp(vWP.y/50.,0.,1.));
-  totalEmissiveRadiance+=vec3(1.,.72,.4)*step(1.-uLit,hs)*win*(.45+.35*hs);diffuseColor.rgb*=mix(.78,1.,wall);`)};
-const cityMesh=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),bMat,B.length);
-{const m4=new THREE.Matrix4(),col=new THREE.Color();B.forEach((b,i)=>{m4.compose(V(b.x,b.h/2,b.z),new THREE.Quaternion(),V(b.hx*2,b.h,b.hz*2));cityMesh.setMatrixAt(i,m4);cityMesh.setColorAt(i,col.setHSL(.52+((b.i*37)%10)/120,.1,.3+Math.min(b.h,200)/700))})}
-SC.add(cityMesh);
-
-// =====================================================================
-// 4. road graph: intersections + mid-block nodes (building entrances face mid-block curbs)
-// =====================================================================
-const NODES=[],EDGES=[],nodeAt=new Map(),nk=(x,z)=>Math.round(x)+'|'+Math.round(z);
-function node(x,z){const k=nk(x,z);if(nodeAt.has(k))return nodeAt.get(k);const id=NODES.length;NODES.push({x,z,adj:[]});nodeAt.set(k,id);return id}
-function edge(a,b,bridge){const A=NODES[a],Bn=NODES[b],e=EDGES.length,len=Math.hypot(A.x-Bn.x,A.z-Bn.z);EDGES.push({a,b,len,mx:(A.x+Bn.x)/2,mz:(A.z+Bn.z)/2,bridge,vert:Math.abs(A.x-Bn.x)<1});A.adj.push([b,len,e]);Bn.adj.push([a,len,e])}
-const LINES=[];for(let i=-G-1;i<=G;i++)LINES.push((i+.5)*S); // street centerlines (same values for x and z)
-for(const z of LINES)for(let k=0;k<LINES.length-1;k++){const x0=LINES[k],x1=LINES[k+1];// horizontal segments: cut where they hit the river
-  let wet=false;for(let s=0;s<=6;s++)if(riverDist(x0+(x1-x0)*s/6,z)<4)wet=true;if(wet)continue;
-  const m=node((x0+x1)/2,z);edge(node(x0,z),m,false);edge(m,node(x1,z),false)}
-for(const x of LINES)for(let k=0;k<LINES.length-1;k++){const z0=LINES[k],z1=LINES[k+1],m=node(x,(z0+z1)/2);// vertical segments: bridges over the river
-  edge(node(x,z0),m,riverDist(x,(z0*3+z1)/4)<4||riverDist(x,(z0+z1)/2)<4);edge(m,node(x,z1),riverDist(x,(z0+z1*3)/4)<4||riverDist(x,(z0+z1)/2)<4)}
-// entrance for each building: preferred side first, then any side with a road. door = point on the facade, stop = curb point in the near lane
-for(const b of B){const sides=[[0,-1],[0,1],[-1,0],[1,0]];
-  for(let k=0;k<4;k++){const [sx,sz]=sides[(b.side+k)%4],nx=b.gx*S+sx*S/2,nz=b.gz*S+sz*S/2,id=nodeAt.get(nk(sx?nx:b.gx*S,sz?nz:b.gz*S));
-    if(id!==undefined&&NODES[id].adj.length){b.curb=id;b.door=V(b.x+sx*b.hx,0,b.z+sz*b.hz);b.stop=V(NODES[id].x-sx*CFG.truck.lane,0,NODES[id].z-sz*CFG.truck.lane);b.face=[sx,sz];break}}}
-// tiny binary heap Dijkstra over the road graph. blocked: Uint8Array per edge (1 = closed)
-function dijkstra(src,blocked){const n=NODES.length,d=new Float64Array(n).fill(Infinity),prev=new Int32Array(n).fill(-1),h=[];d[src]=0;h.push([0,src]);
-  const up=i=>{while(i){const p=(i-1)>>1;if(h[p][0]<=h[i][0])break;[h[p],h[i]]=[h[i],h[p]];i=p}},
-        dn=i=>{for(;;){const l=2*i+1,r=l+1;let m=i;if(l<h.length&&h[l][0]<h[m][0])m=l;if(r<h.length&&h[r][0]<h[m][0])m=r;if(m===i)break;[h[m],h[i]]=[h[i],h[m]];i=m}};
-  while(h.length){const top=h[0],last=h.pop();if(h.length){h[0]=last;dn(0)}const [du,u]=top;if(du>d[u])continue;
-    for(const [v,w,e] of NODES[u].adj){if(blocked&&blocked[e])continue;const nd=du+w;if(nd<d[v]){d[v]=nd;prev[v]=u;h.push([nd,v]);up(h.length-1)}}}
-  return{d,prev}}
-function nearestNode(x,z){let bi=0,bd=1e18;for(let i=0;i<NODES.length;i++){const n=NODES[i];if(!n.adj.length)continue;const d=(n.x-x)**2+(n.z-z)**2;if(d<bd){bd=d;bi=i}}return bi}
-
-// roads, lane dashes, bridges (instanced)
-{const seg=EDGES.length,road=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshLambertMaterial({color:0x1f2526}),seg),
-  dash=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshBasicMaterial({color:0x8c8462}),seg),m4=new THREE.Matrix4(),q=new THREE.Quaternion();
-  EDGES.forEach((e,i)=>{const y=e.bridge?.7:.03;m4.compose(V(e.mx,y,e.mz),q,e.vert?V(CFG.road,e.bridge?1.2:.06,e.len+CFG.road*.5):V(e.len+CFG.road*.5,.06,CFG.road));road.setMatrixAt(i,m4);
-    m4.compose(V(e.mx,y+(e.bridge?.62:.05),e.mz),q,e.vert?V(.35,.02,e.len*.45):V(e.len*.45,.02,.35));dash.setMatrixAt(i,m4)});
-  SC.add(road,dash)}
-
-// trees in parks (swaying in wind), instanced trunk + crown
-const TREES=[];for(const p of PARKS)for(let k=0;k<9;k++)TREES.push({x:p.x+(rnd()-.5)*40,z:p.z+(rnd()-.5)*40,s:.8+rnd()*.7,ph:rnd()*6});
-const trunkM=new THREE.InstancedMesh(new THREE.CylinderGeometry(.35,.5,1,6).translate(0,.5,0),new THREE.MeshLambertMaterial({color:0x4a3a2c}),TREES.length);
-const crownM=new THREE.InstancedMesh(new THREE.ConeGeometry(3,7,7).translate(0,6.5,0),new THREE.MeshLambertMaterial({color:0x2f5a3c}),TREES.length);
-SC.add(trunkM,crownM);
-const parkMesh=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshLambertMaterial({color:0x2c4a33}),PARKS.length);
-{const m4=new THREE.Matrix4();PARKS.forEach((p,i)=>{m4.compose(V(p.x,.04,p.z),new THREE.Quaternion(),V(S-CFG.road,.08,S-CFG.road));parkMesh.setMatrixAt(i,m4)});SC.add(parkMesh)}
-
-// river + flood water: one plane, the shader draws the channel and the surge zone that grows out from it
-const waterU={uT:{value:0},uFlood:{value:0},uLevel:{value:0},uFogC:{value:SC.fog.color},uFogN:{value:160},uFogF:{value:1600},uRiv:{value:new THREE.Vector4(CFG.river.z,CFG.river.amp,CFG.river.len,CFG.river.half)}};
-const water=new THREE.Mesh(new THREE.PlaneGeometry(E*2+600,E*2+600,1,1),new THREE.ShaderMaterial({uniforms:waterU,transparent:true,depthWrite:false,
-  vertexShader:'varying vec3 vW;void main(){vec4 w=modelMatrix*vec4(position,1.);vW=w.xyz;gl_Position=projectionMatrix*viewMatrix*w;}',
-  fragmentShader:`uniform float uT,uFlood,uLevel,uFogN,uFogF;uniform vec3 uFogC;uniform vec4 uRiv;varying vec3 vW;
-  void main(){float rd=abs(vW.z-(uRiv.x+uRiv.y*sin(vW.x/uRiv.z)))-uRiv.w;if(rd>uFlood)discard;
-   float edge=clamp((uFlood-rd)/max(uFlood,1.),0.,1.);float n=sin(vW.x*.15+uT*1.3)*sin(vW.z*.13-uT)*.5+.5;
-   vec3 deep=mix(vec3(.06,.16,.2),vec3(.22,.2,.15),uLevel);vec3 c=mix(deep,deep*1.6+.05,n*.35);
-   float foam=rd>0.?smoothstep(.85,1.,1.-edge)*(.5+.5*n):0.;c=mix(c,vec3(.8,.85,.85),foam*.7);
-   float fd=gl_FragCoord.z/gl_FragCoord.w;c=mix(c,uFogC,smoothstep(uFogN,uFogF,fd));gl_FragColor=vec4(c,rd>0.?.88:.95);}`}));
-water.rotation.x=-Math.PI/2;water.position.y=.35;SC.add(water);
-
-// =====================================================================
-// 5. game state
-// =====================================================================
-const set={disaster:store.get('df.disaster','tornado'),mode:store.get('df.mode','air'),quality:store.get('df.quality','medium')};
-if(URLQ.get('disaster'))set.disaster=URLQ.get('disaster');if(URLQ.get('mode'))set.mode=URLQ.get('mode');if(URLQ.get('quality'))set.quality=URLQ.get('quality');
-let mode=set.mode,disaster=set.disaster,go=false,paused=true,auto=false,t=0,simT=0,timeScale=1,slowT=0;
-const P=V(0,90,560),vel=V(0,0,-30);let yaw=0,pitch=0,spd=30,roll=0,fov=62,bat=100,tbat=100,dashCd=0,sw=null,swL=0,shake=0,msgT=0,hitCd=0,warnCd=0,style=0;
-const K={},M={x:0,y:0};
-const stats={saved:0,missed:0,crashes:0,guards:0,stuck:0,dodges:0};
-const learn={urg:0}; // adaptive urgency 0..1, see CFG.learn
-function say(s){$('msg').textContent=s;$('msg').style.opacity=1;msgT=1.3}
-const fwd=()=>V(Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch));
-const cruiseAir=()=>CFG.air.cruise*(1+CFG.learn.speed*learn.urg),cruiseTruck=()=>CFG.truck.cruise*(1+CFG.learn.speed*.8*learn.urg);
-
-// =====================================================================
-// 6. characters: toon-shaded dragonfly (Aerial: hard hat + hi-vis vest) and fire truck with a dragonfly driver (Earth: fire helmet)
-//    Built from simple shapes in code (original design from Sai's concept art). Cel shading + ink outlines for a cartoon look.
-// =====================================================================
-const gradTex=new THREE.DataTexture(new Uint8Array([72,150,212]),3,1,THREE.LuminanceFormat);gradTex.minFilter=gradTex.magFilter=THREE.NearestFilter;gradTex.needsUpdate=true;
-const toonCache={},toon=c=>toonCache[c]||(toonCache[c]=new THREE.MeshToonMaterial({color:c,gradientMap:gradTex}));
-// ink outline: back faces pushed out along the normal, drawn dark (inverted hull)
-const inkCache={};function inkMat(w){if(inkCache[w])return inkCache[w];const m=new THREE.MeshBasicMaterial({color:0x14181a,side:THREE.BackSide});
-  m.onBeforeCompile=sh=>{sh.vertexShader=sh.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\ntransformed+=normalize(normal)*'+w.toFixed(3)+';')};m.customProgramCacheKey=()=>'ink'+w;return inkCache[w]=m}
-function part(geo,mat,parent,pos,rot,scl,ink){const m=new THREE.Mesh(geo,typeof mat==='number'?toon(mat):mat);if(pos)m.position.set(...pos);if(rot)m.rotation.set(...rot);if(scl)m.scale.set(...scl);
-  if(ink)m.add(new THREE.Mesh(geo,inkMat(ink)));parent.add(m);return m}
-// a cylinder from point a to point b (legs, rails, rungs)
-function limb(parent,a,b,r,c,ink){const A=V(...a),Bv=V(...b),d=Bv.clone().sub(A),m=part(new THREE.CylinderGeometry(r,r,d.length(),8),c,parent,null,null,null,ink);
-  m.position.copy(A).add(Bv).multiplyScalar(.5);m.quaternion.setFromUnitVectors(V(0,1,0),d.normalize());return m}
-function canvasTex(w,h,draw){const cv=document.createElement('canvas');cv.width=w;cv.height=h;draw(cv.getContext('2d'),w,h);const t=new THREE.CanvasTexture(cv);t.anisotropy=4;return t}
-const COL={mint:0x8fdcb4,teal:0x2c6f7a,red:0xe0362c,redD:0xb3241d,orange:0xff8a1f,silver:0xbfc8c8,iris:0x1f74a0,pupil:0x0b1820,gold:0xf2b630,white:0xe8eeee,grey:0x9aa4a6,dark:0x22282a,glass:0x4f97b8,yellow:0xffc83a};
-// wing texture: translucent membrane, dark outline, veins
-const wingTex=canvasTex(256,80,(g,w,h)=>{g.clearRect(0,0,w,h);g.beginPath();g.ellipse(w/2,h/2,w/2-4,h/2-5,0,0,7);g.fillStyle='rgba(236,246,246,.62)';g.fill();
-  g.save();g.clip();g.strokeStyle='rgba(70,82,88,.55)';g.lineWidth=1.6;for(const y of [.32,.5,.68]){g.beginPath();g.moveTo(6,h/2);g.quadraticCurveTo(w*.5,h*y,w-8,h/2+(y-.5)*h*.5);g.stroke()}
-  for(let x=40;x<w-20;x+=26){g.beginPath();g.moveTo(x,6);g.lineTo(x+10,h-6);g.stroke()}g.restore();
-  g.beginPath();g.ellipse(w/2,h/2,w/2-4,h/2-5,0,0,7);g.strokeStyle='#1d2427';g.lineWidth=4;g.stroke()});
-const wingMat=new THREE.MeshBasicMaterial({map:wingTex,transparent:true,side:THREE.DoubleSide,depthWrite:false});
-// firefighter badge: gold shield with a red flame
-const badgeTex=canvasTex(64,72,(g)=>{g.fillStyle='#f2b630';g.strokeStyle='#5a3a10';g.lineWidth=4;g.beginPath();g.moveTo(32,4);g.lineTo(60,14);g.lineTo(54,50);g.lineTo(32,68);g.lineTo(10,50);g.lineTo(4,14);g.closePath();g.fill();g.stroke();
-  g.fillStyle='#e0362c';g.beginPath();g.moveTo(32,18);g.bezierCurveTo(46,30,46,48,32,56);g.bezierCurveTo(18,48,20,34,28,30);g.bezierCurveTo(28,38,34,38,32,18);g.fill();
-  g.fillStyle='#ffc83a';g.beginPath();g.moveTo(32,36);g.bezierCurveTo(39,42,38,52,32,54);g.bezierCurveTo(26,52,26,44,32,36);g.fill()});
-function makeDragonfly(o){const root=new THREE.Group(),front=new THREE.Group(),wingsOut=[],I=.03;root.add(front);
-  // thorax + optional hi-vis vest
-  part(new THREE.SphereGeometry(.42,20,14),COL.mint,front,[0,0,0],null,[1,1.05,1.15],I);
-  if(o.vest){const v=part(new THREE.CylinderGeometry(.47,.5,.62,20),COL.orange,front,[0,0,0],[Math.PI/2,0,0],null,I);
-    for(const z of [-.12,.12])part(new THREE.TorusGeometry(.49,.045,6,24),COL.silver,front,[0,0,z],null,null)}
-  // head with big eyes
-  const H=new THREE.Group();H.position.set(0,.2,.7);H.scale.setScalar(1.12);front.add(H);
-  part(new THREE.SphereGeometry(.5,22,16),COL.mint,H,null,null,null,I);
-  for(const sd of [-1,1]){const e=new THREE.Group();e.position.set(sd*.21,.04,.36);H.add(e);
-    part(new THREE.SphereGeometry(.23,16,12),COL.white,e,null,null,[1,1.1,.62],.025);
-    part(new THREE.SphereGeometry(.16,16,12),COL.iris,e,[sd*-.01,-.01,.1],null,[1,1.08,.35]);
-    part(new THREE.SphereGeometry(.085,12,10),COL.pupil,e,[sd*-.01,-.01,.15],null,[1,1,.3]);
-    part(new THREE.SphereGeometry(.04,8,6),new THREE.MeshBasicMaterial({color:0xffffff}),e,[sd*.03+.03,.07,.18])}
-  part(new THREE.BoxGeometry(.12,.02,.02),COL.dark,H,[0,-.2,.47]); // tiny mouth
-  // hats
-  if(o.hat=='hard'){part(new THREE.SphereGeometry(.5,22,12,0,Math.PI*2,0,Math.PI/2),COL.red,H,[0,.3,-.06],null,[1,.92,1.05],I);
-    part(new THREE.CylinderGeometry(.6,.6,.06,26),COL.red,H,[0,.31,-.03],[.1,0,0],null,I);part(new THREE.BoxGeometry(.1,.07,.9),COL.redD,H,[0,.76,-.06])}
-  if(o.hat=='fire'){part(new THREE.SphereGeometry(.52,22,12,0,Math.PI*2,0,Math.PI/2),COL.red,H,[0,.3,-.06],null,[1,.98,1.08],I);
-    part(new THREE.CylinderGeometry(.74,.74,.06,26),COL.red,H,[0,.3,-.16],[-.12,0,0],null,I);part(new THREE.BoxGeometry(.12,.11,.96),COL.redD,H,[0,.8,-.08]);
-    part(new THREE.PlaneGeometry(.3,.34),new THREE.MeshBasicMaterial({map:badgeTex,transparent:true}),H,[0,.6,.42],[-.5,0,0])}
-  // six legs (two segments each)
-  for(const z of [.2,0,-.2])for(const sd of [-1,1]){limb(front,[sd*.22,-.25,z],[sd*.45,-.5,z+.05],.05,COL.mint,.02);limb(front,[sd*.45,-.5,z+.05],[sd*.4,-.82,z+.12],.045,COL.mint,.02)}
-  // four wings, hinged on top of the thorax (flap = rotation.z of the hinge group)
-  for(const [z,len,yw] of [[.14,2.7,-.12],[-.16,2.4,.22]])for(const sd of [-1,1]){const g=new THREE.Group();g.position.set(sd*.12,.34,z);
-    const w=new THREE.Mesh(new THREE.PlaneGeometry(len,len*.31).translate(len/2,0,0).rotateX(-Math.PI/2),wingMat);if(sd<0)w.rotation.y=Math.PI;w.rotation.y+=sd*yw;
-    w.renderOrder=2;g.add(w);g.userData={sd,ph:z};wingsOut.push(g);front.add(g)}
-  // segmented striped tail
-  const tail=new THREE.Group();tail.position.set(0,0,-.42);root.add(tail);let z=0;
-  for(let i=0;i<10;i++){const r0=.2-i*.012,r1=.2-(i+1)*.012,L=.32;part(new THREE.CylinderGeometry(r0,r1,L,14),i%2?COL.teal:COL.mint,tail,[0,0,z-L/2],[Math.PI/2,0,0],null,.022);z-=L}
-  part(new THREE.SphereGeometry(.08,10,8),COL.teal,tail,[0,0,z],null,null,.02);
-  if(o.seated){front.rotation.x=-.85;front.position.set(0,.35,.15)}
-  return{group:root,wings:wingsOut,front,tail}}
-// Aerial character
-const DF=makeDragonfly({hat:'hard',vest:true}),D=DF.group,wings=DF.wings;D.scale.setScalar(1.35);SC.add(D);
-// Earth: fire truck + driver
-const TR={x:0,z:0,yaw:0,spd:0,y:0},truck=new THREE.Group(),sirenR=new THREE.MeshBasicMaterial({color:0xff2a2a}),sirenB=new THREE.MeshBasicMaterial({color:0x2a6aff});
-{const T2=truck,K2=.04,box=(w,h,l,c,p,ink)=>part(new THREE.BoxGeometry(w,h,l),c,T2,p,null,null,ink===undefined?K2:ink);
- box(2.6,1.7,5,COL.red,[0,1.55,-.95]);box(2.6,2.05,2.1,COL.red,[0,1.72,2.5]);                 // rear body, cab
- box(2.1,.8,.06,COL.glass,[0,2.15,3.56],0);for(const sd of [-1,1])box(.06,.7,1.2,COL.glass,[sd*1.31,2.15,2.6],0); // windows
- box(1.0,.55,.06,COL.grey,[0,1.2,3.56],.02);for(const y of [1.05,1.2,1.35])box(.9,.05,.08,COL.dark,[0,y,3.58],0); // grille
- for(const sd of [-1,1]){part(new THREE.CylinderGeometry(.27,.27,.08,18),new THREE.MeshBasicMaterial({color:0xffe08a}),T2,[sd*.85,1.2,3.57],[Math.PI/2,0,0],null,.03)}
- box(2.75,.32,.35,COL.silver,[0,.72,3.62],.03);box(2.75,.32,.3,COL.silver,[0,.72,-3.5],.03);                    // bumpers
- for(const sd of [-1,1]){box(.05,.17,7.1,COL.yellow,[sd*1.31,1.02,.05],0);box(.05,.07,7.1,COL.yellow,[sd*1.31,1.26,.05],0); // stripes
-   for(const y of [1.8,2.2])limb(T2,[sd*1.36,y,-3.1],[sd*1.36,y,1.1],.05,COL.silver,.015);                         // side ladder rails
-   for(let z=-2.9;z<1.1;z+=.45)limb(T2,[sd*1.36,1.8,z],[sd*1.36,2.2,z],.04,COL.silver);                           // rungs
-   part(new THREE.CylinderGeometry(.45,.45,.1,24),COL.yellow,T2,[sd*1.36,1.25,-1.6],[0,0,Math.PI/2],null,.03);    // hose reel
-   part(new THREE.TorusGeometry(.3,.04,6,20),0xd89a20,T2,[sd*1.42,1.25,-1.6],[0,Math.PI/2,0]);
-   box(.06,.22,.22,0xff4030,[sd*1,1.2,-3.46],0)}
- box(1.6,1.2,.06,COL.grey,[0,1.55,-3.47],.02);for(let y=1.05;y<2.1;y+=.18)box(1.5,.03,.08,0x6f787a,[0,y,-3.5],0); // rear roller door
- const wg=new THREE.CylinderGeometry(.66,.66,.5,18);wg.rotateZ(Math.PI/2);const hg=new THREE.CylinderGeometry(.34,.34,.52,14);hg.rotateZ(Math.PI/2);
- for(const [x,z] of [[-1.2,2.35],[1.2,2.35],[-1.2,-2.2],[1.2,-2.2]]){part(wg,0x1b1f21,T2,[x,.66,z],null,null,.03);part(hg,COL.grey,T2,[x*1.02,.66,z])}
- part(new THREE.SphereGeometry(.28,14,10,0,Math.PI*2,0,Math.PI/2),sirenB,T2,[0,2.75,2.5],null,null,.03);part(new THREE.BoxGeometry(.22,.16,.22),sirenR,T2,[-.95,2.82,2.9]);part(new THREE.BoxGeometry(.22,.16,.22),sirenR,T2,[.95,2.82,2.9]);
- part(new THREE.TorusGeometry(.32,.05,8,24),COL.dark,T2,[0,2.95,1.55],[-.9,0,0])}                                    // steering wheel
-const PILOT=makeDragonfly({hat:'fire',seated:true});PILOT.group.position.set(0,2.55,.55);truck.add(PILOT.group);
-truck.scale.setScalar(1.15);SC.add(truck);
-
-// =====================================================================
-// 7. traffic: cars drive the street lines and pull over for the truck
-// =====================================================================
-const CARS=[],NC=80;
-for(let i=0;i<NC;i++){const vert=Math.random()<.5,line=LINES[Math.floor(Math.random()*LINES.length)],dir=Math.random()<.5?1:-1;
-  CARS.push({vert,line,dir,s:(Math.random()-.5)*2*E,v:9+Math.random()*5,vmax:9+Math.random()*5,lane:Math.random()<.5?2.2:5.4,pull:0,x:0,z:0,y:.8})}
-const carBody=new THREE.InstancedMesh(new THREE.BoxGeometry(1.9,1.1,4.4),new THREE.MeshLambertMaterial({color:0xffffff}),NC),
-      carTop=new THREE.InstancedMesh(new THREE.BoxGeometry(1.7,.8,2.2),new THREE.MeshLambertMaterial({color:0x1d2629}),NC);
-{const col=new THREE.Color(),pal=[0x9aa3a6,0x3b4f66,0x7a2b2b,0xd8d4c8,0x2f3a3a,0x6b6f3a];for(let i=0;i<NC;i++)carBody.setColorAt(i,col.setHex(pal[i%pal.length]))}
-SC.add(carBody,carTop);
-function carTick(dt){const o=new THREE.Object3D();
-  for(let i=0;i<NC;i++){const c=CARS[i];let vt=c.vmax;
-    const x=c.vert?c.line-c.dir*c.lane:c.s,z=c.vert?c.s:c.line+c.dir*c.lane; // right-hand traffic
-    if(mode=='ground'){const dx=TR.x-x,dz=TR.z-z,ahead=(c.vert?dz:dx)*c.dir;if(Math.hypot(dx,dz)<34&&ahead>-6){vt=0;c.pull=Math.min(1,c.pull+dt*1.5)}else c.pull=Math.max(0,c.pull-dt*.5)} // yield to the siren
-    if(floodDepth(x,z)>.4)vt=0; // stalled in floodwater
-    if(disaster=='tornado'&&Math.hypot(x-T.x,z-T.z)<130)vt=0; // abandoned near the funnel
-    c.v+=(vt-c.v)*Math.min(1,dt*1.5);const ns=c.s+c.dir*c.v*dt;
-    if(!c.vert&&riverDist(ns,c.line)<6){c.dir*=-1}else c.s=ns; // horizontal streets end at the river: U-turn
-    if(c.s>E)c.s=-E;if(c.s<-E)c.s=E;
-    const lane=c.lane+c.pull*(6.3-c.lane);c.x=c.vert?c.line-c.dir*lane:c.s;c.z=c.vert?c.s:c.line+c.dir*lane;
-    c.y=c.vert&&riverDist(c.x,c.z)<4?1.85:.8;
-    o.position.set(c.x,c.y,c.z);o.rotation.set(0,c.vert?(c.dir>0?Math.PI:0):(c.dir>0?-Math.PI/2:Math.PI/2),0);o.updateMatrix();carBody.setMatrixAt(i,o.matrix);
-    o.position.y+=.9;o.translateZ(.2);o.updateMatrix();carTop.setMatrixAt(i,o.matrix)}
-  carBody.instanceMatrix.needsUpdate=carTop.instanceMatrix.needsUpdate=true}
-
-// =====================================================================
-// 8. hazards: tornado and hurricane
-// =====================================================================
-const T={x:-260,z:-120,tx:20,tz:0,vx:0,vz:0,turn:0};
-const H={ex:CFG.hurricane.eye0[0],ez:CFG.hurricane.eye0[1],floodR:0,level:0};
-// tornado funnel particles
-const TN=1800,tg=new THREE.BufferGeometry(),tp=new Float32Array(TN*3);tg.setAttribute('position',new THREE.BufferAttribute(tp,3));
-const torn=new THREE.Points(tg,new THREE.PointsMaterial({color:0x9fb0b4,size:2.4,transparent:true,opacity:.6,depthWrite:false}));torn.frustumCulled=false;SC.add(torn);
-// Wind field. Tornado: slow rotating background wind with gusts. Hurricane: Rankine-like vortex around a moving eye
-// (counterclockwise, northern hemisphere) with inflow and gusts. North is -z.
-function windAt(x,z){
-  if(disaster=='hurricane'){const hc=CFG.hurricane,dx=x-H.ex,dz=z-H.ez,r=Math.hypot(dx,dz)||1;
-    const v=hc.vmax*(r<hc.rmax?r/hc.rmax:Math.pow(hc.rmax/r,.6))*(1+.25*Math.sin(t*1.1+x*.01)*Math.sin(t*.43+z*.013));
-    return V((dz/r-.25*dx/r)*v,0,(-dx/r-.25*dz/r)*v)}
-  const a=t*.07,g=1+.5*Math.sin(t*.9)*Math.sin(t*.37);return V(Math.sin(a)*9*g,0,Math.cos(a*1.3)*9*g)}
-// storm surge: flood spreads out from the river over floodTime seconds. depth in meters at a point.
-function floodDepth(x,z){const rd=riverDist(x,z);if(rd<0)return 3;if(disaster!='hurricane'||rd>H.floodR)return 0;return(.35+H.level*1.8)*clamp((H.floodR-rd)/50,0,1)}
-function hazardTick(dt){
-  if(disaster=='tornado'){T.turn-=dt;if(T.turn<=0){T.turn=1+Math.random()*2.5;const a=Math.random()*6.28,s=18+Math.random()*40;T.tx=Math.cos(a)*s-T.x*.06;T.tz=Math.sin(a)*s-T.z*.06;if(Math.random()<.3){T.tx*=2;T.tz*=2}}
-    T.vx+=(T.tx-T.vx)*dt*1.6;T.vz+=(T.tz-T.vz)*dt*1.6;T.x=clamp(T.x+T.vx*dt,-E+60,E-60);T.z=clamp(T.z+T.vz*dt,-E+60,E-60)}
-  else{const hc=CFG.hurricane,dx=-H.ex,dz=-H.ez,d=Math.hypot(dx,dz);if(d>500){H.ex+=dx/d*hc.eyeSpeed*dt;H.ez+=dz/d*hc.eyeSpeed*dt}
-    const k=clamp(simT/hc.floodTime,0,1);H.floodR=hc.floodMax*k;H.level=k}
-  waterU.uFlood.value=disaster=='hurricane'?H.floodR:0;waterU.uLevel.value=disaster=='hurricane'?H.level:0;water.position.y=.35+(disaster=='hurricane'?H.level*1.8:0)}
-// danger for planning: travel-time multiplier for the air (tornado proximity, strong wind) and hard road closures
-function airRisk(x,z){if(disaster=='tornado'){const d=Math.hypot(x-T.x,z-T.z);return d<90?3:d<CFG.tornado.danger?1.6:1}
-  const w=windAt(x,z).length();return 1+Math.max(0,w-22)/18}
-const inDanger=(x,z)=>disaster=='tornado'&&Math.hypot(x-T.x,z-T.z)<90;
-let BLOCK=new Uint8Array(EDGES.length);
-function updateBlocked(){for(let e=0;e<EDGES.length;e++){const E_=EDGES[e];BLOCK[e]=(disaster=='tornado'&&Math.hypot(E_.mx-T.x,E_.mz-T.z)<CFG.tornado.block)||(!E_.bridge&&floodDepth(E_.mx,E_.mz)>.45)?1:0}}
-
-// debris: tornado debris orbits the funnel, hurricane debris rides the wind past you
-const DN=140,deb=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshLambertMaterial({color:0x6b5d4f}),DN),db=[],dm=new THREE.Object3D();
-for(let i=0;i<DN;i++)db.push({a:Math.random()*6.28,age:Math.random()*6,s:.6+Math.random()*1.8,sp:2+Math.random()*3,p:V(0,-50,0),pp:V(0,-50,0),threat:0});
-deb.frustumCulled=false;SC.add(deb);
-const unitPos=()=>mode=='air'?P:V(TR.x,TR.y+1.8,TR.z);
-function debTick(dt){const U=unitPos();let threat=null;
-  for(let i=0;i<DN;i++){const d=db[i];d.pp.copy(d.p);
-    if(disaster=='tornado'){d.age+=dt;if(d.age>6){d.age=0;d.a=Math.random()*6.28}d.a+=dt*d.sp*(1.6-d.age*.18);const r=5+d.age*d.age*3.2;d.p.set(T.x+Math.cos(d.a)*r,3+d.age*28+Math.sin(d.a*2)*6,T.z+Math.sin(d.a)*r)}
-    else{if(i>=70){d.p.y=-50}else{const w=windAt(d.p.x,d.p.z);d.p.addScaledVector(w,dt*1.25);d.p.y+=Math.sin(t*2+i)*dt*3;
-      if(d.p.distanceTo(U)>170||d.p.y<0){const wn=windAt(U.x,U.z).normalize();d.p.set(U.x-wn.x*150+(Math.random()-.5)*140,U.y+(Math.random()-.4)*40,U.z-wn.z*150+(Math.random()-.5)*140);d.pp.copy(d.p)}}}
-    dm.position.copy(d.p);dm.rotation.set(t*d.sp,t*d.sp*.7,d.a);dm.scale.set(d.s,d.s*(disaster=='hurricane'?.25:1),d.s*(disaster=='hurricane'?1.6:1));dm.updateMatrix();deb.setMatrixAt(i,dm.matrix);
-    if(d.p.y<0)continue;
-    // hazard sense: time of closest approach between this piece and you
-    const rp=d.p.clone().sub(U),rv=d.p.clone().sub(d.pp).divideScalar(Math.max(dt,1e-3)).sub(mode=='air'?vel:V(Math.sin(TR.yaw)*TR.spd,0,-Math.cos(TR.yaw)*TR.spd)),vv=rv.lengthSq();
-    const tca=vv>1?-rp.dot(rv)/vv:99,miss=rp.clone().addScaledVector(rv,clamp(tca,0,9)).length();
-    if(tca>0&&tca<1.1&&miss<3.5){if(!d.threat){d.threat=1;if(!threat)threat=d}}
-    else if(d.threat&&tca<=0){d.threat=0;if(rp.length()>d.s+1.6&&rp.length()<14&&go){stats.dodges++;style++;if(mode=='air')spd+=7;say('clean dodge +boost')}}
-    if(hitCd<=0&&Math.abs(U.x-d.p.x)<d.s+1.5&&Math.abs(U.y-d.p.y)<d.s+1.5&&Math.abs(U.z-d.p.z)<d.s+1.5){d.threat=0;if(mode=='air'){spd*=.8;bat-=2}else{TR.spd*=.6;tbat-=1}shake=1;hitCd=.6;say('debris hit')}}
-  deb.instanceMatrix.needsUpdate=true;
-  if(threat&&warnCd<=0&&go){warnCd=2.5;slowT=.35;showWarn(threat.p)}}
-function showWarn(p){const v=p.clone().project(C),w=$('warn');let x=v.x,y=v.y;if(v.z>1){x=-x;y=-y}const a=Math.atan2(y,x),m=Math.max(Math.abs(x),Math.abs(y),1e-3);x=clamp(x/m*.86,-.86,.86);y=clamp(y/m*.8,-.8,.8);
-  w.style.left=((x*.5+.5)*innerWidth-16)+'px';w.style.top=((-y*.5+.5)*innerHeight-15)+'px';w.style.transform='rotate('+(Math.PI/2-a)+'rad)';w.style.display='block';w.style.opacity=1;setTimeout(()=>w.style.display='none',600)}
-
-// rain (hurricane): line segments in a box around the camera, slanted by the wind
-const RN=1500,rg=new THREE.BufferGeometry(),rpos=new Float32Array(RN*6);for(let i=0;i<RN;i++){const x=(Math.random()-.5)*160,y=Math.random()*90,z=(Math.random()-.5)*160;rpos.set([x,y,z,x,y-1,z],i*6)}
-rg.setAttribute('position',new THREE.BufferAttribute(rpos,3));const rain=new THREE.LineSegments(rg,new THREE.LineBasicMaterial({color:0x9fb6c4,transparent:true,opacity:.35}));rain.frustumCulled=false;SC.add(rain);
-function rainTick(dt,n){rain.visible=disaster=='hurricane';if(!rain.visible)return;const w=windAt(C.position.x,C.position.z),a=rpos;rain.position.set(C.position.x,C.position.y-45,C.position.z);
-  for(let i=0;i<n;i++){const o=i*6;a[o]+=w.x*dt;a[o+1]-=34*dt;a[o+2]+=w.z*dt;if(a[o+1]<0||Math.abs(a[o])>80||Math.abs(a[o+2])>80){a[o]=(Math.random()-.5)*160;a[o+1]=90;a[o+2]=(Math.random()-.5)*160}
-    a[o+3]=a[o]-w.x*.05;a[o+4]=a[o+1]+1.7;a[o+5]=a[o+2]-w.z*.05}
-  for(let i=n;i<RN;i++)a[i*6+1]=a[i*6+4]=-999;rg.attributes.position.needsUpdate=true}
-
-// =====================================================================
-// 9. rescue reports, planner (air and road), adaptive urgency
-// =====================================================================
-const reports=[];let rid=0,spawnT=0,route=[],routeBase=[],legs=[],legsBase=[],planT=0,mapOn=false,flash=0;const est={a:0,b:0,air:0,ground:0,unreach:0};
-function addReport(){const free=B.filter(b=>b.curb!==undefined&&!reports.some(r=>!r.done&&r.b===b));if(!free.length)return;const b=free[Math.floor(Math.random()*free.length)];
-  // report size: 0.3% to 1.5% of the building's modeled occupants (assumption)
-  const r={id:++rid,x:b.x,z:b.z,y:b.h+6,b,people:Math.max(5,Math.round(b.pop*(.003+Math.random()*.012))),done:false,age:0,claimed:false};
-  r.m=new THREE.Mesh(new THREE.CylinderGeometry(1.4,1.4,80,8,1,true),new THREE.MeshBasicMaterial({color:0xff5a4a,transparent:true,opacity:.38,depthWrite:false}));r.m.position.set(r.x,r.y+40,r.z);SC.add(r.m);
-  r.g=new THREE.Mesh(new THREE.RingGeometry(1.6,2.4,20),new THREE.MeshBasicMaterial({color:0xff5a4a,transparent:true,opacity:.8,side:2,depthWrite:false}));r.g.rotation.x=-Math.PI/2;r.g.position.set(b.stop.x,.2,b.stop.z);SC.add(r.g);reports.push(r)}
-function closeReport(r){r.done=true;SC.remove(r.m);SC.remove(r.g)}
-const decay=x=>Math.exp(-x/CFG.plan.tau);
-// greedy chain. travel(fromKey, r) returns seconds (Infinity = unreachable). near: radius for the "right next to you" rule.
-function chain(open,travel,startKey,near,useNear,score){const left=open.slice(),ord=[],keys=[];let key=startKey,tm=0,val=0;
-  while(left.length){let bi=-1;
-    if(useNear){let nd=near;left.forEach((r,i)=>{const s=travel(key,r,true);if(s<nd&&!inDanger(r.x,r.z)&&r.age+tm+travel(key,r,false,true)<CFG.plan.life){nd=s;bi=i}})}
-    if(bi<0){let bs=-Infinity;left.forEach((r,i)=>{const tr=travel(key,r);if(!isFinite(tr))return;const sc=score(r,tr,tm);if(sc>bs){bs=sc;bi=i}})}
-    if(bi<0)break;const r=left.splice(bi,1)[0],tr=travel(key,r,false,true);tm+=tr;if(r.age+tm<CFG.plan.life)val+=r.people*decay(tm)*(inDanger(r.x,r.z)?.5:1);tm+=CFG.plan.service;ord.push(r);keys.push(key);key=r.id}
-  return{ord,val,keys}}
-// rescue-priority score: people * survival decay / (travel + 3), older reports pushed up when urgency is high, unreachable-in-time ones dropped
-const priScore=(r,tr,tm)=>r.age+tm+tr>CFG.plan.life?-1e6+r.people:r.people*decay(tm+tr)/(tr+3)*(1+CFG.learn.age*learn.urg*(r.age/CFG.plan.life)**2);
-function planAir(from,open){const pos=k=>k==='start'?from:reports.find(r=>r.id===k);
-  // near=true: raw distance in m (for the near rule). raw=true: real flight time. otherwise risk-weighted time.
-  const travel=(k,r,nearQ,raw)=>{const p=pos(k),d=Math.hypot(r.x-p.x,r.z-p.z);return nearQ?d:d/cruiseAir()*(raw?1:airRisk(r.x,r.z))};
-  return{a:chain(open,travel,'start',CFG.plan.near,true,priScore),b:chain(open,(k,r,n,raw)=>travel(k,r,n,true),'start',CFG.plan.near,false,(r,tr)=>-tr)}}
-function planGround(from,open){updateBlocked();const se=EDGES[nearestEdge(from.x,from.z)],sn=Math.hypot(NODES[se.a].x-from.x,NODES[se.a].z-from.z)<Math.hypot(NODES[se.b].x-from.x,NODES[se.b].z-from.z)?se.a:se.b,tables={start:dijkstra(sn,BLOCK)};for(const r of open)tables[r.id]=dijkstra(r.b.curb,BLOCK);
-  const travel=(k,r,nearQ)=>{const d=tables[k].d[r.b.curb];return nearQ?d:d/CFG.truck.avg/(1+CFG.learn.speed*.8*learn.urg)};
-  const res={a:chain(open,travel,'start',CFG.plan.nearRoad,true,priScore),b:chain(open,travel,'start',CFG.plan.nearRoad,false,(r,tr)=>-tr),tables};
-  res.unreach=open.filter(r=>!isFinite(tables.start.d[r.b.curb])).length;return res}
-function pathNodes(table,dst){const out=[];for(let v=dst;v>=0;v=table.prev[v])out.push(v);return out.reverse()}
-function replan(){const open=reports.filter(r=>!r.done&&!r.claimed),from=unitPos();
-  const pa=planAir(from,open),pg=planGround(from,open);est.air=pa.a.val;est.ground=pg.a.val;est.unreach=pg.unreach;
-  const p=mode=='air'?pa:pg;route=p.a.ord;routeBase=p.b.ord;est.a=p.a.val;est.b=p.b.val;
-  legs=[];legsBase=[];if(mode=='ground'){const mk=(ch)=>ch.ord.map((r,i)=>pathNodes(pg.tables[ch.keys[i]],r.b.curb));legs=mk(pg.a);legsBase=mk(pg.b)}}
-function reach(r,how){closeReport(r);stats.saved+=r.people;learn.urg=Math.max(0,learn.urg-CFG.learn.perReach);say('+'+r.people+' '+how);shake=Math.max(shake,.5);planT=0}
-function simTick(dt){spawnT+=dt;if(spawnT>CFG.plan.spawnEvery&&reports.filter(r=>!r.done).length<CFG.plan.maxOpen){spawnT=0;addReport()}
-  for(const r of reports){if(r.done)continue;r.age+=dt;r.m.material.opacity=.3+.15*Math.sin(t*4+r.id);
-    if(r.age>CFG.plan.life&&!r.claimed){closeReport(r);stats.missed+=r.people;
-      // adaptive urgency: a miss raises it, more so when many people were missed
-      learn.urg=Math.min(1,learn.urg+CFG.learn.perMiss*(.6+.4*Math.min(1,r.people/60)));say('report lost: urgency up');continue}
-    if(r.claimed)continue;
-    if(mode=='air'&&!auto&&Math.hypot(P.x-r.x,P.z-r.z)<24&&P.y>r.y-5&&P.y<r.y+80){reach(r,'reached');pickupRoof(r)}
-    if(mode=='ground'&&!auto&&Math.hypot(TR.x-r.b.stop.x,TR.z-r.b.stop.z)<11&&Math.abs(TR.spd)<9){reach(r,'reached');pickupDoor(r)}}
-  planT-=dt;if(planT<=0){planT=.5;replan()}}
-
-// =====================================================================
-// 10. pickup animation: little figures hop into the dragonfly or walk out of the door to the truck (visual only)
-// =====================================================================
-const FIG=[],fBody=new THREE.CylinderGeometry(.32,.38,1.1,8),fHead=new THREE.SphereGeometry(.3,8,6),fMat=new THREE.MeshLambertMaterial({color:0xffd27a,emissive:0x553311});
-for(let i=0;i<40;i++){const g=new THREE.Group(),bd=new THREE.Mesh(fBody,fMat),hd=new THREE.Mesh(fHead,fMat);bd.position.y=.55;hd.position.y=1.4;g.add(bd,hd);g.visible=false;g.userData={from:V(),d:0,u:0,walk:false,dur:1};FIG.push(g);SC.add(g)}
-const nFig=r=>Math.min(12,Math.max(3,Math.ceil(r.people/10))); // one figure per ~10 people, 3 to 12
-function spawnFigs(n,place,walk,dur){let k=0;for(const g of FIG){if(k>=n)break;if(g.visible)continue;const u=g.userData;place(u.from,k);u.d=k*.12;u.u=0;u.walk=walk;u.dur=dur;g.position.copy(u.from);g.scale.setScalar(.75);g.visible=true;k++}return n*.12+dur+.2}
-const pickupRoof=r=>spawnFigs(nFig(r),(v)=>v.set(r.b.x+(Math.random()-.5)*r.b.hx*1.3,r.b.h,r.b.z+(Math.random()-.5)*r.b.hz*1.3),false,1.1);
-const pickupDoor=r=>spawnFigs(nFig(r),(v,k)=>v.set(r.b.door.x+(Math.random()-.5)*3+r.b.face[0]*.8,0,r.b.door.z+(Math.random()-.5)*3+r.b.face[1]*.8),true,1.6);
-function figTick(dt){const U=mode=='air'?P:V(TR.x,0,TR.z);for(const g of FIG){if(!g.visible)continue;const u=g.userData;
-  if(u.d>0){u.d-=dt;g.position.copy(u.from);g.position.y+=Math.abs(Math.sin(t*10+u.from.x))*.5;continue}
-  u.u+=dt/u.dur;if(u.u>=1){g.visible=false;continue}const e=ease(u.u);g.position.lerpVectors(u.from,U,e);
-  if(u.walk){g.position.y=Math.abs(Math.sin(u.u*18))*.25;g.lookAt(U.x,0,U.z);g.scale.setScalar(.75*(1-.6*Math.max(0,e-.7)/.3))}
-  else{g.position.y+=Math.sin(Math.PI*u.u)*4;g.scale.setScalar(.75*(1-.75*e))}}}
-
-// =====================================================================
-// 11. aerial autopilot: go -> approach (smooth glide onto the roof) -> board -> lift -> go
-// =====================================================================
-let ap='go',apT=0,landR=null,tgtId=0,tgtT=0,stuckClimb=0,lastWind=V();
-const pad=new THREE.Mesh(new THREE.RingGeometry(2.6,3.4,32),new THREE.MeshBasicMaterial({color:0xffb347,transparent:true,opacity:.8,side:2,depthWrite:false}));pad.rotation.x=-Math.PI/2;pad.visible=false;SC.add(pad);
-const parked=()=>mode=='air'&&auto&&(ap=='approach'||ap=='board'||ap=='lift');
-// approach curve: cubic Bezier from the current position (leaving along the current heading) to the pad (arriving from straight above),
-// arc-length table so speed can ease from cruise to zero. Control heights are raised until no sample hits another building.
-const AP={p0:V(),c1:V(),c2:V(),p3:V(),tab:[],len:1,dur:1,tau:0,s0:30};
-const bez=(u,o)=>{const a=1-u;return o.set(0,0,0).addScaledVector(AP.p0,a*a*a).addScaledVector(AP.c1,3*a*a*u).addScaledVector(AP.c2,3*a*u*u).addScaledVector(AP.p3,u*u*u)};
-function curveClear(r){const v=V();let worst=0;for(let i=1;i<=30;i++){bez(i/30,v);forNear(v.x,v.z,b=>{if(b!==r.b&&boxDist(b,v.x,v.z)<6&&v.y<b.h+6)worst=Math.max(worst,b.h+18);return false})}return worst}
-function tryApproach(r,force){const pad3=V(r.b.x,r.b.h+1.2,r.b.z),h=V(Math.sin(yaw),0,-Math.cos(yaw)),dh=Math.hypot(pad3.x-P.x,pad3.z-P.z);
-  AP.p0.copy(P);AP.p3.copy(pad3);AP.s0=Math.max(spd,22);let hi=Math.max(P.y,pad3.y+14);
-  for(let k=0;k<5;k++){AP.c1.copy(P).addScaledVector(h,Math.max(20,dh*.45));AP.c1.y=hi;AP.c2.copy(pad3);AP.c2.y=Math.max(pad3.y+14,hi*.55+pad3.y*.45);
-    const need=curveClear(r);if(!need){buildTable();landR=r;r.claimed=true;ap='approach';AP.tau=0;pad.position.set(r.b.x,r.b.h+.15,r.b.z);pad.visible=true;return true}
-    hi=Math.max(hi+12,need)}
-  return false}
-function buildTable(){const a=V(),b=V();AP.tab=[0];let L=0;bez(0,a);for(let i=1;i<=48;i++){bez(i/48,b);L+=a.distanceTo(b);AP.tab.push(L);a.copy(b)}AP.len=L;
-  // speed profile: keep cruising at s0, then brake at AP_BRAKE m/s^2 so speed hits zero exactly on the pad (short glides just brake the whole way)
-  const s0=AP.s0;let br=AP_BRAKE,db=s0*s0/(2*br);if(db>L){db=L;br=s0*s0/(2*L)}AP.a=br;AP.tc=(L-db)/s0;AP.dur=AP.tc+s0/br}
-const AP_BRAKE=11;
-function uAtLen(s){const tb=AP.tab;let i=1;while(i<tb.length-1&&tb[i]<s)i++;const f=(s-tb[i-1])/Math.max(tb[i]-tb[i-1],1e-6);return(i-1+clamp(f,0,1))/48}
-function approachTick(dt){AP.tau=Math.min(1,AP.tau+dt/AP.dur);const tt=AP.tau*AP.dur,tb=Math.max(0,tt-AP.tc);
-  const dist=Math.min(AP.len,AP.s0*Math.min(tt,AP.tc)+AP.s0*tb-.5*AP.a*tb*tb),u=uAtLen(dist),prev=P.clone();bez(u,P);
-  const tng=P.clone().sub(prev),hl=Math.hypot(tng.x,tng.z);spd=Math.max(0,AP.s0-AP.a*tb);vel.copy(tng).divideScalar(Math.max(dt,1e-4));
-  if(hl>.02){const ny=Math.atan2(tng.x,-tng.z),dy=wrap(ny-yaw);yaw+=dy;roll+=(clamp(-dy*14,-.6,.6)-roll)*Math.min(1,dt*4)}
-  pitch+=((hl>.02?clamp(Math.atan2(tng.y,hl),-.45,.25)*Math.min(1,spd/20):0)-pitch)*Math.min(1,dt*4);
-  if(inDanger(AP.p3.x,AP.p3.z)&&AP.tau<.8){landR.claimed=false;landR=null;ap='go';pad.visible=false;say('approach aborted: tornado')}
-  else if(AP.tau>=1){P.copy(AP.p3);spd=0;vel.set(0,0,0);ap='board';reach(landR,'aboard');apT=pickupRoof(landR)*(1-CFG.learn.board*learn.urg)}}
-function liftTick(dt){apT+=dt/1.3;const e=ease(Math.min(1,apT));P.y=AP.p3.y+22*e;pitch*=.9;roll*=.9;spd=4+14*e;vel.set(0,22/1.3,0);
-  const r=route[0];if(r){const want=Math.atan2(r.x-P.x,-(r.z-P.z));yaw+=clamp(wrap(want-yaw),-2.4*dt,2.4*dt)}
-  if(apT>=1){ap='go';pad.visible=false;landR=null;spd=18}}
-function parkTick(dt){if(ap=='approach')approachTick(dt);else if(ap=='board'){apT-=dt;if(inDanger(P.x,P.z))apT=0;if(apT<=0){ap='lift';apT=0;say('lifting off')}}else liftTick(dt);bat-=dt*.15}
-// cruise steering: returns stick inputs for the normal flight model
-function autoSteer(dt){const r=route[0],W=lastWind;
-  if(r&&r.id!==tgtId){tgtId=r.id;tgtT=0}
-  let ax,az;if(r){ax=r.x;az=r.z}else{ax=Math.cos(t*.1)*260;az=Math.sin(t*.1)*260}
-  if(disaster=='tornado'){const tx=P.x-T.x,tz=P.z-T.z,td=Math.hypot(tx,tz)||1;if(td<CFG.tornado.avoid){const k=(CFG.tornado.avoid-td)*1.6;ax+=tx/td*k;az+=tz/td*k}}
-  const dx=ax-P.x,dz=az-P.z,dh=Math.hypot(dx,dz)||1,ux=dx/dh,uz=dz/dh;
-  if(r&&Math.hypot(r.x-P.x,r.z-P.z)<160)tgtT+=dt; // watchdog clock only runs while close to the target
-  // altitude: stay above the target roof and anything in the corridor ahead (along the route and along the current heading)
-  const f=fwd(),LK=70+spd*2.2;let ay=r?Math.max(r.b.h+35,80):120;
-  for(let s=10;s<=LK+100;s+=14){forNear(P.x+ux*s,P.z+uz*s,b=>{if((!r||b!==r.b)&&boxDist(b,P.x+ux*s,P.z+uz*s)<22)ay=Math.max(ay,b.h+32);return false});
-    if(s<=LK)forNear(P.x+f.x*s,P.z+f.z*s,b=>{if((!r||b!==r.b)&&boxDist(b,P.x+f.x*s,P.z+f.z*s)<16)ay=Math.max(ay,b.h+32);return false})}
-  if(stuckClimb>0){stuckClimb-=dt;ay+=60}ay=Math.min(ay,CFG.air.ceiling-15);
-  // wind compensation: point the nose so (air velocity + wind) tracks the target
-  const cp=CFG.air.coupling[disaster],sp=Math.max(spd,20),hx=ux*sp-W.x*cp,hz=uz*sp-W.z*cp,want=Math.atan2(hx,-hz);
-  let mx=clamp(wrap(want-yaw)*1.8,-1,1),my=-clamp(Math.atan2(ay-P.y,Math.max(dh,30)),-.6,.6)/.95,sp2=cruiseAir();
-  // close to a wall and not above its roof: climb hard and slow down
-  let tight=false;forNear(P.x,P.z,b=>{if(boxDist(b,P.x,P.z)<18&&P.y<b.h+12){tight=true;return true}return false});
-  if(tight){my=-.63;sp2=Math.min(sp2,24)}
-  if(r&&dh<260)sp2=Math.min(sp2,24+dh*.12); // ease off near the target so the turn-in is tight
-  // start the glide when close enough (earlier at high urgency); stuck watchdog: circling the same target too long forces a high approach
-  const appR=90+CFG.learn.approach*learn.urg;
-  if(r&&dh<appR&&P.y>r.b.h+4&&!inDanger(r.x,r.z))tryApproach(r);
-  else if(r&&dh<160&&tgtT>14){stats.stuck++;learn.urg=Math.min(1,learn.urg+.08);tgtT=0;if(!tryApproach(r,true))stuckClimb=3;say('circling: retrying approach')}
-  return{mx,my,sp:sp2}}
-// soft obstacle field for the autopilot: gently pushes away from walls before contact (horizontal) and lifts over roofs
-function softAvoid(dt){forNear(P.x,P.z,b=>{if(landR&&b===landR.b)return false;const d=boxDist(b,P.x,P.z);if(d<12&&P.y<b.h+8){
-  const nx=Math.sign(P.x-b.x)*(Math.abs(P.x-b.x)>b.hx?1:0),nz=Math.sign(P.z-b.z)*(Math.abs(P.z-b.z)>b.hz?1:0),nl=Math.hypot(nx,nz)||1;
-  P.x+=nx/nl*(12-d)*2*dt;P.z+=nz/nl*(12-d)*2*dt;P.y+=(b.h+8-P.y)*1.2*dt}return false})}
-
-// =====================================================================
-// 12. truck: manual driving + road autopilot (Dijkstra path, pure pursuit, brake for corners and the stop)
-// =====================================================================
-let gs='drive',gT=0,gPath=[],gFor=0,gRe=0,gStuck=0,gRev=0,gRevS=1,gUT=0;
-function placeTruck(x,z){const n=NODES[nearestNode(x,z)],e=EDGES[n.adj[0][2]];TR.x=n.x;TR.z=n.z;TR.yaw=e.vert?0:Math.PI/2;TR.spd=0;gs='drive';gPath=[];gFor=0}
-// the road segment the truck is on (closest edge), so the path always starts from a node we can actually drive to
-function nearestEdge(x,z){let be=0,bd=1e18;for(let i=0;i<EDGES.length;i++){const e=EDGES[i],a=NODES[e.a],b=NODES[e.b],dx=b.x-a.x,dz=b.z-a.z,l2=dx*dx+dz*dz;
-  const u=clamp(((x-a.x)*dx+(z-a.z)*dz)/l2,0,1),d=(a.x+dx*u-x)**2+(a.z+dz*u-z)**2;if(d<bd){bd=d;be=i}}return be}
-function truckPath(r){const tb=dijkstra(r.b.curb,BLOCK),hx=Math.sin(TR.yaw),hz=-Math.cos(TR.yaw),e=EDGES[nearestEdge(TR.x,TR.z)];let best=-1,bc=Infinity;
-  for(const i of [e.a,e.b]){const n=NODES[i],dx=n.x-TR.x,dz=n.z-TR.z,d=Math.hypot(dx,dz);if(!isFinite(tb.d[i]))continue;
-    const c=d+tb.d[i]+(d>3&&(dx*hx+dz*hz)/d<-.2?45:0);if(c<bc){bc=c;best=i}} // the end behind us costs extra (avoid needless U-turns)
-  if(best<0)return null;const out=[];for(let v=best;v>=0;v=tb.prev[v])out.push(v);return out}
-function groundAuto(dt){const r=route[0];
-  if(gs=='board'){gT-=dt;TR.spd*=Math.pow(.01,dt);return{st:0,vt:0}}
-  if(gRev>0){gRev-=dt;return{st:-gRevS,vt:-4}}
-  if(!r)return{st:0,vt:0};
-  gRe-=dt;if(r.id!==gFor||gRe<=0){gFor=r.id;gRe=2;const p=truckPath(r);gPath=p||[]}
-  // polyline: path nodes shifted into the right-hand lane, then the curb stop point
-  const pts=[];for(let i=0;i<gPath.length;i++){const n=NODES[gPath[i]],m=NODES[gPath[Math.min(i+1,gPath.length-1)]],p=NODES[gPath[Math.max(i-1,0)]];
-    let dx=m.x-p.x,dz=m.z-p.z;const l=Math.hypot(dx,dz)||1;dx/=l;dz/=l;pts.push([n.x-dz*CFG.truck.lane,n.z+dx*CFG.truck.lane])}
-  pts.push([r.b.stop.x,r.b.stop.z]);if(pts.length==1)pts.unshift([TR.x,TR.z]);
-  // closest point on the polyline, then pure pursuit: aim Ld meters further along it
-  let bi=0,bu=0,bd=1e18;for(let i=0;i<pts.length-1;i++){const a=pts[i],b=pts[i+1],dx=b[0]-a[0],dz=b[1]-a[1],l2=dx*dx+dz*dz||1,u=clamp(((TR.x-a[0])*dx+(TR.z-a[1])*dz)/l2,0,1),d=(a[0]+dx*u-TR.x)**2+(a[1]+dz*u-TR.z)**2;if(d<bd){bd=d;bi=i;bu=u}}
-  const segL=i=>Math.hypot(pts[i+1][0]-pts[i][0],pts[i+1][1]-pts[i][1]);
-  const Ld=4.5+Math.abs(TR.spd)*.35;let rem=Ld+segL(bi)*bu,ax=pts[pts.length-1][0],az=pts[pts.length-1][1];
-  for(let i=bi;i<pts.length-1;i++){const l=segL(i);if(l>=rem){ax=pts[i][0]+(pts[i+1][0]-pts[i][0])*rem/l;az=pts[i][1]+(pts[i+1][1]-pts[i][1])*rem/l;break}rem-=l}
-  let ds=-segL(bi)*bu;for(let i=bi;i<pts.length-1;i++)ds+=segL(i);ds+=Math.sqrt(bd);
-  const err=wrap(Math.atan2(ax-TR.x,-(az-TR.z))-TR.yaw);let vt=cruiseTruck();
-  // corner speed: slow before the next sharp turn; stop: brake so speed reaches zero at the curb (v^2 = 2 a d)
-  let acc=segL(bi)*(1-bu);for(let i=bi+1;i<pts.length-1;i++){const a=pts[i-1],b=pts[i],c=pts[i+1],t1=Math.atan2(b[0]-a[0],b[1]-a[1]),t2=Math.atan2(c[0]-b[0],c[1]-b[1]);
-    if(Math.abs(wrap(t2-t1))>.6){vt=Math.min(vt,Math.sqrt(25+2*5*Math.max(0,acc-4)));break}acc+=segL(i);if(acc>150)break}
-  vt=Math.min(vt,Math.sqrt(2*4.5*Math.max(0,ds-1)));
-  // target behind us: U-turn at low speed with full lock; if it doesn't come around, back up with opposite lock (K-turn)
-  if(Math.abs(err)>1.5){vt=Math.min(vt,4.5);gUT+=dt;if(gUT>4){gUT=0;gRev=1.3;gRevS=Math.sign(err)}}else gUT=0;
-  const dStop=Math.hypot(r.b.stop.x-TR.x,r.b.stop.z-TR.z);
-  if(dStop<3.2&&Math.abs(TR.spd)<2.5){gs='board';reach(r,'aboard');gT=pickupDoor(r)*(1-CFG.learn.board*learn.urg);return{st:0,vt:0}}
-  // stuck watchdog: no progress for 3 s -> back up and replan
-  if(Math.abs(TR.spd)<.8&&dStop>5){gStuck+=dt;if(gStuck>3){gStuck=0;gRev=1.4;gRevS=Math.sign(err)||1;gRe=0;stats.stuck++;learn.urg=Math.min(1,learn.urg+.05)}}else gStuck=Math.max(0,gStuck-dt);
-  return{st:clamp(err*2.2,-1,1),vt}}
-function truckTick(dt){let st,vt,brake=false;
-  if(auto){if(gs=='board'&&gT<=0){gs='drive';gRe=0}const o=groundAuto(dt);st=o.st;vt=o.vt}
-  else{st=Math.abs(M.x)<.06?0:clamp(M.x*1.4,-1,1);vt=K.KeyW?(K.ShiftLeft?CFG.truck.boost:CFG.truck.max):K.KeyS?-7:null;brake=!!K.Space}
-  // simple arcade car: accelerate toward the target speed, coast when no input, steering scales with speed
-  if(vt===null)TR.spd-=Math.sign(TR.spd)*Math.min(Math.abs(TR.spd),1.2*dt);else{const a=vt>TR.spd?CFG.truck.accel:CFG.truck.brake;TR.spd+=clamp(vt-TR.spd,-a*dt,a*dt)}
-  if(brake)TR.spd*=Math.pow(.05,dt);
-  const fd=floodDepth(TR.x,TR.z),onBridge=riverDist(TR.x,TR.z)<4&&LINES.some(x=>Math.abs(TR.x-x)<CFG.road/2);
-  let cap=onBridge?99:fd>1?2:fd>.4?6:99;if(riverDist(TR.x,TR.z)<0&&!onBridge)cap=3;if(tbat<=0)cap=Math.min(cap,10);TR.spd=clamp(TR.spd,-8,cap);
-  TR.yaw+=st*1.15*clamp(Math.abs(TR.spd)/3.5,0,1)*Math.sign(TR.spd||1)*(brake?1.6:1)*dt;
-  TR.x+=Math.sin(TR.yaw)*TR.spd*dt;TR.z+=-Math.cos(TR.yaw)*TR.spd*dt;TR.y=onBridge?1.3:riverDist(TR.x,TR.z)<0?-.8:0;
-  if(disaster=='tornado'){const tx=T.x-TR.x,tz=T.z-TR.z,td=Math.hypot(tx,tz);if(td<90){const k=1-td/90;TR.x+=tx/td*k*8*dt;TR.z+=tz/td*k*8*dt;shake=Math.max(shake,k*.6)}}
-  // autopilot keeps a little clearance from walls (soft push), then hard collision: push out, lose speed
-  if(auto)forNear(TR.x,TR.z,b=>{const d=boxDist(b,TR.x,TR.z);if(d<3.2&&d>0){const nx=Math.abs(TR.x-b.x)>b.hx?Math.sign(TR.x-b.x):0,nz=Math.abs(TR.z-b.z)>b.hz?Math.sign(TR.z-b.z):0,l=Math.hypot(nx,nz)||1;TR.x+=nx/l*(3.2-d)*3*dt;TR.z+=nz/l*(3.2-d)*3*dt}return false});
-  forNear(TR.x,TR.z,b=>{const ox=b.hx+1.6-Math.abs(TR.x-b.x),oz=b.hz+1.6-Math.abs(TR.z-b.z);if(ox>0&&oz>0){if(ox<oz)TR.x+=Math.sign(TR.x-b.x)*ox;else TR.z+=Math.sign(TR.z-b.z)*oz;TR.spd*=.4;shake=.6;stats.crashes++;if(auto)gStuck=Math.max(gStuck,2.5)}return false});
-  for(const c of CARS){if(Math.abs(c.x-TR.x)<2.6&&Math.abs(c.z-TR.z)<2.6&&Math.abs(c.y-.8-TR.y)<.6){TR.spd*=.85;c.pull=1}}
-  TR.x=clamp(TR.x,-E-20,E+20);TR.z=clamp(TR.z,-E-20,E+20);
-  tbat-=dt*(.04+Math.abs(TR.spd)*.003);bat=Math.min(100,bat+3*dt); // truck fuel drains slowly; docked dragonfly recharges 3%/s
-  truck.position.set(TR.x,TR.y,TR.z);truck.rotation.set(0,Math.PI-TR.yaw,0);
-  const blink=Math.sin(t*14)>0;sirenR.color.setHex(blink?0xff2a2a:0x400808);sirenB.color.setHex(blink?0x0a1440:0x2a6aff)}
-
-// =====================================================================
-// 13. effects: streaks, contrails, shockwave, slingshot rope
-// =====================================================================
-const SN=240,sg=new THREE.BufferGeometry(),sp=new Float32Array(SN*6);for(let i=0;i<SN*6;i++)sp[i]=(Math.random()-.5)*160;
-sg.setAttribute('position',new THREE.BufferAttribute(sp,3));const streaks=new THREE.LineSegments(sg,new THREE.LineBasicMaterial({color:0xdff6f4,transparent:true,opacity:0}));streaks.frustumCulled=false;SC.add(streaks);
-const TL=40,trails=[0,1].map(()=>{const g=new THREE.BufferGeometry(),p=new Float32Array(TL*3),c=new Float32Array(TL*3);g.setAttribute('position',new THREE.BufferAttribute(p,3));g.setAttribute('color',new THREE.BufferAttribute(c,3));
-  const l=new THREE.Line(g,new THREE.LineBasicMaterial({vertexColors:true,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false}));l.frustumCulled=false;SC.add(l);return{g,p,c,on:new Float32Array(TL)}});
-function trailTick(){const on=mode=='air'&&(spd>50||sw)?1:0;[-1,1].forEach((sd,k)=>{const tr=trails[k],w=D.localToWorld(V(sd*2.75,.34,.14));tr.p.copyWithin(3,0,(TL-1)*3);tr.on.copyWithin(1,0,TL-1);tr.p[0]=w.x;tr.p[1]=w.y;tr.p[2]=w.z;tr.on[0]=on;
-  for(let i=0;i<TL;i++){const far=i>0&&Math.hypot(tr.p[i*3]-tr.p[i*3-3],tr.p[i*3+1]-tr.p[i*3-2],tr.p[i*3+2]-tr.p[i*3-1])>25,a=far?0:tr.on[i]*(1-i/TL)*.7;if(far)tr.on[i]=0;tr.c[i*3]=a*.85;tr.c[i*3+1]=a*.95;tr.c[i*3+2]=a}tr.g.attributes.position.needsUpdate=tr.g.attributes.color.needsUpdate=true})}
-const ring=new THREE.Mesh(new THREE.RingGeometry(.8,1,48),new THREE.MeshBasicMaterial({color:0xffd9a0,transparent:true,opacity:0,side:2,blending:THREE.AdditiveBlending,depthWrite:false}));SC.add(ring);let ringT=1;
-function shock(){ringT=0;ring.position.copy(mode=='air'?P:V(TR.x,1.5,TR.z))}
-function ringTick(dt){if(ringT>=1){ring.visible=false;return}ringT+=dt/.45;ring.visible=true;ring.scale.setScalar(.5+ringT*26);ring.material.opacity=(1-ringT)*.85;ring.lookAt(C.position)}
-const rope=new THREE.Line(new THREE.BufferGeometry().setFromPoints([V(),V()]),new THREE.LineBasicMaterial({color:0xffb347}));rope.visible=false;rope.frustumCulled=false;SC.add(rope);
-function grab(){if(sw||mode!='air')return;const f=fwd();let best=null,bs=1e9;
-  for(const b of B){const a=V(b.x,b.h+14,b.z),d=a.clone().sub(P),L=d.length();if(L<25||L>150)continue;if(d.clone().normalize().dot(f)<.15)continue;if(L<bs){bs=L;best=a}}
-  if(best){sw=best;swL=bs;vel.copy(f).multiplyScalar(spd);rope.visible=true;say('swing')}}
-function release(){const s=vel.length(),up=vel.y>2;spd=Math.min(115,s*(up?1.38:1.12));yaw=Math.atan2(vel.x,-vel.z);pitch=Math.asin(clamp(vel.y/Math.max(s,1),-1,1))*.6;sw=null;rope.visible=false;shake=up?.9:.2;
-  if(up){shock();slowT=.18;caKick=1;style++}say(up?'perfect release':'release')}
-let caKick=0;
-
-// =====================================================================
-// 14. post-processing + quality presets (Low: none, Medium: bloom, High: bloom + speed blur + color fringe)
-// =====================================================================
-const QUAL={low:{pr:1,post:false,rain:500,figs:1},medium:{pr:Math.min(devicePixelRatio,1.25),post:true,blur:false,rain:1000},high:{pr:Math.min(devicePixelRatio,2),post:true,blur:true,rain:1500}};
-const hasPost=!!(THREE.EffectComposer&&THREE.UnrealBloomPass&&THREE.ShaderPass);let composer=null,bloom=null,finalPass=null;
-const FinalShader={uniforms:{tDiffuse:{value:null},uSpeed:{value:0},uCA:{value:0},uVig:{value:0}},
-  vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-  fragmentShader:`uniform sampler2D tDiffuse;uniform float uSpeed,uCA,uVig;varying vec2 vUv;
-  void main(){vec2 c=vUv-.5;float L=length(c);vec3 col=vec3(0.);
-   for(int i=0;i<8;i++){float k=float(i)/7.;col+=texture2D(tDiffuse,.5+c*(1.-uSpeed*.05*k*L*2.)).rgb;}col/=8.;
-   if(uCA>.001){col.r=mix(col.r,texture2D(tDiffuse,.5+c*(1.+uCA*.012)).r,.85);col.b=mix(col.b,texture2D(tDiffuse,.5+c*(1.-uCA*.012)).b,.85);}
-   col=(col-.5)*1.06+.5;col*=vec3(1.03,1.,.97);
-   float v=smoothstep(.9,.3,L*(1.+uVig*.5));col*=mix(1.,v,.45+uVig*.4);gl_FragColor=vec4(col,1.);}`};
-function applyQuality(){const q=QUAL[set.quality];R.setPixelRatio(q.pr);
-  if(q.post&&hasPost){if(!composer){composer=new THREE.EffectComposer(R);composer.addPass(new THREE.RenderPass(SC,C));
-      bloom=new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),.65,.45,.9);composer.addPass(bloom);finalPass=new THREE.ShaderPass(FinalShader);composer.addPass(finalPass)}
-    composer.setPixelRatio&&composer.setPixelRatio(q.pr);composer.setSize(innerWidth,innerHeight)}
-  $('vig').style.display=q.post&&hasPost?'none':'block'}
-addEventListener('resize',()=>{R.setSize(innerWidth,innerHeight);C.aspect=innerWidth/innerHeight;C.updateProjectionMatrix();if(composer)composer.setSize(innerWidth,innerHeight)});
-
-// =====================================================================
-// 15. floating labels + map
-// =====================================================================
-const LB=[];for(let i=0;i<32;i++){const d=document.createElement('div');d.className='lb';document.body.appendChild(d);LB.push(d)}
-const lv=V();
-function labelTick(){C.updateMatrixWorld();const U=unitPos(),c=[],cap=mode=='air'?22:12,rng=mode=='air'?360:220;for(const b of B){const d=Math.hypot(b.x-U.x,b.z-U.z);if(d<rng)c.push([d,b])}c.sort((a,b)=>a[0]-b[0]);let n=0;
-  for(const [d,b] of c){if(n>=cap)break;lv.set(b.x,b.h+8,b.z).project(C);if(lv.z>1||Math.abs(lv.x)>1.1||Math.abs(lv.y)>1.1)continue;
-    const el=LB[n++],rep=reports.find(r=>!r.done&&r.b===b),txt=b.pop.toLocaleString()+(rep?'<i>'+rep.people.toLocaleString()+' need help</i>':'');
-    el.style.display='block';el.style.left=((lv.x*.5+.5)*innerWidth).toFixed(0)+'px';el.style.top=((-lv.y*.5+.5)*innerHeight).toFixed(0)+'px';el.style.opacity=Math.max(.35,1-d/420).toFixed(2);if(el._t!==txt){el._t=txt;el.innerHTML=txt}}
-  for(;n<32;n++)LB[n].style.display='none'}
-function drawMap(){const cv=$('mc'),g=cv.getContext('2d'),W=E*2+80,k=cv.width/W,X=x=>(x+W/2)*k,Z=z=>(z+W/2)*k;g.clearRect(0,0,cv.width,cv.height);
-  // river + flood
-  g.strokeStyle='#1f4d63';g.lineWidth=CFG.river.half*2*k;g.beginPath();for(let x=-W/2;x<=W/2;x+=20)g.lineTo(X(x),Z(riverZ(x)));g.stroke();
-  if(disaster=='hurricane'&&H.floodR>1){g.strokeStyle='rgba(60,140,200,.28)';g.lineWidth=(CFG.river.half+H.floodR)*2*k;g.beginPath();for(let x=-W/2;x<=W/2;x+=20)g.lineTo(X(x),Z(riverZ(x)));g.stroke()}
-  for(const p of PARKS){g.fillStyle='#24432c';g.fillRect(X(p.x-20),Z(p.z-20),40*k,40*k)}
-  g.lineWidth=1;EDGES.forEach((e,i)=>{const a=NODES[e.a],b=NODES[e.b];g.strokeStyle=BLOCK[i]?'rgba(255,90,74,.55)':'rgba(255,255,255,.09)';g.beginPath();g.moveTo(X(a.x),Z(a.z));g.lineTo(X(b.x),Z(b.z));g.stroke()});
-  for(const b of B){g.fillStyle='rgba(120,200,190,'+(.1+.6*b.pop/POPMAX)+')';g.fillRect(X(b.x-b.hx),Z(b.z-b.hz),b.hx*2*k,b.hz*2*k)}
-  if(disaster=='tornado'){g.fillStyle='#ff5a4a33';g.beginPath();g.arc(X(T.x),Z(T.z),CFG.tornado.danger*k,0,7);g.fill();g.fillStyle='#ffb347';g.beginPath();g.arc(X(T.x),Z(T.z),7,0,7);g.fill()}
-  else{g.strokeStyle='rgba(200,220,230,.45)';g.lineWidth=1.5;for(let x=-E;x<=E;x+=170)for(let z=-E;z<=E;z+=170){const w=windAt(x,z),l=w.length();g.beginPath();g.moveTo(X(x),Z(z));g.lineTo(X(x+w.x/l*55),Z(z+w.z/l*55));g.stroke()}
-    const ex=clamp(H.ex,-W/2,W/2),ez=clamp(H.ez,-W/2,W/2);g.fillStyle='#ffb347';g.font='bold 13px sans-serif';g.fillText('eye '+Math.round(Math.hypot(H.ex,H.ez))+' m',X(ex)+6,Z(ez)+14)}
-  const U=unitPos();
-  const line=(list,lg,col,dash)=>{g.strokeStyle=col;g.setLineDash(dash);g.lineWidth=2.5;g.beginPath();g.moveTo(X(U.x),Z(U.z));
-    if(mode=='ground'&&lg.length){for(const leg of lg)for(const n of leg)g.lineTo(X(NODES[n].x),Z(NODES[n].z))}else for(const r of list)g.lineTo(X(r.x),Z(r.z));g.stroke();g.setLineDash([])};
-  line(routeBase,legsBase,'#7d8f93',[6,6]);line(route,legs,'#ffb347',[]);
-  for(const r of reports){if(r.done)continue;const rr=6+Math.min(r.people,150)*.06;g.beginPath();g.arc(X(r.x),Z(r.z),rr,0,7);
-    if(mode=='ground'&&!route.includes(r)&&!r.claimed){g.strokeStyle='#ff5a4a';g.lineWidth=2;g.stroke()}else{g.fillStyle='#ff5a4a';g.fill()}}
-  g.fillStyle='#fff';g.font='bold 13px sans-serif';route.forEach((r,i)=>g.fillText((i+1)+': '+r.people,X(r.x)+11,Z(r.z)-8));
-  g.save();g.translate(X(U.x),Z(U.z));g.rotate(mode=='air'?yaw:TR.yaw);g.fillStyle=mode=='air'?'#2fd3c2':'#ff8a2a';g.beginPath();g.moveTo(0,-11);g.lineTo(7,8);g.lineTo(-7,8);g.fill();g.restore()}
-
-// =====================================================================
-// 16. input, menu, mode swap, reset
-// =====================================================================
-function swapMode(to){if(to===mode)return;
-  if(landR){landR.claimed=false;landR=null}ap='go';pad.visible=false;if(sw){sw=null;rope.visible=false}
-  if(to=='ground'){placeTruck(P.x,P.z);mode='ground';say('Earth mode: rescue truck')}
-  else{P.set(TR.x,TR.y+5,TR.z);yaw=TR.yaw;pitch=.45;spd=26;vel.copy(fwd()).multiplyScalar(spd);mode='air';say('Aerial mode: dragonfly')}
-  set.mode=mode;store.set('df.mode',mode);planT=0;gFor=0;syncMenu()}
-function resetSim(){for(const r of reports)if(!r.done)closeReport(r);reports.length=0;Object.assign(stats,{saved:0,missed:0,crashes:0,guards:0,stuck:0,dodges:0});learn.urg=0;style=0;
-  simT=0;spawnT=0;T.x=-260;T.z=-120;H.ex=CFG.hurricane.eye0[0];H.ez=CFG.hurricane.eye0[1];H.floodR=0;H.level=0;landR=null;ap='go';pad.visible=false;
-  P.set(0,90,560);yaw=0;pitch=0;spd=30;bat=100;tbat=100;placeTruck(0,560);for(let i=0;i<4;i++)addReport();
-  const hz=disaster=='hurricane';skyU.top.value.setHex(hz?0x0f1a20:0x1b2c33);skyU.bot.value.setHex(hz?0x2a3a40:0x3d545b);SC.fog.color.copy(skyU.bot.value);
-  SC.fog.near=hz?90:160;SC.fog.far=hz?950:1600;waterU.uFogN.value=SC.fog.near;waterU.uFogF.value=SC.fog.far;winU.uLit.value=hz?CFG.hurricane.lit:.24;torn.visible=!hz;
-  hemi.intensity=hz?.8:1.1;sun.intensity=hz?.5:1.3;planT=0}
-function syncMenu(){document.querySelectorAll('.opt').forEach(o=>o.classList.toggle('on',set[o.dataset.k]===o.dataset.v))}
-document.querySelectorAll('.opt').forEach(o=>o.onclick=()=>{const k=o.dataset.k,v=o.dataset.v;
-  if(k=='mode')swapMode(v);else{set[k]=v;store.set('df.'+k,v)}
-  if(k=='disaster'&&v!==disaster){disaster=v;resetSim()}if(k=='quality')applyQuality();syncMenu()});
-function openMenu(on){paused=on;$('menu').style.display=on?'flex':'none'}
-$('start').onclick=()=>{go=true;openMenu(false)};
-addEventListener('keydown',e=>{if(e.code=='Space')e.preventDefault();if(e.repeat)return;K[e.code]=1;
-  if(e.code=='KeyH'){openMenu(!paused);return}if(!go||paused)return;
-  if(e.code=='KeyM'){mapOn=!mapOn;$('map').style.display=mapOn?'flex':'none'}
-  if(e.code=='KeyA'){auto=!auto;ap='go';if(landR){landR.claimed=false;landR=null}pad.visible=false;gs='drive';gFor=0;say(auto?'autopilot: best route':'manual control')}
-  if(e.code=='KeyE')swapMode(mode=='air'?'ground':'air');
-  if(e.code=='KeyQ'){const o=['low','medium','high'];set.quality=o[(o.indexOf(set.quality)+1)%3];store.set('df.quality',set.quality);applyQuality();syncMenu();say('quality: '+set.quality)}
-  if(e.code=='KeyF')$('fps').style.display=$('fps').style.display=='block'?'none':'block';
-  if(e.code=='ShiftLeft'&&mode=='air'&&dashCd<=0&&!parked()){spd+=32;dashCd=1.6;shock();caKick=.6;say('dash')}
-  if(e.code=='Space'&&mode=='air'&&!parked())grab()});
-addEventListener('keyup',e=>{K[e.code]=0;if(e.code=='Space'&&sw)release()});
-addEventListener('mousemove',e=>{M.x=(e.clientX/innerWidth-.5)*2;M.y=(e.clientY/innerHeight-.5)*2});
-
-// =====================================================================
-// 17. main loop
-// =====================================================================
-// tornado pull: inward plus swirl, strongest at the center
-function tornadoPull(dt){if(disaster!='tornado')return;const tx=T.x-P.x,tz=T.z-P.z,td=Math.hypot(tx,tz)||1;if(td<CFG.tornado.pull){const k=1-td/CFG.tornado.pull;P.x+=(tx*26-tz*18)/td*k*dt;P.z+=(tz*26+tx*18)/td*k*dt;shake=Math.max(shake,k*.8);bat-=dt*k*3}}
-function airTick(dt,W){
-  if(parked()){parkTick(dt);return}
-  if(!sw){const dz=.08;let mx=Math.abs(M.x)<dz?0:M.x,my=Math.abs(M.y)<dz?0:M.y,apS=null;if(auto){const o=autoSteer(dt);mx=o.mx;my=o.my;apS=o.sp}
-    yaw+=mx*1.7*dt;pitch+=((-my*.95)-pitch)*Math.min(1,dt*3.2);roll+=((-mx*.9)-roll)*Math.min(1,dt*4);
-    let target=auto?apS:K.KeyW?CFG.air.fast:K.KeyS?CFG.air.slow:CFG.air.cruise;if(bat<=0)target=Math.min(target,22);
-    spd+=(target-spd)*dt*(spd>target?.35:.9);spd+=-Math.sin(pitch)*38*dt;spd=clamp(spd,8,CFG.air.max);
-    const f=fwd();vel.copy(f).multiplyScalar(spd);vel.y-=Math.max(0,1-spd/22)*9;vel.addScaledVector(W,CFG.air.coupling[disaster]);
-    const old=P.clone();P.addScaledVector(vel,dt);tornadoPull(dt);
-    // autopilot safety net: never step into a wall. cancel the horizontal move and climb instead (counted as a "guard")
-    if(auto){let hitB=null;forNear(P.x,P.z,b=>{if(boxDist(b,P.x,P.z)<1.6&&P.y<b.h+1.5){hitB=b;return true}return false});
-      if(hitB){P.x=old.x;P.z=old.z;P.y=Math.max(P.y,old.y)+10*dt;spd*=.95;stats.guards++}softAvoid(dt)}
-    bat-=dt*(.12+Math.max(0,-W.dot(f))*.03+(K.KeyW?.15:0))}
-  else{vel.y-=24*dt;vel.addScaledVector(W,dt*.3);P.addScaledVector(vel,dt);
-    const n=P.clone().sub(sw),d=n.length();if(d>swL){n.divideScalar(d);P.copy(sw).addScaledVector(n,swL);vel.addScaledVector(n,-Math.max(0,vel.dot(n)))}
-    yaw=Math.atan2(vel.x,-vel.z);pitch=Math.asin(clamp(vel.y/Math.max(vel.length(),1),-1,1));spd=vel.length();rope.geometry.setFromPoints([P,sw]);roll+=(-.5-roll)*dt*3}
-  if(sw)tornadoPull(dt);
-  // collisions: slide and soft-bounce off walls, land on roofs
-  forNear(P.x,P.z,b=>{const dx=P.x-b.x,dz=P.z-b.z,ox=b.hx+1.2-Math.abs(dx),oz=b.hz+1.2-Math.abs(dz);
-    if(ox>0&&oz>0&&P.y<b.h+1.2){const top=b.h+1.2-P.y;if(top<ox&&top<oz&&top<2.5)P.y=b.h+1.2;else{if(ox<oz){P.x+=Math.sign(dx)*ox;vel.x*=-.2}else{P.z+=Math.sign(dz)*oz;vel.z*=-.2}spd*=.7;shake=.7;stats.crashes++;if(sw)release()}}return false});
-  if(P.y<3){P.y=3;spd*=.97}if(P.y>CFG.air.ceiling)P.y=CFG.air.ceiling;P.x=clamp(P.x,-E-60,E+60);P.z=clamp(P.z,-E-60,E+60)}
-function step(rdt){
-  if(slowT>0){slowT-=rdt;timeScale=.4}else timeScale+=(1-timeScale)*Math.min(1,rdt*6);
-  const dt=rdt*timeScale;t+=dt;
-  if(go&&!paused){simT+=dt;hazardTick(dt);simTick(dt);debTick(dt);
-    const U=unitPos(),W=windAt(U.x,U.z);lastWind.copy(W);
-    if(mode=='air')airTick(dt,W);else truckTick(dt);
-    if(Math.random()<dt*(disaster=='hurricane'?.35:.22))flash=1}
-  carTick(dt);figTick(dt);
-  bat=Math.max(0,bat);tbat=Math.max(0,tbat);hitCd-=dt;warnCd-=dt;dashCd-=dt;shake*=Math.pow(.02,dt);caKick*=Math.pow(.05,dt);
-  if(msgT>0){msgT-=rdt;if(msgT<=0)$('msg').style.opacity=0}
-  if(pad.visible)pad.material.opacity=.5+.4*Math.sin(t*6);ringTick(dt)}
-function visuals(rdt){const dt=rdt*timeScale,q=QUAL[set.quality];
-  flash*=Math.pow(.003,dt);skyU.flash.value=flash;$('fl').style.opacity=flash*.35;hemi.intensity=(disaster=='hurricane'?.8:1.1)+flash*1.2;
-  waterU.uT.value=t;
-  // dragonfly: docks on the truck roof in Earth mode
-  if(mode=='air'){D.position.copy(P);D.rotation.set(0,0,0);D.rotateY(Math.PI-yaw);D.rotateX(-pitch);D.rotateZ(roll)}
-  D.visible=mode=='air';PILOT.group.visible=mode=='ground';
-  for(const g of PILOT.wings)g.rotation.z=g.userData.sd*(.15+Math.sin(t*(3+Math.abs(TR.spd)*.3)+g.userData.ph*3)*.08);
-  const perched=(auto&&ap=='board'),fr=perched?3:14+spd*.35,amp=perched?.07:(.5+.25*Math.min(1,spd/60));for(const g of wings)g.rotation.z=g.userData.sd*Math.sin(t*fr+g.userData.ph*3)*amp;
-  // trees sway with the local wind
-  {const o=new THREE.Object3D();TREES.forEach((tr,i)=>{const w=windAt(tr.x,tr.z),l=w.length(),bend=Math.min(.45,l*.011)+Math.sin(t*3+tr.ph)*.012*l;
-    o.position.set(tr.x,0,tr.z);o.rotation.set(0,0,0);if(l>.01)o.rotateOnWorldAxis(V(w.z,0,-w.x).normalize(),-bend);o.scale.set(tr.s,tr.s*3,tr.s);o.updateMatrix();trunkM.setMatrixAt(i,o.matrix);o.scale.setScalar(tr.s);o.updateMatrix();crownM.setMatrixAt(i,o.matrix)});
-   trunkM.instanceMatrix.needsUpdate=crownM.instanceMatrix.needsUpdate=true}
-  // camera: spring follow with speed-driven pull-back and FOV, roll into turns, shake; Earth mode is a low chase cam
-  let want,look,fovT;
-  if(mode=='air'){const f=fwd(),back=3.6+spd*.06;want=P.clone().addScaledVector(f,-back*4).add(V(0,2.8+back*.35,0));look=P.clone().addScaledVector(f,18);fovT=60+spd*.55+(sw?6:0)}
-  else{const h=V(Math.sin(TR.yaw),0,-Math.cos(TR.yaw));want=V(TR.x,TR.y+5.2,TR.z).addScaledVector(h,-12-Math.abs(TR.spd)*.12);look=V(TR.x,TR.y+2,TR.z).addScaledVector(h,10);fovT=60+Math.abs(TR.spd)*.5}
-  C.position.lerp(want,1-Math.exp(-dt*(sw?5:7)));
-  // keep the camera out of buildings: slide it toward the player until it is outside
-  for(let k=0;k<6;k++){let inside=false;forNear(C.position.x,C.position.z,b=>{if(boxDist(b,C.position.x,C.position.z)<1&&C.position.y<b.h+1){inside=true;return true}return false});if(!inside)break;C.position.lerp(look,.25)}
-  C.position.x+=(Math.random()-.5)*shake*.5;C.position.y+=(Math.random()-.5)*shake*.5;
-  C.up.set(mode=='air'?Math.sin(roll*.35):0,1,0);C.lookAt(look);fov+=(fovT-fov)*Math.min(1,dt*4);C.fov=fov;C.updateProjectionMatrix();sky.position.copy(C.position);
-  // speed streaks
-  const sv=mode=='air'?spd:Math.abs(TR.spd)*1.6,rel=(mode=='air'?vel.clone():V(Math.sin(TR.yaw)*TR.spd,0,-Math.cos(TR.yaw)*TR.spd)).multiplyScalar(-1),L=Math.min(sv*.12,10),dir=rel.lengthSq()?rel.clone().normalize():V(0,0,1),arr=sg.attributes.position.array;
-  for(let i=0;i<SN;i++){const o=i*6;let x=arr[o]+rel.x*dt*1.2,y=arr[o+1]+rel.y*dt*1.2,z=arr[o+2]+rel.z*dt*1.2;
-    if(Math.abs(x)>80||Math.abs(y)>80||Math.abs(z)>80){x=(Math.random()-.5)*160;y=(Math.random()-.5)*160;z=(Math.random()-.5)*160}arr[o]=x;arr[o+1]=y;arr[o+2]=z;arr[o+3]=x-dir.x*L;arr[o+4]=y-dir.y*L;arr[o+5]=z-dir.z*L}
-  streaks.position.copy(unitPos());sg.attributes.position.needsUpdate=true;streaks.material.opacity=Math.min(.55,Math.max(0,(sv-35)/70));
-  rainTick(dt,q.rain);D.updateMatrixWorld();trailTick();
-  // tornado funnel
-  if(disaster=='tornado'){const a=tg.attributes.position.array;for(let i=0;i<TN;i++){const h=(i/TN)*190,r=4+h*.32,an=i*2.399+t*(3.2-h/90),qq=h/190;a[i*3]=T.x+Math.cos(an)*r+qq*qq*40*Math.sin(t*.8)+Math.sin(h*.07+t*2)*7*qq;a[i*3+1]=h;a[i*3+2]=T.z+Math.sin(an)*r+qq*qq*40*Math.cos(t*.6)}tg.attributes.position.needsUpdate=true}
-  // post FX intensities
-  const speedK=clamp((sv-45)/60,0,1);$('vig').style.opacity=Math.min(.75,speedK*.9);
-  if(finalPass){finalPass.uniforms.uSpeed.value=q.blur?speedK:0;finalPass.uniforms.uCA.value=q.blur?Math.min(1,caKick+speedK*.25):0;finalPass.uniforms.uVig.value=speedK}
-  // HUD
-  const U=unitPos(),Wd=windAt(U.x,U.z),spdShow=mode=='air'?spd:Math.abs(TR.spd);
-  $('spd').firstChild.nodeValue=Math.round(spdShow);$('alt').textContent=Math.round(mode=='air'?P.y:TR.y);const bv=mode=='air'?bat:tbat;$('bat').style.width=bv+'%';$('bat').style.background=bv<20?'#ff5a4a':'';
-  $('st').textContent=mode=='air'?(parked()?{approach:'gliding in',board:'boarding',lift:'lifting off'}[ap]:sw?'swinging':spd>75?'boosting':P.y<8?'low':'cruise'):(auto&&gs=='board'?'loading at the door':floodDepth(TR.x,TR.z)>.4?'driving through floodwater':Math.abs(TR.spd)<.5?'stopped':'driving');
-  $('w').textContent=Math.round(Wd.length());const hd=mode=='air'?fwd():V(Math.sin(TR.yaw),0,-Math.cos(TR.yaw)),tl=Wd.dot(hd);$('wd').textContent=tl>3?'tailwind':tl<-3?'headwind':'crosswind';
-  $('badge').innerHTML='<b>'+(mode=='air'?'Aerial':'Earth')+'</b> &middot; '+(disaster=='hurricane'?'Hurricane':'Tornado')+'<br>'+(auto?'AUTOPILOT':'MANUAL')+' (A) &middot; E to swap';
-  labelTick();if(mapOn)drawMap()}
-function hudSim(){const u=learn.urg,open=reports.filter(r=>!r.done).length;
-  $('sim').innerHTML='reached <b>'+stats.saved+'</b> people &middot; missed '+stats.missed+' &middot; open '+open+
-   '<br><span class="k">rescue-priority</span> '+Math.round(est.a)+' <span class="k">vs nearest-first</span> '+Math.round(est.b)+' <span class="k">(modeled)</span>'+
-   '<br><span class="k">best by air</span> '+Math.round(est.air)+' <span class="k">vs by road</span> '+Math.round(est.ground)+(est.unreach?' <span style="color:#ff7a6a">('+est.unreach+' unreachable by road)</span>':'')+
-   (mode=='ground'&&est.unreach&&!route.length?'<br><b style="color:#ff7a6a">Flooded roads: no report reachable by truck. Press E for Aerial.</b>':'')+
-   (u>.01?'<br><span class="k">adaptive urgency</span> '+Math.round(u*100)+'% <span class="k">(+'+Math.round(u*CFG.learn.speed*100)+'% speed, '+Math.round(u*CFG.learn.board*100)+'% faster boarding)</span>':'')+
-   '<br><span class="k">'+CITY.name+' '+CITY.pop.toLocaleString()+' people over '+B.length+' districts (modeled)</span>'}
-const clock=new THREE.Clock();let fpsA=60,hudT=0;
-function frame(){requestAnimationFrame(frame);const rdt=Math.min(clock.getDelta(),.05);step(rdt);visuals(rdt);
-  hudT-=rdt;if(hudT<=0){hudT=.25;hudSim();$('fps').textContent=Math.round(fpsA)+' fps · '+set.quality}fpsA+=(1/Math.max(rdt,1e-3)-fpsA)*.05;
-  if(composer&&QUAL[set.quality].post)composer.render();else R.render(SC,C)}
-// boot
-resetSim();applyQuality();syncMenu();updateBlocked();
-if(set.mode=='ground'){mode='air';swapMode('ground')}
-if(URLQ.get('test')){window.GAME={step,visuals,get state(){return{P,TR,ap,gs,auto,mode,stats,learn,route,reports,spd}},start(a){go=true;openMenu(false);auto=a},swapMode}}
-frame();
-</script></body></html>
+<script src="js/core.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/world.js"></script>
+<script src="js/characters.js"></script>
+<script src="js/hazards.js"></script>
+<script src="js/sim.js"></script>
+<script src="js/dispatch.js"></script>
+<script src="js/ui.js"></script>
+</body></html>
