@@ -73,3 +73,9 @@ npm run agent:smoke
 ## Attribution
 
 Overture buildings combine sources under the [Overture licensing terms](https://docs.overturemaps.org/attribution/). OSM data © OpenStreetMap contributors (ODbL). Map attribution is preserved. Census data comes from the US Census Bureau; the map basemap uses OpenFreeMap/OpenMapTiles/OpenStreetMap. Acquisition follows [Overture's documented GeoParquet workflow](https://docs.overturemaps.org/getting-data/duckdb/).
+
+## Dragon Flyght integration
+
+Run Storm Signal normally with `npm install` and `npm start`, then click **DRAGONFLY** in the top bar. The bundled flight prototype opens at `/dragonfly/`. Its Python 3 standard-library server starts automatically on first access (internal port 18765; override with `DRAGONFLY_PORT`). Both experiences use the same public app port. Three.js requires internet access on first load.
+
+The complete original Dragon Flyght application is preserved under `dragon-flyght/`; its data and simulated outcomes stay separate from Storm Signal's real-data exposure analysis. `DRAGONFLY_URL` can optionally override the bundled destination.
