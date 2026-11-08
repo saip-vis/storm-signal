@@ -6,7 +6,7 @@ const $ = selector => document.querySelector(selector);
 const esc = value =>
   String(value ?? '—').replace(/[&<>]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[char]));
 
-let graph, result, map, cy, scenario, selectedId, selectedFootprintId, footprints = [], realPois = [];
+let graph, result, map, cy, scenario, selectedId, selectedFootprintId, footprints = [], realPois = [], censusTracts = [];
 
 // ── HTTP helper ─────────────────────────────────────────────────────────────
 
@@ -58,9 +58,23 @@ function setupMap() {
   map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
 
   map.on('load', () => {
-    for (const name of ['nodes', 'footprints', 'flood', 'selected-footprint', 'real-pois', 'exposed-footprints']) {
+    for (const name of ['nodes', 'footprints', 'flood', 'selected-footprint', 'real-pois', 'exposed-footprints', 'census-tracts']) {
       map.addSource(name, { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
     }
+
+    // Census tract boundaries — rendered first (bottom) as a faint background grid
+    map.addLayer({
+      id: 'census-tract-fill',
+      type: 'fill',
+      source: 'census-tracts',
+      paint: { 'fill-color': '#1a3a5c', 'fill-opacity': 0.25 }
+    });
+    map.addLayer({
+      id: 'census-tract-line',
+      type: 'line',
+      source: 'census-tracts',
+      paint: { 'line-color': '#2d6a9f', 'line-width': 0.8, 'line-dasharray': [3, 2] }
+    });
 
     map.addLayer({ id: 'footprint-fill', type: 'fill', source: 'footprints',
       paint: { 'fill-color': '#347baf', 'fill-opacity': .35 } });
@@ -180,6 +194,11 @@ function refreshMap() {
     $('#real-pois-toggle').checked ? 'visible' : 'none'
   );
 
+  // Census tract boundary toggle
+  for (const layer of ['census-tract-fill', 'census-tract-line']) {
+    map.setLayoutProperty(layer, 'visibility', $('#census-toggle').checked ? 'visible' : 'none');
+  }
+
   // Flood-exposed building polygon toggle
   for (const layer of ['exposed-footprint-fill', 'exposed-footprint-line']) {
     map.setLayoutProperty(layer, 'visibility', $('#exposed-toggle').checked ? 'visible' : 'none');
@@ -243,6 +262,23 @@ async function loadRealPois() {
   }
 }
 
+// Load Census tract boundaries from cache — non-fatal.
+async function loadCensusTracts() {
+  try {
+    const geojson = await request('/api/data/census?format=geojson');
+    censusTracts = geojson.features;
+    if (map?.isStyleLoaded()) {
+      map.getSource('census-tracts').setData({ type: 'FeatureCollection', features: censusTracts });
+    }
+    $('#censusMode').textContent =
+      `CENSUS TRACTS · ${geojson.metadata.tractCount} · ACS 2022`;
+  } catch (error) {
+    censusTracts = [];
+    console.warn('Census tract data unavailable (non-fatal):', error.message);
+    $('#censusMode').textContent = `CENSUS: unavailable`;
+  }
+}
+
 async function load() {
   // FIX 5a: show loading state before data arrives; loadFootprints() clears it on success
   $('#mapError').textContent = 'Loading Richardson infrastructure…';
@@ -261,6 +297,7 @@ async function load() {
 
     await loadFootprints();
     await loadRealPois();
+    await loadCensusTracts();
 
     $('#status').textContent = `NETWORK READY · ${graph.locationId}`;
 
@@ -313,7 +350,12 @@ function renderMetrics() {
   const community = result.directCommunityImpact;
   const shelter = result.shelterNeeds;
 
-  // FIX 5d: each metric card includes a "modeled" caveat label
+  // Each metric card includes a data-source label; displaced residents shows Census vs Synthetic
+  const isCensusBacked = community.dataSource === 'census_acs_2022_area_weighted';
+  const displacedLabel = isCensusBacked
+    ? '<small class="census-label">Census-backed</small>'
+    : '<small class="synthetic-label">Synthetic</small>';
+
   $('#metrics').innerHTML = `
     <div>Businesses
       <b>${business.totalAffectedBusinesses}</b>
@@ -325,7 +367,7 @@ function renderMetrics() {
     </div>
     <div>Displaced residents
       <b>${Math.round(community.estimatedDisplacedResidents)}</b>
-      <small>modeled</small>
+      ${displacedLabel}
     </div>
     <div>Shelter shortfall
       <b>${Math.round(shelter.unmetShelterDemand)}</b>
@@ -603,6 +645,7 @@ $('#real-buildings').onchange = refreshMap;
 $('#flood').onchange = refreshMap;
 $('#real-pois-toggle').onchange = refreshMap;
 $('#exposed-toggle').onchange = refreshMap;
+$('#census-toggle').onchange = refreshMap;
 
 // FIX 5e: disable button during agent call and restore on completion
 $('#ask').onclick = async () => {
