@@ -161,6 +161,29 @@ main {
   margin-top: 4px;
 }
 
+/* Census tract status line — blue tint */
+#censusMode {
+  color: #60a5fa;
+  margin-top: 4px;
+}
+
+/* Data-source badges in metric cards */
+.census-label {
+  color: #34d399;   /* green — real Census data */
+  font-size: 9px;
+  letter-spacing: 0.5px;
+  display: block;
+  margin-top: 2px;
+}
+
+.synthetic-label {
+  color: #fbbf24;   /* amber — synthetic fixture */
+  font-size: 9px;
+  letter-spacing: 0.5px;
+  display: block;
+  margin-top: 2px;
+}
+
 /*
  * Flood-exposure color tokens (used in MapLibre layer paint — documented here
  * for reference; not CSS layers themselves):
