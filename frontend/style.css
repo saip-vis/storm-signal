@@ -64,6 +64,20 @@ button {
   font-weight: 700;
 }
 
+.slider-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 11px;
+  color: #7195b3;
+}
+
+#duration {
+  width: 120px;
+  accent-color: #40bfc0;
+  cursor: pointer;
+}
+
 /* ── Panel shell ───────────────────────────────────────── */
 .panel {
   background: #0c1a2c;
@@ -383,6 +397,69 @@ details pre {
 /* ── MapLibre attribution tweak ────────────────────────── */
 .maplibregl-ctrl-attrib {
   font-size: 9px !important;
+}
+
+/* ── Inspector cards ───────────────────────────────────── */
+.card-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  margin-bottom: 10px;
+}
+
+.badge-government { background: #1a3a6e; color: #72aaff; }
+.badge-commercial { background: #0f3040; color: #7eb8c9; }
+.badge-residential,
+.badge-apartments { background: #0f3020; color: #6ec87a; }
+.badge-church { background: #2a1a4a; color: #c084fc; }
+.badge-unknown { background: #1a2a3a; color: #7195b3; }
+.badge-risk-high { background: #3a0f0f; color: #ff625f; }
+.badge-risk-elevated { background: #3a2800; color: #ffbd55; }
+.badge-risk-low { background: #0f3020; color: #39dda0; }
+.badge-risk-unknown { background: #1a2a3a; color: #7195b3; }
+
+.card-name {
+  font-size: 15px;
+  color: #eef8ff;
+  margin: 4px 0 12px;
+  font-weight: 600;
+}
+
+.card-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.card-stats div {
+  background: #102238;
+  border-radius: 6px;
+  padding: 8px;
+}
+
+.card-stats span {
+  display: block;
+  font-size: 10px;
+  color: #7195b3;
+  margin-bottom: 3px;
+}
+
+.card-stats b {
+  font-size: 13px;
+  color: #dce8f4;
+}
+
+.card-note {
+  font-size: 11px;
+  color: #4e6a82;
+  border-top: 1px solid #1b3853;
+  padding-top: 8px;
+  margin-top: 10px;
+  line-height: 1.5;
 }
 
 /* ── Responsive: tablet ────────────────────────────────── */

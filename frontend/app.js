@@ -7,6 +7,7 @@ const esc = value =>
   String(value ?? '—').replace(/[&<>]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[char]));
 
 let graph, result, map, cy, scenario, selectedId, selectedFootprintId, footprints = [], realPois = [], censusTracts = [];
+let cascadeAnimationId = null;
 
 // ── HTTP helper ─────────────────────────────────────────────────────────────
 
@@ -51,14 +52,15 @@ function setupMap() {
     container: 'map',
     center: [-96.729, 32.952],
     zoom: 14,
-    pitch: 35,
+    pitch: 45,
+    bearing: -15,
     style: 'https://tiles.openfreemap.org/styles/dark'
   });
 
   map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
 
   map.on('load', () => {
-    for (const name of ['nodes', 'footprints', 'flood', 'selected-footprint', 'real-pois', 'exposed-footprints', 'census-tracts']) {
+    for (const name of ['nodes', 'footprints', 'flood', 'selected-footprint', 'real-pois', 'exposed-footprints', 'census-tracts', 'cascade-lines']) {
       map.addSource(name, { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
     }
 
@@ -76,32 +78,75 @@ function setupMap() {
       paint: { 'line-color': '#2d6a9f', 'line-width': 0.8, 'line-dasharray': [3, 2] }
     });
 
-    map.addLayer({ id: 'footprint-fill', type: 'fill', source: 'footprints',
-      paint: { 'fill-color': '#347baf', 'fill-opacity': .35 } });
-    map.addLayer({ id: 'footprint-line', type: 'line', source: 'footprints',
-      paint: { 'line-color': '#72ddf4', 'line-width': 1.8 } });
-    map.addLayer({ id: 'selected-footprint-fill', type: 'fill', source: 'selected-footprint',
-      paint: { 'fill-color': '#48e2dc', 'fill-opacity': .34 } });
-    map.addLayer({ id: 'selected-footprint-line', type: 'line', source: 'selected-footprint',
-      paint: { 'line-color': '#7ffef5', 'line-width': 3 } });
+    try {
+      map.setFog({ color: '#07111f', 'horizon-blend': 0.1 });
+    } catch { /* fog is optional if the style does not support it */ }
+
+    // 3D building extrusions — placed before flood fill and node circles
+    map.addLayer({
+      id: 'buildings-3d',
+      type: 'fill-extrusion',
+      source: 'footprints',
+      paint: {
+        'fill-extrusion-color': [
+          'match', ['get', 'buildingClass'],
+          'government', '#4a90d9',
+          'commercial', '#7eb8c9',
+          'residential', '#6ec87a',
+          'apartments', '#89d48a',
+          'church', '#c084fc',
+          'roof', '#94a3b8',
+          '#5a9abf'
+        ],
+        'fill-extrusion-height': ['coalesce', ['get', 'heightMeters'], 4],
+        'fill-extrusion-base': 0,
+        'fill-extrusion-opacity': 0.82
+      }
+    });
+    map.addLayer({
+      id: 'buildings-3d-selected',
+      type: 'fill-extrusion',
+      source: 'selected-footprint',
+      paint: {
+        'fill-extrusion-color': '#48e2dc',
+        'fill-extrusion-height': ['coalesce', ['get', 'heightMeters'], 4],
+        'fill-extrusion-base': 0,
+        'fill-extrusion-opacity': 0.95
+      }
+    });
+    map.addLayer({
+      id: 'buildings-3d-exposed',
+      type: 'fill-extrusion',
+      source: 'exposed-footprints',
+      paint: {
+        'fill-extrusion-color': '#ff625f',
+        'fill-extrusion-height': ['coalesce', ['get', 'heightMeters'], 4],
+        'fill-extrusion-base': 0,
+        'fill-extrusion-opacity': 0.9
+      }
+    });
+
     map.addLayer({ id: 'flood-fill', type: 'fill', source: 'flood',
       paint: { 'fill-color': '#278fdb', 'fill-opacity': .22 } });
     map.addLayer({ id: 'flood-line', type: 'line', source: 'flood',
       paint: { 'line-color': '#47c4ff', 'line-width': 2, 'line-dasharray': [2, 2] } });
 
-    // Flood-exposed Overture building footprints (highlighted red/orange after simulation)
-    // These are placed BEFORE node circles so circles render on top
     map.addLayer({
-      id: 'exposed-footprint-fill',
-      type: 'fill',
-      source: 'exposed-footprints',
-      paint: { 'fill-color': '#ff625f', 'fill-opacity': 0.45 }
-    });
-    map.addLayer({
-      id: 'exposed-footprint-line',
+      id: 'cascade-flow',
       type: 'line',
-      source: 'exposed-footprints',
-      paint: { 'line-color': '#ff9b55', 'line-width': 2.5 }
+      source: 'cascade-lines',
+      paint: {
+        'line-color': [
+          'match', ['get', 'impactType'],
+          'business_interruption', '#ffbd55',
+          'service_capacity_reduction', '#ff9b55',
+          'service_access_gap', '#ff625f',
+          '#7eb8c9'
+        ],
+        'line-width': 1.5,
+        'line-opacity': 0.7,
+        'line-dasharray': [2, 2]
+      }
     });
 
     // Real OSM POI layer — rendered BEFORE synthetic nodes so nodes appear on top
@@ -138,7 +183,11 @@ function setupMap() {
       });
     }
 
-    map.on('click', 'footprint-fill', event => {
+    map.on('click', 'buildings-3d', event => {
+      const feature = event.features?.[0];
+      if (feature?.properties?.id) selectFootprint(feature.properties.id);
+    });
+    map.on('click', 'buildings-3d-exposed', event => {
       const feature = event.features?.[0];
       if (feature?.properties?.id) selectFootprint(feature.properties.id);
     });
@@ -165,12 +214,12 @@ function refreshMap() {
   if (!map?.isStyleLoaded() || !graph) return;
 
   map.getSource('nodes').setData({ type: 'FeatureCollection', features: nodeFeatures() });
-  map.getSource('footprints').setData({ type: 'FeatureCollection', features: footprints });
+  map.getSource('footprints').setData({ type: 'FeatureCollection', features: withHeight(footprints) });
   map.getSource('flood').setData(scenarioToFeatureCollection(scenario));
   map.getSource('real-pois').setData({ type: 'FeatureCollection', features: realPois });
   // exposed-footprints source is updated by simulate() — no recalculation needed here
 
-  const chosen = footprints.filter(feature => feature.properties.id === selectedFootprintId);
+  const chosen = withHeight(footprints.filter(feature => feature.properties.id === selectedFootprintId));
   map.getSource('selected-footprint').setData({ type: 'FeatureCollection', features: chosen });
 
   for (const category of ['building', 'business', 'equipment', 'road', 'other']) {
@@ -180,7 +229,7 @@ function refreshMap() {
     );
   }
 
-  for (const layer of ['footprint-fill', 'footprint-line', 'selected-footprint-fill', 'selected-footprint-line']) {
+  for (const layer of ['buildings-3d', 'buildings-3d-selected']) {
     map.setLayoutProperty(layer, 'visibility', $('#real-buildings').checked ? 'visible' : 'none');
   }
 
@@ -199,9 +248,44 @@ function refreshMap() {
     map.setLayoutProperty(layer, 'visibility', $('#census-toggle').checked ? 'visible' : 'none');
   }
 
-  // Flood-exposed building polygon toggle
-  for (const layer of ['exposed-footprint-fill', 'exposed-footprint-line']) {
-    map.setLayoutProperty(layer, 'visibility', $('#exposed-toggle').checked ? 'visible' : 'none');
+  // Flood-exposed 3D buildings + cascade flow lines
+  map.setLayoutProperty('buildings-3d-exposed', 'visibility', $('#exposed-toggle').checked ? 'visible' : 'none');
+  if (map.getLayer('cascade-flow')) {
+    map.setLayoutProperty('cascade-flow', 'visibility', $('#exposed-toggle').checked ? 'visible' : 'none');
+  }
+}
+
+// Ensure extrusion height is always a number (MapLibre fill-extrusion requires it)
+function withHeight(features) {
+  return features.map(f => ({
+    ...f,
+    properties: { ...f.properties, heightMeters: f.properties.heightMeters ?? 4 }
+  }));
+}
+
+function startCascadeAnimation() {
+  if (cascadeAnimationId) cancelAnimationFrame(cascadeAnimationId);
+  function animate() {
+    const t = (Date.now() % 2000) / 2000;
+    const opacity = 0.55 + 0.4 * Math.abs(Math.sin(t * Math.PI));
+    if (map.getLayer('buildings-3d-exposed')) {
+      map.setPaintProperty('buildings-3d-exposed', 'fill-extrusion-opacity', opacity);
+    }
+    if (map.getLayer('cascade-flow')) {
+      map.setPaintProperty('cascade-flow', 'line-opacity', 0.5 + 0.4 * Math.abs(Math.sin(t * Math.PI)));
+    }
+    cascadeAnimationId = requestAnimationFrame(animate);
+  }
+  cascadeAnimationId = requestAnimationFrame(animate);
+}
+
+function stopCascadeAnimation() {
+  if (cascadeAnimationId) {
+    cancelAnimationFrame(cascadeAnimationId);
+    cascadeAnimationId = null;
+  }
+  if (map?.getLayer?.('buildings-3d-exposed')) {
+    map.setPaintProperty('buildings-3d-exposed', 'fill-extrusion-opacity', 0.9);
   }
 }
 
@@ -228,7 +312,7 @@ function fit() {
 async function loadFootprints() {
   try {
     const geojson = await request('/api/data/buildings?format=geojson&limit=250');
-    footprints = geojson.features;
+    footprints = withHeight(geojson.features);
     const source = geojson.metadata.source;
     // FIX 5f: clearer, consistently prefixed data source label
     $('#dataMode').textContent =
@@ -319,23 +403,48 @@ async function load() {
 
 async function simulate() {
   $('#run').textContent = 'Running…';
+  stopCascadeAnimation();
   try {
     result = await request('/api/simulations/run', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ scenarioId: 'richardson-flood-demo', predictionMode: $('#mode').value })
+      body: JSON.stringify({
+        scenarioId: 'richardson-flood-demo',
+        predictionMode: $('#mode').value,
+        overrides: { durationHours: Number($('#duration').value) }
+      })
     });
     renderMetrics();
 
-    // Highlight flood-exposed Overture building polygons
+    // Highlight flood-exposed Overture building polygons as 3D extrusions
     if (result.exposedBuildingFootprints?.length > 0) {
       const exposedIds = new Set(result.exposedBuildingFootprints.map(e => e.providerId));
-      const exposedFeatures = footprints.filter(f => exposedIds.has(f.properties.providerId));
+      const exposedFeatures = withHeight(footprints.filter(f => exposedIds.has(f.properties.providerId)));
       map.getSource('exposed-footprints')?.setData({ type: 'FeatureCollection', features: exposedFeatures });
     }
 
+    // Cascade connection lines from upstream causes (cascading impacts, not direct failures)
+    const cascadeItems = result.cascadingImpacts?.impacts ?? result.failures ?? [];
+    const lines = cascadeItems
+      .filter(f => f.upstreamCause)
+      .map(f => {
+        const src = graph.nodes.find(n => n.id === f.upstreamCause);
+        const tgt = graph.nodes.find(n => n.id === f.nodeId);
+        if (!src?.coordinates || !tgt?.coordinates) return null;
+        return {
+          type: 'Feature',
+          geometry: { type: 'LineString', coordinates: [src.coordinates, tgt.coordinates] },
+          properties: { impactType: f.impactType }
+        };
+      })
+      .filter(Boolean);
+    map.getSource('cascade-lines')?.setData({ type: 'FeatureCollection', features: lines });
+
     refreshMap();
     if (selectedId) selectNode(selectedId);
+    if (result.exposedBuildingFootprints?.length > 0 && $('#cascade-anim-toggle').checked) {
+      startCascadeAnimation();
+    }
   } catch (error) {
     $('#mapError').textContent = error.message;
   } finally {
@@ -386,37 +495,25 @@ function selectFootprint(id) {
   selectedFootprintId = id;
 
   const properties = feature.properties;
-  const source = properties.source ?? {};
+  const source = typeof properties.source === 'string' ? JSON.parse(properties.source) : (properties.source ?? {});
+  const exposed = result?.exposedBuildingFootprints?.find(e => e.providerId === properties.providerId);
 
   $('#title').textContent = properties.name || properties.providerId || 'Overture building footprint';
 
-  $('#inspector').innerHTML =
-    section('Identity', rows({
-      id: properties.id,
-      providerId: properties.providerId,
-      type: feature.geometry.type,
-      representativePoint: properties.representativePoint
-    })) +
-    section('Provenance', rows({
-      provider: source.provider,
-      dataset: source.dataset,
-      release: source.datasetRelease,
-      acquiredAt: source.acquiredAt,
-      realProviderBacked: properties.realProviderBacked
-    })) +
-    section('Attributes', rows({
-      class: properties.buildingClass,
-      heightMeters: properties.heightMeters,
-      floors: properties.floors
-    })) +
-    section('Data quality', rows({
-      geometry: feature.geometry.type,
-      geometryValid: properties.dataQuality?.geometryValid,
-      missingFields: properties.dataQuality?.missingFields
-    })) +
-    section('Dependencies',
-      '<p>No graph dependencies are currently known. This provider-backed footprint is intentionally separate from the synthetic dependency graph.</p>'
-    );
+  $('#inspector').innerHTML = `
+    <div class="card-badge badge-${properties.buildingClass ?? 'unknown'}">
+      ${(properties.buildingClass ?? 'Building').toUpperCase()}
+    </div>
+    ${properties.name ? `<p class="card-name">${esc(properties.name)}</p>` : ''}
+    <div class="card-stats">
+      <div><span>Height</span><b>${properties.heightMeters ? Number(properties.heightMeters).toFixed(1) + ' m' : '—'}</b></div>
+      <div><span>Source</span><b>Overture Maps</b></div>
+      <div><span>Release</span><b>${esc(source.datasetRelease ?? 'unknown')}</b></div>
+      <div><span>Flood exposure</span><b style="color:${exposed ? '#ff625f' : '#39dda0'}">
+        ${exposed ? '⚠ Exposed (' + esc(exposed.exposureMethod) + ')' : '✓ Not exposed'}</b></div>
+    </div>
+    <p class="card-note">Provider-backed Overture footprint · Entity matching active when POI cache is populated.</p>
+  `;
 
   $('#raw').textContent = JSON.stringify(feature, null, 2);
   $('#graphTitle').textContent = 'Provider-backed footprint · no graph links asserted';
@@ -504,7 +601,9 @@ function selectNode(id) {
 
   $('#title').textContent = node.name;
 
+  const riskLevel = failure?.riskLevel ?? 'unknown';
   $('#inspector').innerHTML =
+    `<div class="card-badge badge-risk-${riskLevel}">${riskLevel.toUpperCase()} RISK</div>` +
     section('Identity', rows({
       id: node.id,
       type: node.type,
@@ -646,6 +745,12 @@ $('#flood').onchange = refreshMap;
 $('#real-pois-toggle').onchange = refreshMap;
 $('#exposed-toggle').onchange = refreshMap;
 $('#census-toggle').onchange = refreshMap;
+$('#cascade-anim-toggle').onchange = () => {
+  if ($('#cascade-anim-toggle').checked && result?.exposedBuildingFootprints?.length) startCascadeAnimation();
+  else stopCascadeAnimation();
+};
+$('#duration').oninput = () => { $('#durationLabel').textContent = $('#duration').value + 'h'; };
+$('#duration').onchange = simulate;
 
 // FIX 5e: disable button during agent call and restore on completion
 $('#ask').onclick = async () => {

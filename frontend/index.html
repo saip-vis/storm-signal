@@ -18,6 +18,10 @@
         <option value="rules">Rules baseline</option>
         <option value="hybrid">Hybrid ML + rules</option>
       </select>
+      <div class="slider-wrap">
+        <label for="duration">Duration: <span id="durationLabel">24h</span></label>
+        <input id="duration" type="range" min="6" max="72" step="6" value="24">
+      </div>
       <button id="run">Run simulation</button>
     </header>
 
@@ -44,10 +48,11 @@
             <label><input type="checkbox" data-layer="other" checked> Other nodes</label>
             <label><input id="flood" type="checkbox" checked> Hypothetical flood scenario</label>
             <label><input id="exposed-toggle" type="checkbox" checked> Flood-exposed buildings</label>
+            <label><input id="cascade-anim-toggle" type="checkbox" checked> Cascade pulse animation</label>
             <label><input id="census-toggle" type="checkbox" checked> Census tract boundaries</label>
             <small id="censusMode"></small>
             <hr>
-            <small>Outlined polygons = provider-backed Overture footprints. Dots = synthetic graph fixtures. Purple = real OSM facilities.</small>
+            <small>3D extrusions = Overture footprints (colored by class). Red pulse = flood-exposed. Dots = synthetic graph fixtures. Purple = real OSM facilities.</small>
             <small id="poisMode"></small>
             <small id="layerStats"></small>
           </aside>

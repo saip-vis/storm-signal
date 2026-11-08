@@ -79,6 +79,9 @@ export function calculateDirectCommunityImpact(scenario,attributes,tracts=[]){
       totalHousing+=(tract.housingUnits??0)*frac;
       tractCount++;
     }
+    if(tractCount===0){
+      // No tract overlaps the flood bbox — fall through to the synthetic fixture path
+    }else{
     totalExposed=round(totalExposed);
     const displaced=round(totalExposed*0.10); // 10% displacement assumption
     const shelterSeekers=round(displaced*0.40); // 40% shelter-seeking of displaced
@@ -97,6 +100,7 @@ export function calculateDirectCommunityImpact(scenario,attributes,tracts=[]){
         'Shelter-seeking rate: 40% of displaced persons.'
       ]
     };
+    }
   }
   // ── Synthetic fallback: existing CSV-fixture fractions ────────────────────
   const neighborhoods=Object.entries(attributes.communities).map(([nodeId,a])=>{const exposedPopulation=round(a.population*a.footprintExposureFraction),displaced=round(exposedPopulation*a.displacementFraction),shelter=round(displaced*a.shelterSeekingFraction);return {nodeId,population:a.population,exposedPopulation,estimatedDisplacedResidents:displaced,estimatedShelterSeekers:shelter,synthetic:true};});
@@ -106,6 +110,8 @@ export function calculateShelterNeeds(community,attributes,overrides={}){const s
 export function calculateServiceGaps(graph,cascading,attributes){const impacted=new Map(cascading.impacts.map(x=>[x.nodeId,x]));const gaps=[];for(const e of graph.edges.filter(e=>e.relationship==='SERVES_AREA'&&impacted.has(e.sourceId)&&impacted.has(e.targetId))){const service=graph.nodes.find(n=>n.id===e.sourceId),a=attributes.communities[e.targetId], capacity=attributes.businesses[`business:${service.id.split(':')[1]}`]?.serviceCapacity??0,demand=a.serviceDemand[service.name]??0,alt=attributes.alternatives[e.targetId]?.[service.name]??0;gaps.push({serviceId:service.id,serviceName:service.name,neighborhoodId:e.targetId,modeledDemand:demand,remainingAccessibleCapacity:alt,estimatedCapacityLost:capacity,unmetServiceDemand:Math.max(0,demand-alt),evidence:e.evidenceLevel,synthetic:true});}return {gaps};}
 export function timeline(result){return [{stage:'baseline',timeHours:0,affectedNodeIds:[],estimatedBusinessRevenueAtRiskUSD:0,estimatedUnmetShelterDemand:0},{stage:'impact',timeHours:0,affectedNodeIds:result.cascadingImpacts.impacts.map(x=>x.nodeId),estimatedBusinessRevenueAtRiskUSD:result.businessImpact.totalEstimatedRevenueAtRiskUSD,estimatedUnmetShelterDemand:result.shelterNeeds.unmetShelterDemand},{stage:'plus_6_hours',timeHours:6,affectedNodeIds:result.cascadingImpacts.impacts.filter(x=>x.estimatedDowntimeHours>=6).map(x=>x.nodeId),estimatedBusinessRevenueAtRiskUSD:round(result.businessImpact.totalEstimatedRevenueAtRiskUSD*Math.min(6/result.scenario.durationHours,1)),estimatedUnmetShelterDemand:result.shelterNeeds.unmetShelterDemand},{stage:'plus_24_hours',timeHours:24,affectedNodeIds:result.cascadingImpacts.impacts.filter(x=>x.estimatedDowntimeHours>=24).map(x=>x.nodeId),estimatedBusinessRevenueAtRiskUSD:result.businessImpact.totalEstimatedRevenueAtRiskUSD,estimatedUnmetShelterDemand:result.shelterNeeds.unmetShelterDemand}];}
 export async function runSimulation({scenario,attributes,graph,overrides={},predictionMode='rules'}={}){if(!scenario||!attributes){const i=await loadSimulationInputs();scenario??=i.scenario;attributes??=i.attributes;}if(!graph)graph=(await loadGraph()).graph;validateScenario(scenario);
+const effectiveDuration=overrides?.durationHours??scenario.durationHours;
+scenario={...scenario,durationHours:effectiveDuration};
 // Load real building footprints for polygon-flood exposure (non-fatal if cache missing)
 const buildingFootprints=await loadBuildingFootprints();
 // Load Census tracts for real community impact (non-fatal if cache missing)
