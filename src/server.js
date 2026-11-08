@@ -4,11 +4,16 @@ import { censusResponse, loadCensusSnapshot, censusCachePath } from './census.js
 import { VISUALIZATION_REGION_ID as DEFAULT_REGION_ID, region } from './regions.js';
 import { verifyMlInference } from './simulation/engine.js';
 import { productionScenario } from './production-simulation.js';
+import { supportedScenarios, getScenario, analyzeHazard } from './hazards/index.js';
+import { frontendConfig } from './frontend-config.js';
 const service = new NetworkService(); const port = Number(process.env.PORT || 3030);
 const projectRoot=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const send = (res, status, value) => { res.writeHead(status, {'content-type':'application/json','access-control-allow-origin':'*'}); res.end(JSON.stringify(value, null, 2)); };
 function query(url) { return Object.fromEntries(url.searchParams); }
 const server = http.createServer(async (req,res) => { const url = new URL(req.url, `http://${req.headers.host}`); try {
+  if(req.method==='GET'&&url.pathname==='/api/frontend-config')return send(res,200,frontendConfig());
+  if(req.method==='GET'&&url.pathname==='/api/hazards')return send(res,200,await supportedScenarios());
+  const hazardScenario=url.pathname.match(/^\/api\/simulations\/scenarios\/(noaa-dat(?::|%3A)[0-9]+)$/i);if(req.method==='GET'&&hazardScenario)return send(res,200,await getScenario(decodeURIComponent(hazardScenario[1])));
   if(req.method==='GET'&&url.pathname==='/api/region')return send(res,200,region(DEFAULT_REGION_ID));
   if(req.method==='GET'&&url.pathname==='/api/data/buildings')return send(res,200,await buildingResponse({locationId:url.searchParams.get('locationId')??undefined,regionId:url.searchParams.get('regionId')??undefined,offset:url.searchParams.get('offset')??undefined,limit:url.searchParams.get('limit')??undefined,bbox:url.searchParams.get('bbox')??undefined,geojson:url.searchParams.get('format')==='geojson'}));
   if(req.method==='GET'&&url.pathname==='/api/data/businesses/categories')return send(res,200,{categories:ESSENTIAL_CATEGORIES});
@@ -27,17 +32,17 @@ const server = http.createServer(async (req,res) => { const url = new URL(req.ur
   if(req.method==='POST'&&url.pathname==='/api/agent/chat'){let body='';for await(const x of req)body+=x;return send(res,200,await chat(JSON.parse(body)));}
   const agentPath=url.pathname.match(/^\/api\/agent\/sessions\/([^/]+)(\/trace|\/reset)?$/);if(agentPath){const id=decodeURIComponent(agentPath[1]);if(req.method==='POST'&&agentPath[2]==='/reset')return send(res,200,resetAgentSession(id));if(req.method==='GET')return send(res,200,agentPath[2]==='/trace'?getAgentSession(id).trace:getAgentSession(id));}
   if (req.method === 'GET' && url.pathname === '/api/simulations/health') return send(res,200,{status:'ok',component:'disaster-simulation-engine'});
-  if (req.method === 'GET' && url.pathname === '/api/simulations/scenarios') return send(res,200,[await productionScenario()]);
+  if (req.method === 'GET' && url.pathname === '/api/simulations/scenarios') return send(res,200,(await supportedScenarios()).scenarios);
   if (req.method === 'GET' && url.pathname === '/api/simulations/scenarios/richardson-flood-demo') return send(res,200,await productionScenario());
-  if (req.method === 'POST' && url.pathname === '/api/simulations/run') { let body='';for await(const x of req)body+=x;const input=body?JSON.parse(body):{};if(input.scenarioId&&input.scenarioId!=='richardson-flood-demo')throw new Error('Unknown scenario');return send(res,200,await runSimulation({overrides:input.overrides,predictionMode:'hybrid'})); }
-  if (req.method === 'POST' && url.pathname === '/api/simulations/compare') { let body='';for await(const x of req)body+=x;const input=body?JSON.parse(body):{};if(input.scenarioId&&input.scenarioId!=='richardson-flood-demo')throw new Error('Unknown scenario');return send(res,200,await compareScenarios(input.modification)); }
-  const simulationNode=url.pathname.match(/^\/api\/simulations\/results\/richardson-flood-demo\/nodes\/([^/]+)$/); if(req.method==='GET'&&simulationNode){const r=await runSimulation(),g=await loadGraph();return send(res,200,explainNodeRisk(g.graph,r,decodeURIComponent(simulationNode[1])));}
-  if(req.method==='GET'&&url.pathname==='/api/simulations/results/richardson-flood-demo/timeline'){const r=await runSimulation();return send(res,200,r.timeline);}
-  if(req.method==='GET'&&url.pathname==='/api/simulations/results/richardson-flood-demo/impact'){const r=await runSimulation();return send(res,200,{businessImpact:r.businessImpact,directCommunityImpact:r.directCommunityImpact,shelterNeeds:r.shelterNeeds,serviceGaps:r.serviceGaps});}
-  if(req.method==='GET'&&url.pathname==='/api/simulations/results/richardson-flood-demo')return send(res,200,await runSimulation());
+  if (req.method === 'POST' && url.pathname === '/api/simulations/run') { let body='';for await(const x of req)body+=x;const input=body?JSON.parse(body):{};return send(res,200,await analyzeHazard(input)); }
+  if (req.method === 'POST' && url.pathname === '/api/simulations/compare') { let body='';for await(const x of req)body+=x;const input=body?JSON.parse(body):{};if(input.scenarioId&&input.scenarioId!=='richardson-flood-demo')throw new Error('Counterfactuals are available only for the hypothetical flood');if(input.predictionMode!=='hybrid')throw new Error('Preservation requires explicit experimental hybrid mode');return send(res,200,await compareScenarios(input.modification)); }
+  const simulationNode=url.pathname.match(/^\/api\/simulations\/results\/richardson-flood-demo\/nodes\/([^/]+)$/); if(req.method==='GET'&&simulationNode){const r=await analyzeHazard(),g=await loadGraph();return send(res,200,explainNodeRisk(g.graph,r,decodeURIComponent(simulationNode[1])));}
+  if(req.method==='GET'&&url.pathname==='/api/simulations/results/richardson-flood-demo/timeline'){const r=await analyzeHazard();return send(res,200,r.timeline);}
+  if(req.method==='GET'&&url.pathname==='/api/simulations/results/richardson-flood-demo/impact'){const r=await analyzeHazard();return send(res,200,{businessImpact:r.businessImpact,directCommunityImpact:r.directCommunityImpact,shelterNeeds:r.shelterNeeds,serviceGaps:r.serviceGaps});}
+  if(req.method==='GET'&&url.pathname==='/api/simulations/results/richardson-flood-demo')return send(res,200,await analyzeHazard());
   if (req.method === 'GET' && url.pathname === '/api/health') return send(res,200,{status:'ok',component:'geographic-data-and-dependency-network'});
   if (req.method === 'GET' && url.pathname === '/api/locations') return send(res,200,service.locations());
-  if (req.method === 'POST' && url.pathname === '/api/network/build') { let body=''; for await(const x of req) body+=x; const input=body?JSON.parse(body):{}; return send(res,200,await service.build(input.locationId, input.options)); }
+  if (req.method === 'POST' && url.pathname === '/api/network/build') { let body=''; for await(const x of req) body+=x; const input=body?JSON.parse(body):{};if(input.options?.mode==='demo'&&process.env.ALLOW_DEMO_DATA!=='1')throw new Error('Synthetic HTTP demo mode is disabled');return send(res,200,await service.build(input.locationId, input.options)); }
   if (req.method === 'GET' && url.pathname === '/api/network') return send(res,200,service.network());
   if (req.method === 'GET' && url.pathname === '/api/network/poi-matches') return send(res,200,service.poiMatches??[]);
   if (req.method === 'GET' && url.pathname === '/api/network/summary') return send(res,200,service.summary());
@@ -45,4 +50,4 @@ const server = http.createServer(async (req,res) => { const url = new URL(req.ur
   const match = url.pathname.match(/^\/api\/network\/nodes\/([^/]+)(\/dependencies)?$/); if (req.method === 'GET' && match) return send(res,200,match[2] ? service.trace(decodeURIComponent(match[1]), {maxDepth:query(url).maxDepth,relationshipTypes:query(url).relationshipTypes?.split(',')}) : service.node(decodeURIComponent(match[1])));
   return send(res,404,{error:'Not found'});
 } catch(error) { return send(res,400,{error:error.message}); } });
-server.listen(port,()=>console.log(`Component 1 API: http://localhost:${port} (POST /api/network/build first)`));
+server.listen(port,()=>console.log(`Component 1 API: http://localhost:${server.address().port} (POST /api/network/build first)`));

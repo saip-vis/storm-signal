@@ -29,7 +29,7 @@ export function inspectorPresentation(node,result){
   const localImpact=result?.businessImpact?.affectedBusinesses?.find(item=>item.businessId===node.id);
   return {category:String(p.category??p.buildingClass??node.type??'Asset').replaceAll('_',' '),provenance:synthetic?'Synthetic demo record':real?'Real geographic record':'Source not established',synthetic,assessment,ml,
     status:assessment?(statusLabels[assessment.predictedStatus]??'Assessment available'):result?'No operational assessment':'Not assessed yet',tone,
-    exposure:exposure?.exposureStatus==='exposed'?'Intersects hypothetical flood':exposure?.exposureStatus==='unexposed'?'Outside hypothetical flood':'Exposure not assessed',
+    exposure:exposure?.exposureStatus==='exposed'?(result?.scenario?.disasterType==='tornado'?'Intersects historical NOAA survey contour':'Intersects hypothetical flood'):exposure?.exposureStatus==='unexposed'?(result?.scenario?.disasterType==='tornado'?'Outside historical NOAA survey contour':'Outside hypothetical flood'):'Exposure not assessed',
     conditions:(assessment?.reasonCodes??[]).slice(0,3).map(code=>conditions[code]??'An additional scenario rule was applied.'),
     location:typeof p.address==='string'&&p.address.trim()?p.address:typeof p.city==='string'?p.city:'Richardson study area',
     localImpact,hasLocalNumbers:localImpact&&(Number.isFinite(localImpact.estimatedRevenueAtRiskUSD)||Number.isFinite(localImpact.estimatedDowntimeHours))};
@@ -42,7 +42,7 @@ export function relationshipDescription(edge,selectedId){
 }
 
 export function analysisMetrics(result){
-  return {buildings:new Set((result.exposedBuildingFootprints??[]).map(item=>item.buildingId)).size,facilities:result.businessImpact?.totalAffectedBusinesses??null,population:result.directCommunityImpact?.totalPopulationExposed??null};
+  return {buildings:new Set((result.exposedBuildingFootprints??[]).map(item=>item.buildingId)).size,facilities:result.businessImpact?.exposedFacilityCount??result.businessImpact?.totalAffectedBusinesses??null,population:result.directCommunityImpact?.totalPopulationExposed??null};
 }
 export function interventionPayload(node,depth,duration,scenarioId){
   if(node?.type!=='building')throw new Error('Select a building footprint on the map first.');

@@ -21,6 +21,7 @@
     "data:buildings:summary": "node scripts/buildings-cache.js summary",
     "data:pois:fetch": "node --env-file-if-exists=.env scripts/fetch-pois.js",
     "data:census:fetch": "node --env-file-if-exists=.env scripts/fetch-census.js",
+    "data:tornadoes:fetch": "node scripts/fetch-tornadoes.js",
     "agent:smoke": "node --env-file-if-exists=.env scripts/nemotron-smoke.js"
   },
   "dependencies": {
