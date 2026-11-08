@@ -40,3 +40,13 @@ export function relationshipDescription(edge,selectedId){
   const phrases={HOSTS:outgoing?'Associated facility':'Associated building',HAS_EQUIPMENT:outgoing?'Installed equipment':'Supporting building',PROVIDES_SERVICE:outgoing?'Provides this service':'Service provider',SERVES_AREA:outgoing?'Modeled service area':'Serving resource',ACCESSIBLE_VIA:outgoing?'Access relationship':'Access relationship',DEPENDS_ON:outgoing?'Dependency link':'Linked dependency',LOCATED_IN:outgoing?'Located within':'Located here'};
   return {label:phrases[edge.relationship]??'Linked asset',evidence:({inferred:'Spatially inferred',hypothetical:'Hypothetical relationship',verified:'Verified source relationship',observed:'Source-observed association'})[edge.evidenceLevel]??'Evidence unknown'};
 }
+
+export function analysisMetrics(result){
+  return {buildings:new Set((result.exposedBuildingFootprints??[]).map(item=>item.buildingId)).size,facilities:result.businessImpact?.totalAffectedBusinesses??null,population:result.directCommunityImpact?.totalPopulationExposed??null};
+}
+export function interventionPayload(node,depth,duration,scenarioId){
+  if(node?.type!=='building')throw new Error('Select a building footprint on the map first.');
+  if(!Number.isFinite(depth)||depth<0||depth>30)throw new Error('Assumed flood depth must be 0–30 feet.');
+  if(!Number.isInteger(duration)||duration<1||duration>168)throw new Error('Scenario window must be 1–168 hours.');
+  return {scenarioId,modification:{floodDepthFeet:depth,durationHours:duration,facilityStatus:{[node.id]:'operational'}}};
+}

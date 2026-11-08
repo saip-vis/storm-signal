@@ -1,14 +1,17 @@
 import * as maplibregl from '/vendor/maplibre-gl.mjs';
-import { selectionNeighborhood, inspectorPresentation, relationshipDescription } from '/adapter.js';
+import { selectionNeighborhood, inspectorPresentation, relationshipDescription, analysisMetrics, interventionPayload } from '/adapter.js';
 const $=selector=>document.querySelector(selector),esc=value=>String(value??'Unknown').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let map,graph,region,scenario,result,selected,buildings=[],metadata,sourceWarnings=[],running=false,debugGraph,inspectorCloseTimer;
+let map,graph,region,scenario,result,selected,buildings=[],metadata,sourceWarnings=[],running=false,debugGraph,inspectorCloseTimer,activePanel='map',comparison=null,comparing=false,analysisBaseline=null;
+const displayName=document.body.dataset.displayName||'RIVRA';$('#brand-name').textContent=displayName;document.title=`${displayName} · Infrastructure Intelligence`;
 const empty=()=>({type:'FeatureCollection',features:[]});
 async function request(url,body){const response=await fetch(url,body?{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)}:undefined);const data=await response.json();if(!response.ok)throw new Error(data.error||`HTTP ${response.status}`);return data;}
 function state(message){$('#status').textContent=message;}
-function show(view){document.querySelectorAll('.view').forEach(el=>el.hidden=el.id!==`view-${view}`);document.querySelectorAll('[data-view]').forEach(el=>view===el.dataset.view?el.setAttribute('aria-current','page'):el.removeAttribute('aria-current'));$('#navigation').hidden=true;$('#menu').setAttribute('aria-expanded','false');if(view==='map')requestAnimationFrame(()=>map?.resize());}
+function show(view){activePanel=view;document.body.dataset.panel=view;document.querySelectorAll('.control-panel').forEach(el=>el.hidden=el.id!==`view-${view}`);document.querySelectorAll('[data-view]').forEach(el=>{el.setAttribute('aria-pressed',String(view===el.dataset.view));view===el.dataset.view?el.setAttribute('aria-current','page'):el.removeAttribute('aria-current');});$('#navigation').hidden=true;$('#menu').setAttribute('aria-expanded','false');$('#selection').hidden=view!=='map'||!selected;document.body.classList.toggle('has-selection',view==='map'&&Boolean(selected));if(view==='compare')updateIntervention();requestAnimationFrame(()=>map?.resize());}
+document.querySelectorAll('[data-close-panel]').forEach(button=>button.onclick=()=>show('map'));
+$('#brand-home').onclick=event=>{event.preventDefault();show('map');};
 $('#menu').onclick=()=>{const open=$('#navigation').hidden;$('#navigation').hidden=!open;$('#menu').setAttribute('aria-expanded',String(open));};
 document.querySelectorAll('[data-view]').forEach(button=>button.onclick=()=>show(button.dataset.view));
-document.addEventListener('keydown',event=>{if(event.key==='Escape'){$('#navigation').hidden=true;$('#menu').setAttribute('aria-expanded','false');}});
+document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!$('#sources').open){$('#navigation').hidden=true;$('#menu').setAttribute('aria-expanded','false');show('map');}});
 const reducedMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 function fit(){if(region&&map)map.fitBounds([[region.bbox[0],region.bbox[1]],[region.bbox[2],region.bbox[3]]],{padding:65,pitch:25,bearing:-12,duration:reducedMotion?0:800});}
 $('#fit').onclick=fit;
@@ -47,7 +50,7 @@ async function setup(){
     map.addLayer({id:'buildings',source:'buildings',type:'fill',minzoom:11,paint:{'fill-color':'#81828d','fill-opacity':['interpolate',['linear'],['zoom'],11,.25,15,.65]}});
     map.addLayer({id:'building-outlines',source:'buildings',type:'line',minzoom:11,paint:{'line-color':'#b0afba','line-width':.55,'line-opacity':.65}});
     map.addLayer({id:'building-depth',source:'buildings',type:'fill-extrusion',minzoom:14,filter:['all',['has','heightMeters'],['>', ['get','heightMeters'],0]],paint:{'fill-extrusion-color':'#6b6b79','fill-extrusion-height':['get','heightMeters'],'fill-extrusion-opacity':.72,'fill-extrusion-vertical-gradient':true}});
-    map.addLayer({id:'exposure',source:'exposure',type:'fill',minzoom:11,paint:{'fill-color':['match',['get','risk'],'low','#56b88a','elevated','#e4b665','#d87075'],'fill-opacity':.7}});
+    map.addLayer({id:'exposure',source:'exposure',type:'fill',minzoom:11,paint:{'fill-color':['case',['==',['get','modeledStatus'],'operational'],'#56b88a',['match',['get','risk'],'low','#56b88a','elevated','#e4b665','#d87075']],'fill-opacity':.7}});
     map.addLayer({id:'selected-glow',source:'selected',type:'line',paint:{'line-color':'#9762ff','line-width':12,'line-blur':7,'line-opacity':.6}});
     map.addLayer({id:'selected',source:'selected',type:'line',paint:{'line-color':'#c2a0ff','line-width':2}});
     map.addLayer({id:'selected-depth',source:'selected',type:'fill-extrusion',minzoom:14,filter:['all',['has','heightMeters'],['>', ['get','heightMeters'],0]],paint:{'fill-extrusion-color':'#a480d7','fill-extrusion-height':['get','heightMeters'],'fill-extrusion-opacity':.85}});
@@ -71,6 +74,7 @@ async function loadData(){
   try{
     await request('/api/network/build',{locationId:region.id});
     [graph,scenario]=await Promise.all([request('/api/network'),request('/api/simulations/scenarios/richardson-flood-demo')]);
+    $('#analysis-location').textContent=region.name;$('#analysis-scenario').textContent=scenario.name;$('#analysis-duration').value=scenario.durationHours??24;
     if(graph.locationId!==region.id)throw new Error('Network and map region do not match');
     buildings=[];let offset=0;
     do{const page=await request(`/api/data/buildings?format=geojson&locationId=${region.id}&limit=2000&offset=${offset}`);metadata=page.metadata;buildings.push(...page.features);source('buildings',buildings);state(`Loading buildings ${buildings.length.toLocaleString()}…`);if(page.metadata.nextOffset===null)break;if(!page.features.length)throw new Error('Incomplete building pagination');offset=page.metadata.nextOffset;}while(true);
@@ -86,8 +90,8 @@ function renderSources(){
 }
 $('#source-button').onclick=()=>$('#sources').showModal();$('#close-sources').onclick=()=>$('#sources').close();
 const human=value=>String(value??'Unknown').replaceAll('_',' ');
-function select(id){
-  const n=graph.nodes.find(n=>n.id===id);if(!n)return;selected=n;clearTimeout(inspectorCloseTimer);$('#selection').classList.remove('is-closing');$('#selection').hidden=false;$('#selection').scrollTop=0;
+function select(id,{focusMap=true}={}){
+  const n=graph.nodes.find(n=>n.id===id);if(!n)return;selected=n;if(focusMap)show('map');document.body.classList.toggle('has-selection',activePanel==='map');clearTimeout(inspectorCloseTimer);$('#selection').classList.remove('is-closing');$('#selection').hidden=activePanel!=='map';$('#selection').scrollTop=0;
   const view=inspectorPresentation(n,result);
   $('#selection-type').textContent=view.category;$('#selection-name').textContent=n.name;
   const failure=result?.failures.find(f=>f.nodeId===id)??result?.cascadingImpacts.impacts.find(f=>f.nodeId===id),exposure=result?.exposure.find(e=>e.nodeId===id),neighborhood=selectionNeighborhood(graph,id),edges=neighborhood.edges;
@@ -116,28 +120,59 @@ function select(id){
   details.ontoggle=()=>{if(!details.open){debugGraph?.destroy();debugGraph=null;return;}if(typeof cytoscape==='undefined')return;debugGraph?.destroy();debugGraph=cytoscape({container:$('#debug-graph'),elements:[...neighborhood.nodes.map(node=>({data:{id:node.id,label:node.name}})),...edges.map(edge=>({data:{id:edge.id,source:edge.sourceId,target:edge.targetId,label:`${edge.relationship}\n${edge.evidenceLevel}`}}))],style:[{selector:'node',style:{label:'data(label)','background-color':'#ab84ec',color:'#e9e4f1','font-size':9,'text-wrap':'wrap','text-max-width':80,'text-valign':'bottom'}},{selector:'edge',style:{label:'data(label)','curve-style':'bezier','target-arrow-shape':'triangle','line-color':'#796293','target-arrow-color':'#796293',color:'#c6b5dc','font-size':8}}],layout:{name:'breadthfirst',directed:true,padding:35}});debugGraph.on('tap','node',event=>select(event.target.id()));};
   $('#assistant-context').textContent=`Selected: ${n.name} · ${region.name}`;
 }
-$('#close-selection').onclick=()=>{$('#selection').classList.add('is-closing');clearTimeout(inspectorCloseTimer);inspectorCloseTimer=setTimeout(()=>{$('#selection').hidden=true;$('#selection').classList.remove('is-closing');},reducedMotion?0:160);selected=null;debugGraph?.destroy();$('#assistant-context').textContent='Richardson study region · hybrid simulation';source('selected',[]);source('dependencies',[]);source('focus-nodes',[]);map.setPaintProperty('facilities','circle-opacity',1);map.setPaintProperty('buildings','fill-opacity',['interpolate',['linear'],['zoom'],11,.25,15,.65]);};
+$('#close-selection').onclick=()=>{$('#selection').classList.add('is-closing');clearTimeout(inspectorCloseTimer);inspectorCloseTimer=setTimeout(()=>{$('#selection').hidden=true;$('#selection').classList.remove('is-closing');},reducedMotion?0:160);selected=null;document.body.classList.remove('has-selection');debugGraph?.destroy();$('#assistant-context').textContent='Richardson study region · hybrid simulation';source('selected',[]);source('dependencies',[]);source('focus-nodes',[]);map.setPaintProperty('facilities','circle-opacity',1);map.setPaintProperty('buildings','fill-opacity',['interpolate',['linear'],['zoom'],11,.25,15,.65]);};
 $('#ask-selected').onclick=()=>{show('assistant');$('#question').value=`Explain the flood exposure and known dependencies for ${selected.name}.`;$('#question').focus();};
 document.querySelectorAll('[data-layer]').forEach(input=>input.onchange=()=>{const names={buildings:['buildings','building-outlines','building-depth','selected-depth','selected','selected-glow'],facilities:['facilities','facility-glow','clusters','cluster-counts'],flood:['flood','flood-outline'],exposure:['exposure'],tracts:['tracts'],dependencies:['dependencies','dependency-glow','dependency-labels','focus-halo','focus-points']};for(const id of names[input.dataset.layer])if(map?.getLayer(id))map.setLayoutProperty(id,'visibility',input.checked?'visible':'none');});
-async function simulate(){
-  if(running||!graph)return;running=true;result=null;source('exposure',[]);if(selected)select(selected.id);$('#depth').disabled=true;$('#results').innerHTML='<p class="empty">Intersecting flood geometry and running Python/XGBoost inference…</p>';$('#simulation-error').hidden=true;$('#run').disabled=true;$('#run-results').disabled=true;state('Running hybrid assessment…');
-  try{
-    result=await request('/api/simulations/run',{scenarioId:scenario.id,overrides:{floodDepthFeet:Number($('#depth').value)}});
-    if(result.locationId!==region.id||result.predictionModeUsed!=='hybrid')throw new Error('Simulation returned an incompatible region or assessment');
-    const ids=new Set(result.exposedBuildingFootprints.map(b=>b.buildingId)),risk=new Map(result.failures.map(f=>[f.nodeId,f.riskLevel]));source('exposure',buildings.filter(b=>ids.has(b.id)).map(b=>({...b,properties:{...b.properties,risk:risk.get(b.id)}})));
-    const population=result.directCommunityImpact.totalPopulationExposed;
-    $('#results').innerHTML=`<div class="cards"><div class="card"><span>Buildings exposed</span><strong>${ids.size.toLocaleString()}</strong><small>Actual polygon intersection</small></div><div class="card"><span>Facilities potentially affected</span><strong>${result.businessImpact.totalAffectedBusinesses}</strong><small>Direct exposure or inferred occupancy path</small></div><div class="card"><span>Population exposure estimate</span><strong>${population==null?'Unavailable':population.toLocaleString()}</strong><small>Census polygon area weighting</small></div></div><p class="note">Hypothetical flood. Revenue, downtime, displacement and shelter capacity estimates are unavailable without sourced inputs. Actual closures are unknown. Counts use source records; duplicate OSM representations may occur.</p><h2>Potentially affected facilities</h2>${result.businessImpact.affectedBusinesses.map(b=>`<div class="result-row"><span>${esc(b.name)}</span><button data-result="${esc(b.businessId)}">View on map →</button></div>`).join('')||'<p>No facilities intersect this scenario or its inferred occupancy paths.</p>'}<details><summary>Model assumptions & limitations</summary>${[...result.assumptions,...result.limitations].map(a=>`<p>${esc(a)}</p>`).join('')}</details>`;
-    document.querySelectorAll('[data-result]').forEach(b=>b.onclick=()=>{show('map');select(b.dataset.result);map.flyTo({center:selected.coordinates,zoom:16});});
-    if(selected)select(selected.id);renderSources();state('Hybrid assessment ready');
-  }catch(error){result=null;$('#results').innerHTML='';$('#simulation-error').hidden=false;$('#simulation-error').textContent=error.message;state('Assessment unavailable');}
-  finally{running=false;$('#run').disabled=false;$('#run-results').disabled=false;$('#depth').disabled=false;}
+const number=value=>value==null?'Unavailable':value.toLocaleString();
+function parameters(){const depth=Number($('#depth').value),duration=Number($('#analysis-duration').value);if($('#depth').value===''||!Number.isFinite(depth)||depth<0||depth>30)throw new Error('Assumed flood depth must be 0–30 feet.');if(!Number.isInteger(duration)||duration<1||duration>168)throw new Error('Scenario window must be 1–168 hours.');return {floodDepthFeet:depth,durationHours:duration};}
+function busy(value){$('#run').disabled=value;$('#run-results').disabled=value;$('#depth').disabled=value;$('#analysis-duration').disabled=value;document.querySelectorAll('[data-depth-step]').forEach(button=>button.disabled=value);updateIntervention();}
+function applyResult(data,caption='HYBRID ANALYSIS / HYPOTHETICAL'){
+  if(data.locationId!==region.id||data.predictionModeUsed!=='hybrid')throw new Error('Simulation returned an incompatible region or assessment');
+  result=data;const metrics=analysisMetrics(data),ids=new Set((data.exposedBuildingFootprints??[]).map(b=>b.buildingId)),risk=new Map((data.failures??[]).map(f=>[f.nodeId,f.riskLevel])),statuses=new Map((data.failures??[]).map(f=>[f.nodeId,f.predictedStatus]));
+  source('exposure',buildings.filter(b=>ids.has(b.id)).map(b=>({...b,properties:{...b.properties,risk:risk.get(b.id),modeledStatus:statuses.get(b.id)}})));
+  const fields=[['Buildings exposed',metrics.buildings,'Actual polygon intersection'],['Facilities potentially affected',metrics.facilities,'Source records; inferred occupancy may apply'],['Population exposure estimate',metrics.population,'Census area weighting; not displacement']];
+  $('#hud-metrics').innerHTML=fields.map(([label,value])=>`<div><strong>${number(value)}</strong><span>${label}</span></div>`).join('');
+  $('#hud-caption').textContent=caption;$('#impact-hud').hidden=false;$('#results-toggle').disabled=false;$('#open-compare-results').disabled=false;
+  $('#results').innerHTML=`<div class="result-metrics">${fields.map(([label,value,note])=>`<div><span>${label}<small>${note}</small></span><strong>${number(value)}</strong></div>`).join('')}</div><p class="note">Hypothetical flood. Revenue, downtime, displacement and shelter capacity are unavailable without sourced inputs. Actual closures are unknown. Duplicate OSM representations may occur.</p><h2>Potentially affected facilities</h2>${(data.businessImpact?.affectedBusinesses??[]).map(b=>`<div class="result-row"><span>${esc(b.name)}</span><button data-result="${esc(b.businessId)}">Locate ↗</button></div>`).join('')||'<p>No affected facility records returned.</p>'}<details><summary>Assumptions & limitations</summary>${[...(data.assumptions??[]),...(data.limitations??[])].map(a=>`<p>${esc(a)}</p>`).join('')}</details>`;
+  $('#results').querySelectorAll('[data-result]').forEach(button=>button.onclick=()=>{select(button.dataset.result);if(selected?.coordinates)map.flyTo({center:selected.coordinates,zoom:16});});
+  $('#timeline-content').innerHTML=data.timeline?.length?`<ol>${data.timeline.map(event=>`<li><pre>${esc(JSON.stringify(event,null,2))}</pre></li>`).join('')}</ol>`:'<p>Timeline unavailable: this backend returns no time-step events. The scenario window is metadata; recovery and playback are not modeled.</p>';
+  if(selected)select(selected.id,{focusMap:false});renderSources();state('Hybrid assessment ready');
 }
-$('#run').onclick=()=>{show('results');simulate();};$('#run-results').onclick=simulate;
-$('#depth').onchange=()=>{if(result){result=null;source('exposure',[]);$('#results').innerHTML='<p class="empty">Depth changed. Run the scenario again to update results.</p>';if(selected)select(selected.id);}};
+function invalidateAnalysis(){if(running||comparing)return;result=analysisBaseline=comparison=null;source('exposure',[]);$('#impact-hud').hidden=true;$('#results-toggle').disabled=true;$('#open-compare-results').disabled=true;$('#comparison-views').hidden=true;$('#comparison-results').innerHTML='';$('#results').innerHTML='<p class="empty">Parameters changed. Run analysis to update results.</p>';$('#timeline-content').textContent='Run analysis for the current parameters.';if(selected)select(selected.id,{focusMap:false});updateIntervention();state('Scenario parameters changed');}
+async function simulate(){
+  if(running||comparing||!graph)return;let overrides;
+  try{overrides=parameters();}catch(error){$('#simulation-error').hidden=false;$('#simulation-error').textContent=error.message;return;}
+  invalidateAnalysis();running=true;busy(true);$('#simulation-error').hidden=true;$('#analysis-progress').hidden=false;state('Running hybrid assessment…');
+  try{const data=await request('/api/simulations/run',{scenarioId:scenario.id,overrides});applyResult(data);analysisBaseline=data;show('map');}
+  catch(error){$('#simulation-error').hidden=false;$('#simulation-error').textContent=error.message;show('console');state('Assessment unavailable');}
+  finally{running=false;busy(false);$('#analysis-progress').hidden=true;}
+}
+function updateIntervention(){const target=selected?.type==='building'?selected:null;$('#intervention-target').textContent=target?.name??'Select a building footprint on the map.';$('#compare-run').disabled=!target||!analysisBaseline||running||comparing;}
+$('#run').onclick=()=>show('console');$('#run-results').onclick=simulate;
+$('#depth').oninput=invalidateAnalysis;$('#analysis-duration').oninput=invalidateAnalysis;
+document.querySelectorAll('[data-depth-step]').forEach(button=>button.onclick=()=>{$('#depth').value=Math.max(0,Math.min(30,Number($('#depth').value)+Number(button.dataset.depthStep)));invalidateAnalysis();});
+$('#hud-details').onclick=()=>show('results');$('#hud-compare').onclick=$('#open-compare-results').onclick=()=>show('compare');
+$('#assistant-toggle').onclick=$('#hud-assistant').onclick=()=>show('assistant');
+$('#choose-intervention').onclick=()=>{show('map');state('Select a building footprint, then Compare Intervention');};
+$('#compare-run').onclick=async()=>{
+  if(comparing||running||!analysisBaseline)return;
+  let payload;try{const p=parameters();payload=interventionPayload(selected,p.floodDepthFeet,p.durationHours,scenario.id);}catch(error){$('#comparison-feedback').textContent=error.message;return;}
+  const baseline=analysisBaseline,target=selected,targetName=target.name;comparing=true;busy(true);$('#comparison-feedback').textContent='Running preservation counterfactual…';
+  try{
+    const response=await request('/api/simulations/compare',payload);
+    // The endpoint's baseline uses scenario defaults; retain the actual user analysis instead.
+    applyResult(response.modified,'INTERVENTION PREVIEW / HYPOTHETICAL');comparison={baseline,modified:response.modified,overrides:payload.modification};
+    const before=analysisMetrics(baseline),after=analysisMetrics(response.modified);
+    $('#comparison-results').innerHTML=`<p>Preserved asset: ${esc(targetName)}</p><table><thead><tr><th>Modeled measure</th><th>Before</th><th>After</th></tr></thead><tbody>${[['Exposed buildings','buildings'],['Affected facility records','facilities'],['Population exposure estimate','population']].map(([label,key])=>`<tr><td>${label}</td><td>${number(before[key])}</td><td>${number(after[key])}</td></tr>`).join('')}</tbody></table><p>Selected asset: ${esc(inspectorPresentation(target,baseline).status)} → ${esc(inspectorPresentation(target,response.modified).status)} (modeled)</p><p class="note">Preservation changes operational assumptions, not hazard geometry. Financial benefits and recovery time are unavailable.</p>`;
+    $('#comparison-views').hidden=false;$('#show-baseline').setAttribute('aria-pressed','false');$('#show-intervention').setAttribute('aria-pressed','true');$('#comparison-feedback').textContent='Comparison ready · intervention preview on map';
+  }catch(error){$('#comparison-feedback').textContent=error.message;}
+  finally{comparing=false;busy(false);}
+};
+for(const [id,key] of [['show-baseline','baseline'],['show-intervention','modified']])$('#'+id).onclick=()=>{if(!comparison)return;applyResult(comparison[key],key==='baseline'?'BASELINE / HYPOTHETICAL':'INTERVENTION PREVIEW / HYPOTHETICAL');$('#comparison-feedback').textContent=key==='baseline'?'Comparison ready · baseline preview on map':'Comparison ready · intervention preview on map';$('#show-baseline').setAttribute('aria-pressed',String(key==='baseline'));$('#show-intervention').setAttribute('aria-pressed',String(key==='modified'));};
 $('#ask-form').onsubmit=async event=>{
   event.preventDefault();if($('#ask').disabled)return;const message=$('#question').value.trim();if(!message)return;
   const conversation=$('#conversation');conversation.querySelector('.empty')?.remove();conversation.insertAdjacentHTML('beforeend',`<article class="message user"><span class="eyebrow">YOU</span>${esc(message)}</article>`);$('#ask').disabled=true;$('#ask').textContent='Investigating…';
-  try{const response=await request('/api/agent/chat',{sessionId:'richardson-production',message,context:{locationId:region.id,scenarioId:scenario.id,selectedNodeId:selected?.id,scenarioOverrides:{floodDepthFeet:Number($('#depth').value)}}});
+  try{const response=await request('/api/agent/chat',{sessionId:'richardson-production',message,context:{locationId:region.id,scenarioId:scenario.id,selectedNodeId:selected?.id,scenarioOverrides:comparison&&result===comparison.modified?comparison.overrides:{floodDepthFeet:Number($('#depth').value),durationHours:Number($('#analysis-duration').value)}}});
     conversation.insertAdjacentHTML('beforeend',`<article class="message"><span class="eyebrow">${response.provider==='nvidia'?'NVIDIA NEMOTRON':'OFFLINE TEST'}</span>${esc(response.answer||response.warnings?.join('\n')||'Provider returned no answer.')}<details><summary>Evidence & tool trace · ${esc(response.status)}</summary>${response.toolTrace.map(t=>`<p>${esc(t.toolName)} · ${esc(t.status)} · ${esc(t.summary)}</p>`).join('')}${response.warnings.map(w=>`<p>${esc(w)}</p>`).join('')}</details></article>`);
   }catch(error){conversation.insertAdjacentHTML('beforeend',`<p class="error">${esc(error.message)}</p>`);}finally{$('#ask').disabled=false;$('#ask').textContent='Investigate →';}
 };
