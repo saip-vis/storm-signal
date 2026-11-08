@@ -161,6 +161,13 @@ main {
   margin-top: 4px;
 }
 
+/*
+ * Flood-exposure color tokens (used in MapLibre layer paint — documented here
+ * for reference; not CSS layers themselves):
+ *   exposed fill:   #ff625f  opacity 0.45
+ *   exposed stroke: #ff9b55  width 2.5px
+ */
+
 /* ── Inspector panel ───────────────────────────────────── */
 .inspector {
   overflow: auto;
